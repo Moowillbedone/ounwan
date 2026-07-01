@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 오운완 (OUNWAN) — 오늘 운동 완료 💪
 
-## Getting Started
+> 바벨만 기억하는 게 아니라 **내 몸까지 기억하는**, 가장 빠르고 예쁜 **잔디 캘린더 운동 기록** 앱형 모바일 웹(PWA).
 
-First, run the development server:
+바디캘린더·번핏·Hevy·Strong 등 국내외 27개 운동기록 앱 레퍼런스 조사를 바탕으로, 승부처인 **① 초고속 세트 입력 ② 캘린더/연속기록(잔디) 습관 루프**에 집중해 만든 로컬퍼스트 PWA.
+
+## ✨ 핵심 기능 (v1)
+
+- **캘린더 홈 + 잔디 히트맵** — 운동한 날이 초록으로 물들고 연속기록(스트릭)이 자동 계산
+- **초고속 세트 입력** — 지난 기록을 무게·횟수까지 그대로 불러와 2~3탭이면 완료
+- **자동 휴식 타이머** — 세트 완료 시 운동별 기본 휴식으로 자동 시작
+- **추정 1RM · 볼륨 · PR** — 세트 완료 시 신기록 토스트, 운동별 성장 그래프
+- **재사용 루틴** — 추천 스타터 루틴 + 커스텀 루틴, "이 루틴으로 시작"
+- **한글 운동 라이브러리 151종** + 커스텀 운동 만들기
+- **체중 추이** · **부위별 볼륨** 통계
+- **로컬퍼스트 + 오프라인** — 헬스장 오프라인에서도 즉시 기록(IndexedDB), 온라인 시 자동 동기화
+- **로그인 시 기기 간 동기화** — 이메일 매직링크, 여러 기기에서 기록이 이어짐
+- **PWA** — 홈 화면 설치, 다크모드, kg/lb 단위, CSV 내보내기
+
+## 🧱 기술 스택
+
+- **Next.js 16** (App Router, 정적 익스포트) + **React 19** + **TypeScript** + **Tailwind v4**
+- **Dexie(IndexedDB)** — 로컬퍼스트 저장소 (오프라인 즉시 기록)
+- **Supabase** — 인증 + Postgres + 기기 간 동기화 (선택; 없으면 게스트 로컬 모드)
+- **React Query** — 조회/뮤테이션 캐시
+- 차트/UI 자체 구현 (외부 무거운 의존성 없음)
+
+## 🚀 로컬 실행
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Supabase 없이도 **게스트(로컬 전용) 모드**로 모든 기능이 동작합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ☁️ 기기 간 동기화 켜기 (Supabase, 무료)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+동기화는 선택입니다. 켜려면 [SETUP.md](./SETUP.md)를 따라 2분이면 됩니다.
 
-## Learn More
+1. [supabase.com](https://supabase.com) 무료 프로젝트 생성
+2. `supabase/schema.sql`을 SQL Editor에 붙여넣고 실행 (테이블 + RLS)
+3. `.env.local`에 URL/anon key 입력 (`.env.local.example` 참고)
+4. 배포 시 Vercel 환경변수에 동일하게 등록
 
-To learn more about Next.js, take a look at the following resources:
+## 📦 배포
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+정적 익스포트(`output: "export"`)라 Vercel에 그대로 배포됩니다.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run build    # out/ 생성
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+_레퍼런스 조사 → 기능 지도 → MVP 구현까지 Claude Code로 제작한 프로토타입._
