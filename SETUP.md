@@ -20,7 +20,11 @@
 - **Authentication → Providers → Email** 이 켜져 있는지 확인 (기본 ON)
 - 매직링크(비밀번호 없는 로그인)를 사용합니다
 - **Authentication → URL Configuration → Site URL** 에 배포 도메인 등록
-  - 예: `https://ounwan.vercel.app` (로컬 개발은 `http://localhost:3000` 도 추가)
+  - 예: `https://ounwan-three.vercel.app`
+- **Authentication → URL Configuration → Redirect URLs** 허용목록에도 같은 도메인 추가
+  - `https://ounwan-three.vercel.app`
+  - 로컬 개발용 `http://localhost:3000` 도 함께 추가
+  - ⚠️ 매직링크는 접속한 주소(`window.location.origin`)로 되돌아옵니다. 실제 배포 도메인이 허용목록에 없으면 로그인 링크가 깨집니다.
 
 ## 4. API 키 가져오기
 

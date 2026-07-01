@@ -95,23 +95,26 @@ async function pullTable(sb: SupabaseClient, t: SyncTable, userId: string) {
   if (error) throw error;
   if (!data || data.length === 0) return;
 
-  let maxUpdated = since;
   await db.transaction("rw", db.table(t), async () => {
     for (const row of data) {
       const remote = row.data as AnyRec;
-      remote.updatedAt = row.updated_at;
-      remote.deletedAt = row.deleted_at ?? null;
+      // 원격 타임스탬프를 표준 ISO(...Z)로 정규화 → nowISO()로 만든 로컬 값과
+      // 포맷 일치(PostgREST는 ...+00:00 로 돌려줌). localeCompare 정렬/비교 안정화.
+      remote.updatedAt = new Date(row.updated_at).toISOString();
+      remote.deletedAt = row.deleted_at
+        ? new Date(row.deleted_at).toISOString()
+        : null;
       remote._dirty = 0;
       remote.ownerId = userId;
       const local = (await db.table(t).get(remote.id)) as AnyRec | undefined;
-      // last-write-wins: 로컬이 더 최신이면 보존
-      if (!local || row.updated_at >= local.updatedAt) {
+      // last-write-wins: 시각을 epoch(ms)로 비교(문자열 포맷 불일치 방지).
+      if (!local || Date.parse(remote.updatedAt) >= Date.parse(local.updatedAt)) {
         await db.table(t).put(remote);
       }
-      if (row.updated_at > maxUpdated) maxUpdated = row.updated_at;
     }
   });
-  await KV.set(cursorKey, maxUpdated);
+  // updated_at 오름차순 정렬이므로 마지막 행이 최대값 → 정밀도 손실 없이 커서로 저장.
+  await KV.set(cursorKey, data[data.length - 1].updated_at);
 }
 
 /** 전체 동기화: push → pull */
