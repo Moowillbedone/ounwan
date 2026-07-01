@@ -212,7 +212,7 @@ export function newEmptySession(dateKey = todayKey(), indexOfDay = 1): WorkoutSe
     title: null,
     sessionIndexOfDay: indexOfDay,
     routineId: null,
-    startedAt: nowISO(),
+    startedAt: null, // '운동 시작' 누르거나 첫 세트 완료 시 설정
     endedAt: null,
     bodyweight: null,
     note: null,

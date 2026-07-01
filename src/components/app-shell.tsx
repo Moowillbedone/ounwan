@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { CalendarDays, Dumbbell, BarChart3, Settings, Plus } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { ToastProvider, cn, Spinner } from "./ui";
 import { OnboardingGate } from "./onboarding";
+import { StartWorkoutSheet } from "./start-workout";
 import { APP_NAME } from "@/lib/constants";
 
 const TABS = [
@@ -26,20 +28,19 @@ function Splash() {
   );
 }
 
-function BottomNav() {
+function BottomNav({ onStartClick }: { onStartClick: () => void }) {
   const pathname = usePathname();
-  const router = useRouter();
   return (
     <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-[480px] -translate-x-1/2 border-t border-border bg-surface/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
       <div className="relative grid grid-cols-5 h-[62px]">
         {TABS.slice(0, 2).map((t) => (
           <TabBtn key={t.href} {...t} active={pathname === t.href} />
         ))}
-        {/* 중앙 기록 FAB */}
+        {/* 중앙 운동 시작 FAB */}
         <div className="flex items-start justify-center">
           <button
-            onClick={() => router.push("/log")}
-            aria-label="운동 기록 시작"
+            onClick={onStartClick}
+            aria-label="운동 시작"
             className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-[0_6px_20px_rgba(22,196,127,0.5)] active:scale-90 transition"
           >
             <Plus size={28} strokeWidth={2.6} />
@@ -82,6 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { ready, configured, user, guestChosen } = useAuth();
   const pathname = usePathname();
   const immersive = pathname.startsWith("/log");
+  const [startOpen, setStartOpen] = useState(false);
 
   if (!ready) return <Splash />;
 
@@ -95,7 +97,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ) : (
           <>
             <main className={cn(!immersive && "pb-[86px]")}>{children}</main>
-            {!immersive && <BottomNav />}
+            {!immersive && <BottomNav onStartClick={() => setStartOpen(true)} />}
+            <StartWorkoutSheet open={startOpen} onClose={() => setStartOpen(false)} />
           </>
         )}
       </div>

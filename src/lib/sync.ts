@@ -19,6 +19,11 @@ const REMOTE: Record<SyncTable, string> = {
 type AnyRec = SyncMeta & { id: string; ownerId?: string | null; isBuiltIn?: boolean };
 
 let syncing = false;
+let onRemoteChange: (() => void) | null = null;
+/** pull로 원격 변경이 로컬에 반영되면 호출됨(React Query invalidate 연결용) */
+export function setOnRemoteChange(cb: () => void) {
+  onRemoteChange = cb;
+}
 let listeners: Array<(s: SyncState) => void> = [];
 export type SyncState = {
   status: "idle" | "syncing" | "error" | "offline";
@@ -80,7 +85,7 @@ async function pushTable(sb: SupabaseClient, t: SyncTable, userId: string) {
   });
 }
 
-async function pullTable(sb: SupabaseClient, t: SyncTable, userId: string) {
+async function pullTable(sb: SupabaseClient, t: SyncTable, userId: string): Promise<number> {
   const db = getDB();
   const cursorKey = `pull:${t}:${userId}`;
   const since = (await KV.get<string>(cursorKey)) ?? "1970-01-01T00:00:00.000Z";
@@ -93,9 +98,10 @@ async function pullTable(sb: SupabaseClient, t: SyncTable, userId: string) {
     .order("updated_at", { ascending: true })
     .limit(1000);
   if (error) throw error;
-  if (!data || data.length === 0) return;
+  if (!data || data.length === 0) return 0;
 
   let maxUpdated = since;
+  let written = 0;
   await db.transaction("rw", db.table(t), async () => {
     for (const row of data) {
       const remote = row.data as AnyRec;
@@ -107,11 +113,13 @@ async function pullTable(sb: SupabaseClient, t: SyncTable, userId: string) {
       // last-write-wins: 로컬이 더 최신이면 보존
       if (!local || row.updated_at >= local.updatedAt) {
         await db.table(t).put(remote);
+        written++;
       }
       if (row.updated_at > maxUpdated) maxUpdated = row.updated_at;
     }
   });
   await KV.set(cursorKey, maxUpdated);
+  return written;
 }
 
 /** 전체 동기화: push → pull */
@@ -131,12 +139,15 @@ export async function fullSync(): Promise<void> {
   emit({ status: "syncing" });
   try {
     for (const t of TABLES) await pushTable(sb, t, userId);
-    for (const t of TABLES) await pullTable(sb, t, userId);
+    let pulled = 0;
+    for (const t of TABLES) pulled += await pullTable(sb, t, userId);
     emit({
       status: "idle",
       lastSyncedAt: new Date().toISOString(),
       pending: await countDirty(userId),
     });
+    // 원격 변경이 로컬에 반영됐으면 UI 갱신
+    if (pulled > 0 && onRemoteChange) onRemoteChange();
   } catch (e) {
     console.error("[sync] 실패", e);
     emit({ status: "error", pending: await countDirty(userId).catch(() => 0) });

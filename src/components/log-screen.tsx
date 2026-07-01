@@ -207,6 +207,8 @@ export function LogScreen() {
       completedAt: nextCompleted ? nowISO() : null,
     });
     if (nextCompleted) {
+      // 첫 세트 완료 시 타이머 자동 시작
+      update((s) => (s.startedAt ? s : { ...s, startedAt: nowISO() }));
       // 휴식 타이머
       const meta = exMap.get(ex.exerciseId);
       const rest = meta?.defaultRestSeconds ?? 90;
@@ -225,9 +227,18 @@ export function LogScreen() {
     }
   };
 
+  const startWorkout = () => update((s) => ({ ...s, startedAt: nowISO() }));
+
   const finish = () => {
     if (session && session.exercises.length > 0) {
-      saveSession.mutate({ ...session, endedAt: nowISO() });
+      // 완료된 세트 체크시각으로 시작/종료 자동 보정
+      const stamps = session.exercises
+        .flatMap((e) => e.sets)
+        .filter((x) => x.isCompleted && x.completedAt)
+        .map((x) => x.completedAt as string)
+        .sort();
+      const startedAt = session.startedAt ?? stamps[0] ?? nowISO();
+      saveSession.mutate({ ...session, startedAt, endedAt: nowISO() });
     }
     router.push("/");
   };
@@ -267,14 +278,26 @@ export function LogScreen() {
             className="w-full bg-transparent text-base font-bold outline-none placeholder:text-text-3"
           />
           <div className="flex gap-3 text-xs text-text-3">
-            <span className="tabular-nums">{fmtDuration(elapsedSec)}</span>
+            <span className={`tabular-nums ${session.startedAt ? "text-brand font-semibold" : ""}`}>
+              {session.startedAt ? `⏱ ${fmtDuration(elapsedSec)}` : "시작 전"}
+            </span>
             <span>볼륨 {fmtNum(liveVolume)}</span>
             <span>{liveSets}세트</span>
           </div>
         </div>
-        <Button size="sm" onClick={finish}>
-          완료
-        </Button>
+        {session.startedAt ? (
+          <Button size="sm" onClick={finish}>
+            운동 완료
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            onClick={startWorkout}
+            disabled={session.exercises.length === 0}
+          >
+            운동 시작
+          </Button>
+        )}
       </header>
 
       {/* 운동 목록 */}

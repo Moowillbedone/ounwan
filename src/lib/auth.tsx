@@ -17,7 +17,13 @@ import {
   migrateLocalDataTo,
 } from "./repo";
 import { LOCAL_OWNER } from "./constants";
-import { fullSync, bindRealtime, onSyncState, type SyncState } from "./sync";
+import {
+  fullSync,
+  bindRealtime,
+  onSyncState,
+  setOnRemoteChange,
+  type SyncState,
+} from "./sync";
 
 export interface AuthUser {
   id: string;
@@ -79,6 +85,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const chosen = (await KV.get<boolean>("guestChosen")) ?? false;
       setGuestChosen(chosen);
       unsubSync = onSyncState(setSync);
+      // 다른 기기에서 pull된 최신 데이터를 즉시 화면에 반영
+      setOnRemoteChange(() => {
+        void qc.invalidateQueries();
+      });
 
       const sb = getSupabase();
       if (sb) {

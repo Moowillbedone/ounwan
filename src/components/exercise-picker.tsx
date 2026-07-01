@@ -65,7 +65,7 @@ export function ExercisePicker({
               className="flex-1"
               onClick={() => setCreating(true)}
             >
-              <Plus size={18} /> 직접 만들기
+              <Plus size={18} /> 새 운동 종목
             </Button>
             <Button
               className="flex-1"
@@ -162,7 +162,7 @@ export function ExercisePicker({
                 onClick={() => setCreating(true)}
                 className="mt-2 font-semibold text-brand"
               >
-                “{q}” 직접 만들기
+                “{q}” 새 운동으로 추가
               </button>
             </div>
           )}
