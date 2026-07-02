@@ -49,6 +49,19 @@ const MODE_LABEL: Record<TrackingMode, string> = {
   time: "시간만",
 };
 
+const SET_TYPES: {
+  value: WorkoutSet["setType"];
+  label: string;
+  desc: string;
+  badge: string;
+  color: string;
+}[] = [
+  { value: "working", label: "본세트", desc: "정식 세트 · 볼륨에 집계돼요", badge: "●", color: "var(--brand)" },
+  { value: "warmup", label: "웜업 (W)", desc: "준비운동 · 볼륨 집계에서 제외돼요", badge: "W", color: "var(--warn)" },
+  { value: "drop", label: "드랍셋 (D)", desc: "무게를 줄여 곧바로 이어가는 세트", badge: "D", color: "var(--bp-arms)" },
+  { value: "failure", label: "실패셋 (F)", desc: "더 못 들 때까지 수행한 세트", badge: "F", color: "var(--danger)" },
+];
+
 function defaultModeFor(category?: string): TrackingMode {
   if (category === "cardio" || category === "stretching") return "time";
   if (category === "bodyweight") return "reps";
@@ -649,6 +662,7 @@ function SetRow({
   onToggle: () => void;
   onRemove: () => void;
 }) {
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const step = unit === "lb" ? 5 : 2.5;
 
   const weightField = (
@@ -717,6 +731,7 @@ function SetRow({
   );
 
   return (
+    <>
     <div
       className={cn(
         "grid items-center gap-1 rounded-lg py-1 transition",
@@ -725,13 +740,9 @@ function SetRow({
       )}
     >
       <button
-        onClick={() => {
-          const order: WorkoutSet["setType"][] = ["working", "warmup", "drop", "failure"];
-          const next = order[(order.indexOf(set.setType) + 1) % order.length];
-          onPatch({ setType: next });
-        }}
-        className="grid h-7 w-7 place-items-center rounded-full text-[13px] font-bold text-text-2"
-        title="세트 유형 변경"
+        onClick={() => setOptionsOpen(true)}
+        className="grid h-7 w-7 place-items-center rounded-full text-[13px] font-bold text-text-2 active:bg-surface-2"
+        title="세트 유형 · 삭제"
       >
         {set.setType === "working" ? (
           index
@@ -761,10 +772,6 @@ function SetRow({
       <div className="flex items-center justify-center">
         <button
           onClick={onToggle}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            onRemove();
-          }}
           className={cn(
             "grid h-8 w-8 place-items-center rounded-full border-2 transition active:scale-90",
             set.isCompleted ? "border-brand bg-brand text-white" : "border-border text-text-3"
@@ -775,6 +782,56 @@ function SetRow({
         </button>
       </div>
     </div>
+
+    <Sheet
+      open={optionsOpen}
+      onClose={() => setOptionsOpen(false)}
+      title={`${index}세트 설정`}
+    >
+      <div className="mb-2 text-sm font-bold text-text-2">세트 유형</div>
+      <div className="space-y-1.5">
+        {SET_TYPES.map((t) => (
+          <button
+            key={t.value}
+            onClick={() => {
+              onPatch({ setType: t.value });
+              setOptionsOpen(false);
+            }}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-app border p-3 text-left transition",
+              set.setType === t.value ? "border-brand bg-brand-soft/50" : "border-border"
+            )}
+          >
+            <span
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold"
+              style={{
+                background: `color-mix(in srgb, ${t.color} 18%, transparent)`,
+                color: t.color,
+              }}
+            >
+              {t.badge}
+            </span>
+            <span className="flex-1">
+              <span className="block font-semibold">{t.label}</span>
+              <span className="block text-xs text-text-3">{t.desc}</span>
+            </span>
+            {set.setType === t.value && <Check size={16} className="text-brand" />}
+          </button>
+        ))}
+      </div>
+      <Button
+        variant="danger"
+        size="lg"
+        className="mt-4"
+        onClick={() => {
+          onRemove();
+          setOptionsOpen(false);
+        }}
+      >
+        <Trash2 size={18} /> 이 세트 삭제
+      </Button>
+    </Sheet>
+    </>
   );
 }
 
