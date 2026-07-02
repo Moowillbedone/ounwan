@@ -206,6 +206,21 @@ export async function deleteSession(id: string): Promise<void> {
   await db.sessions.put(touch({ ...s, deletedAt: nowISO() }));
 }
 
+/**
+ * 일회성 정리: 과거 붙여넣기가 자동으로 붙였던 제목 '복사한 운동'을 제거(제목 null).
+ * 현재 소유자(로컬/유저)의 세션만 대상. 변경분은 dirty로 표시돼 다음 동기화에 반영됨.
+ * 반환: 정리된 세션 수.
+ */
+export async function clearCopiedTitles(): Promise<number> {
+  const db = getDB();
+  const all = await db.sessions.where("ownerId").equals(_owner).toArray();
+  const targets = all.filter((s) => !s.deletedAt && s.title === "복사한 운동");
+  for (const s of targets) {
+    await db.sessions.put(touch({ ...s, title: null }));
+  }
+  return targets.length;
+}
+
 export function newEmptySession(dateKey = todayKey(), indexOfDay = 1): WorkoutSession {
   return {
     id: uid(),

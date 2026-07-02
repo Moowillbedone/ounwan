@@ -145,7 +145,9 @@ export function DayDetailSheet({
     const idx = nextIndexForDate(dateKey);
     const base = newEmptySession(dateKey, idx);
     base.startedAt = null;
-    base.title = clip.title ?? null; // 복사본이라는 태그 대신, 원래 제목만 유지(없으면 일반 세션처럼)
+    // 복사본이라는 태그 대신 원래 제목만 유지. 과거 '복사한 운동' 태그는 무시.
+    base.title =
+      clip.title && clip.title !== "복사한 운동" ? clip.title : null;
     base.label = clip.label ?? null;
     base.labelColor = clip.labelColor ?? null;
     base.exercises = clip.exercises.map((e, i) => ({

@@ -28,7 +28,13 @@ function Splash() {
   );
 }
 
-function BottomNav({ onStartClick }: { onStartClick: () => void }) {
+function BottomNav({
+  onStartClick,
+  startActive,
+}: {
+  onStartClick: () => void;
+  startActive: boolean;
+}) {
   const pathname = usePathname();
   return (
     <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-[480px] -translate-x-1/2 border-t border-border bg-surface/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
@@ -36,16 +42,17 @@ function BottomNav({ onStartClick }: { onStartClick: () => void }) {
         {TABS.slice(0, 2).map((t) => (
           <TabBtn key={t.href} {...t} active={pathname === t.href} />
         ))}
-        {/* 중앙 '운동 시작' — 탭 정렬 안에 인라인 배치(돌출 FAB 제거) */}
+        {/* 중앙 '운동' — 다른 탭과 동일 스타일, 시작 시트 열려 있을 때 활성 */}
         <button
           onClick={onStartClick}
-          aria-label="운동 시작"
-          className="flex flex-col items-center justify-center gap-1 text-[11px] font-semibold text-brand transition active:scale-95"
+          aria-label="운동"
+          className={cn(
+            "flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition active:scale-95",
+            startActive ? "text-brand" : "text-text-3"
+          )}
         >
-          <span className="grid h-7 w-7 place-items-center rounded-full bg-brand text-white shadow-[0_2px_8px_rgba(22,196,127,0.4)]">
-            <Plus size={18} strokeWidth={2.8} />
-          </span>
-          운동 시작
+          <Plus size={22} strokeWidth={startActive ? 2.6 : 2} />
+          운동
         </button>
         {TABS.slice(2).map((t) => (
           <TabBtn key={t.href} {...t} active={pathname === t.href} />
@@ -98,7 +105,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ) : (
           <>
             <main className={cn(!immersive && "pb-[86px]")}>{children}</main>
-            {!immersive && <BottomNav onStartClick={() => setStartOpen(true)} />}
+            {!immersive && (
+              <BottomNav
+                onStartClick={() => setStartOpen(true)}
+                startActive={startOpen}
+              />
+            )}
             <StartWorkoutSheet open={startOpen} onClose={() => setStartOpen(false)} />
           </>
         )}
