@@ -132,6 +132,15 @@ export function relativeDayLabel(key: string): string {
 }
 
 /** 연속기록(스트릭) 계산 — 운동한 날짜 집합 기준 */
+/**
+ * 실제로 '완료'된 운동 세션인지 판정.
+ * [운동 시작]→[운동 종료]로 endedAt이 찍힌 세션만 완료로 본다.
+ * (미래 요일에 미리 저장해둔 계획 세션이나 진행 중 세션은 제외 → 연속기록·통계 카운트에서 빠짐)
+ */
+export function isSessionDone(s: { endedAt?: string | null }): boolean {
+  return !!s.endedAt;
+}
+
 /** 주(週) 시작 자정의 epoch(ms). weekStartsOn: 0=일요일, 1=월요일. 로컬 타임존 기준. */
 function weekStartMs(key: string, weekStartsOn: 0 | 1): number {
   const d = dateKeyToDate(key);

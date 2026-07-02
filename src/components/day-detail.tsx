@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ChevronRight,
   Plus,
@@ -10,6 +10,7 @@ import {
   Trash2,
   Copy,
   ClipboardPaste,
+  CalendarArrowDown,
 } from "lucide-react";
 import { Sheet, Button, Chip, EmptyState, IconButton, useToast, useConfirm } from "./ui";
 import { LabelField } from "./label-field";
@@ -23,7 +24,7 @@ import {
 } from "@/lib/hooks";
 import { newEmptySession } from "@/lib/repo";
 import { BODY_PART_META } from "@/lib/constants";
-import { fmtNum, fmtWeight, relativeDayLabel, dateKeyToDate, uid } from "@/lib/utils";
+import { fmtNum, fmtWeight, relativeDayLabel, dateKeyToDate, uid, todayKey } from "@/lib/utils";
 import {
   useClipboard,
   setClipboard,
@@ -49,6 +50,16 @@ export function DayDetailSheet({
   const saveSession = useSaveSession();
   const clip = useClipboard();
   const unit = profile?.unit ?? "kg";
+  const [moveTarget, setMoveTarget] = useState<WorkoutSession | null>(null);
+  const [moveDate, setMoveDate] = useState<string>(() => todayKey());
+
+  // 대상 날짜의 다음 세션 인덱스(기존 max+1) — 이동/붙여넣기로 갭이 생겨도 충돌 없음
+  const nextIndexForDate = (date: string, excludeId?: string) => {
+    const idxs = (sessions ?? [])
+      .filter((s) => s.date === date && s.id !== excludeId)
+      .map((s) => s.sessionIndexOfDay);
+    return (idxs.length ? Math.max(...idxs) : 0) + 1;
+  };
 
   const daySessions = useMemo(
     () =>
@@ -96,6 +107,28 @@ export function DayDetailSheet({
     toast(`복사됨 · ${names}${s.exercises.length > 2 ? " 외" : ""} — 다른 날짜에 붙여넣기`);
   };
 
+  const openMove = (s: WorkoutSession) => {
+    setMoveTarget(s);
+    setMoveDate(todayKey());
+  };
+
+  const doMove = async () => {
+    if (!moveTarget || !moveDate) return;
+    if (moveDate === moveTarget.date) {
+      toast("이미 그 날짜예요");
+      setMoveTarget(null);
+      return;
+    }
+    await saveSession.mutateAsync({
+      ...moveTarget,
+      date: moveDate,
+      sessionIndexOfDay: nextIndexForDate(moveDate, moveTarget.id),
+    });
+    const dd = dateKeyToDate(moveDate);
+    toast(`${dd.getMonth() + 1}월 ${dd.getDate()}일로 이동했어요`);
+    setMoveTarget(null);
+  };
+
   const doDelete = async (s: WorkoutSession) => {
     const label =
       s.title ||
@@ -108,8 +141,8 @@ export function DayDetailSheet({
   };
 
   const doPaste = async () => {
-    if (!clip) return;
-    const idx = daySessions.length + 1;
+    if (!clip || !dateKey) return;
+    const idx = nextIndexForDate(dateKey);
     const base = newEmptySession(dateKey, idx);
     base.startedAt = null;
     base.title = clip.title || "복사한 운동";
@@ -136,6 +169,7 @@ export function DayDetailSheet({
   };
 
   return (
+    <>
     <Sheet
       open={!!dateKey}
       onClose={onClose}
@@ -196,6 +230,7 @@ export function DayDetailSheet({
               unit={unit}
               onOpen={() => router.push(`/log?id=${s.id}`)}
               onCopy={() => doCopy(s)}
+              onMove={() => openMove(s)}
               onDelete={() => doDelete(s)}
               onSetLabel={(label) => saveSession.mutate({ ...s, label: label || null })}
               onSetLabelColor={(color) => saveSession.mutate({ ...s, labelColor: color })}
@@ -204,6 +239,52 @@ export function DayDetailSheet({
         </div>
       )}
     </Sheet>
+
+    <Sheet
+      open={!!moveTarget}
+      onClose={() => setMoveTarget(null)}
+      title="다른 날짜로 이동"
+      footer={
+        <Button size="lg" className="w-full" onClick={doMove}>
+          <CalendarArrowDown size={20} /> 여기로 이동
+        </Button>
+      }
+    >
+      <p className="mb-3 text-sm text-text-3">
+        복사가 아니라 <b className="text-text-2">이동</b>이에요. 원래 날짜에서는
+        사라지고 선택한 날짜로 옮겨져요.
+      </p>
+      {moveTarget && (
+        <div className="mb-4 rounded-app border border-border bg-surface-2 px-3 py-2.5 text-sm">
+          <div className="font-semibold">
+            {moveTarget.title ||
+              moveTarget.bodyParts.join("·") ||
+              `${moveTarget.exercises.length}개 운동`}
+          </div>
+          <div className="mt-0.5 text-xs text-text-3">
+            {(() => {
+              const d = dateKeyToDate(moveTarget.date);
+              return `현재 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+            })()}
+          </div>
+        </div>
+      )}
+      <label className="mb-1 block text-sm font-semibold text-text-2">
+        이동할 날짜
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          type="date"
+          value={moveDate}
+          onChange={(e) => setMoveDate(e.target.value)}
+          className="flex-1 rounded-app border border-border bg-surface px-3 py-3 text-base"
+        />
+        <Button variant="soft" onClick={() => setMoveDate(todayKey())}>
+          오늘
+        </Button>
+      </div>
+    </Sheet>
+    </>
   );
 }
 
@@ -213,6 +294,7 @@ export function SessionSummaryCard({
   unit,
   onOpen,
   onCopy,
+  onMove,
   onDelete,
   onSetLabel,
   onSetLabelColor,
@@ -222,6 +304,7 @@ export function SessionSummaryCard({
   unit: "kg" | "lb";
   onOpen?: () => void;
   onCopy?: () => void;
+  onMove?: () => void;
   onDelete?: () => void;
   onSetLabel?: (label: string) => void;
   onSetLabelColor?: (color: string) => void;
@@ -254,6 +337,11 @@ export function SessionSummaryCard({
           </span>
           <ChevronRight size={18} className="text-text-3 shrink-0 ml-auto" />
         </button>
+        {onMove && (
+          <IconButton onClick={onMove} aria-label="다른 날짜로 이동" className="h-9 w-9 shrink-0">
+            <CalendarArrowDown size={17} />
+          </IconButton>
+        )}
         {onCopy && (
           <IconButton onClick={onCopy} aria-label="복사" className="h-9 w-9 shrink-0">
             <Copy size={17} />

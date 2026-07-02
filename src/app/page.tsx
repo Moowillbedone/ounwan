@@ -12,7 +12,7 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { useSessions, useBodyMetrics, useProfile } from "@/lib/hooks";
-import { toDateKey, todayKey, fmtNum, computeStreak, dateKeyToDate } from "@/lib/utils";
+import { toDateKey, todayKey, fmtNum, computeStreak, dateKeyToDate, isSessionDone } from "@/lib/utils";
 import { BODY_PART_META, DEFAULT_LABEL_COLOR } from "@/lib/constants";
 import { Heatmap, HeatmapLegend } from "@/components/heatmap";
 import { DayDetailSheet } from "@/components/day-detail";
@@ -44,31 +44,39 @@ export default function HomePage() {
     return m;
   }, [metrics]);
 
-  // 잔디 레벨: 하루 '완료 세트수' 기준. 완료 세트 0이면 미기록(회색)으로 남겨 신뢰성 유지.
+  // 잔디: '운동을 완료(종료)한 날'만 초록. 계획만 저장한 미래 날짜/진행 중 세션은 제외.
+  // 레벨은 그날 완료 세션들의 완료 세트수 기준.
   const heatData = useMemo(() => {
     const m = new Map<string, number>();
     for (const [date, arr] of byDate) {
-      const sets = arr.reduce((n, s) => n + s.totalSets, 0);
-      if (sets > 0) m.set(date, sets < 9 ? 1 : sets < 17 ? 2 : sets < 25 ? 3 : 4);
+      const done = arr.filter(isSessionDone);
+      if (done.length === 0) continue;
+      const sets = done.reduce((n, s) => n + s.totalSets, 0);
+      m.set(date, sets < 9 ? 1 : sets < 17 ? 2 : sets < 25 ? 3 : 4);
     }
     return m;
   }, [byDate]);
 
-  // 신규·데이터 적은 유저는 잔디 범위를 좁혀(최소 8주) 휑함을 줄이고, 쌓이면 15주까지 확장
+  // 신규·데이터 적은 유저는 잔디 범위를 좁혀(최소 8주) 휑함을 줄이고, 쌓이면 15주까지 확장.
+  // 첫 완료일~오늘 경과 주 기준. todayKey()를 deps에 둬 날짜가 바뀌면 다시 계산.
+  const today = todayKey();
   const heatWeeks = useMemo(() => {
     let min: string | null = null;
-    for (const k of byDate.keys()) if (!min || k < min) min = k;
+    for (const k of heatData.keys()) if (!min || k < min) min = k;
     if (!min) return 8;
-    const days = Math.round((Date.now() - dateKeyToDate(min).getTime()) / 86400000);
+    const days = Math.round(
+      (dateKeyToDate(today).getTime() - dateKeyToDate(min).getTime()) / 86400000
+    );
     return Math.min(15, Math.max(8, Math.floor(days / 7) + 1));
-  }, [byDate]);
+  }, [heatData, today]);
 
+  // 연속기록: '완료한 날'만 대상(잔디와 동일 기준)
   const streak = useMemo(
-    () => computeStreak(new Set(byDate.keys()), weekStartsOn),
-    [byDate, weekStartsOn]
+    () => computeStreak(new Set(heatData.keys()), weekStartsOn),
+    [heatData, weekStartsOn]
   );
 
-  // 이번 달 통계
+  // 이번 달 통계 (운동 일수는 '완료한 날'만, 볼륨/세트는 완료 세트 합계)
   const monthStats = useMemo(() => {
     let days = 0;
     let volume = 0;
@@ -76,7 +84,7 @@ export default function HomePage() {
     for (const [date, arr] of byDate) {
       const d = new Date(date);
       if (isSameMonth(d, monthCursor)) {
-        days++;
+        if (arr.some(isSessionDone)) days++;
         volume += arr.reduce((n, s) => n + s.totalVolume, 0);
         sets += arr.reduce((n, s) => n + s.totalSets, 0);
       }

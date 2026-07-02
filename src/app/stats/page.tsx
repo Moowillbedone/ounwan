@@ -1,18 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Flame, TrendingUp, Scale, Trophy, Plus } from "lucide-react";
+import { Flame, TrendingUp, Scale, Trophy, Plus, SlidersHorizontal, Eye, EyeOff } from "lucide-react";
 import {
   useSessions,
   useExercises,
   useExerciseHistory,
   useBodyMetrics,
   useProfile,
+  useUpdateProfile,
   useUpsertBodyMetric,
   useExerciseMap,
 } from "@/lib/hooks";
 import { LineChart, HBars } from "@/components/charts";
-import { Sheet, Button, cn, EmptyState } from "@/components/ui";
+import { Sheet, Button, cn, EmptyState, IconButton } from "@/components/ui";
 import { BODY_PART_META, BODY_PARTS } from "@/lib/constants";
 import {
   computeStreak,
@@ -23,6 +24,7 @@ import {
   fromDisplayWeight,
   todayKey,
   dateKeyToDate,
+  isSessionDone,
 } from "@/lib/utils";
 import type { BodyPart, Exercise, Unit } from "@/lib/types";
 
@@ -38,17 +40,20 @@ export default function StatsPage() {
 
   const weekStartsOn: 0 | 1 = profile?.weekStartsMonday === false ? 0 : 1;
 
-  // 요약
+  // 요약 (운동 일수·연속기록은 '완료(종료)한 날'만 카운트, 볼륨은 완료 세트 합계)
   const summary = useMemo(() => {
     const all = sessions ?? [];
     const totalVol = all.reduce((n, s) => n + s.totalVolume, 0);
-    const streak = computeStreak(new Set(all.map((s) => s.date)), weekStartsOn);
+    const doneDates = all.filter(isSessionDone).map((s) => s.date);
+    const streak = computeStreak(new Set(doneDates), weekStartsOn);
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const thisWeek = new Set(
-      all.filter((s) => dateKeyToDate(s.date) >= weekAgo).map((s) => s.date)
+      all
+        .filter((s) => isSessionDone(s) && dateKeyToDate(s.date) >= weekAgo)
+        .map((s) => s.date)
     ).size;
-    return { count: new Set(all.map((s) => s.date)).size, totalVol, streak, thisWeek };
+    return { count: new Set(doneDates).size, totalVol, streak, thisWeek };
   }, [sessions, weekStartsOn]);
 
   // 부위별 볼륨(최근 28일)
@@ -84,9 +89,49 @@ export default function StatsPage() {
       .filter(Boolean) as Exercise[];
   }, [sessions, exMap]);
 
+  // 1RM 측정 가능한 종목만: 완료 세트 중 '중량>0'이 하나라도 있는 종목
+  // (스트레칭·맨몸운동은 매번 0으로 나와 자동 제외)
+  const measurableIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const sess of sessions ?? [])
+      for (const ex of sess.exercises)
+        if (ex.sets.some((x) => x.isCompleted && x.weight > 0)) s.add(ex.exerciseId);
+    return s;
+  }, [sessions]);
+
+  // 내용 기반 deps(참조 아님) — 프로필 리페치로 배열 참조가 바뀌어도 값이 같으면 재계산 안 함
+  const hiddenKey = (profile?.hiddenStats ?? []).join(",");
+  const hiddenIds = useMemo(
+    () => new Set(profile?.hiddenStats ?? []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hiddenKey]
+  );
+  // 그래프 대상이 될 수 있는 종목(측정 가능 & 훈련됨)
+  const eligible = useMemo(
+    () => trained.filter((e) => measurableIds.has(e.id)),
+    [trained, measurableIds]
+  );
+  // 실제 노출(사용자가 숨긴 것 제외)
+  const visibleTrained = useMemo(
+    () => eligible.filter((e) => !hiddenIds.has(e.id)),
+    [eligible, hiddenIds]
+  );
+  const nonMeasurableCount = trained.length - eligible.length;
+
+  const [filterOpen, setFilterOpen] = useState(false);
   const [selectedEx, setSelectedEx] = useState<string | null>(null);
-  const activeEx = selectedEx ?? trained[0]?.id ?? null;
+  const activeEx =
+    selectedEx && visibleTrained.some((e) => e.id === selectedEx)
+      ? selectedEx
+      : visibleTrained[0]?.id ?? null;
   const { data: history } = useExerciseHistory(activeEx);
+
+  const updateProfile = useUpdateProfile();
+  const toggleHidden = (id: string) => {
+    const cur = profile?.hiddenStats ?? [];
+    const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+    updateProfile.mutate({ hiddenStats: next });
+  };
 
   const oneRMPoints = useMemo(
     () =>
@@ -137,15 +182,32 @@ export default function StatsPage() {
 
       {/* 운동별 성장 */}
       <section className="rounded-app border border-border bg-surface p-4 shadow-[var(--shadow-card)]">
-        <div className="mb-2 font-bold">운동별 성장 (추정 1RM)</div>
-        {trained.length === 0 ? (
+        <div className="mb-2 flex items-center justify-between">
+          <div className="font-bold">운동별 성장 (추정 1RM)</div>
+          {eligible.length > 0 && (
+            <IconButton
+              onClick={() => setFilterOpen(true)}
+              aria-label="표시할 종목 필터"
+              className="h-8 w-8 text-text-3"
+            >
+              <SlidersHorizontal size={16} />
+            </IconButton>
+          )}
+        </div>
+        {eligible.length === 0 ? (
           <div className="py-8 text-center text-sm text-text-3">
-            운동을 기록하면 성장 그래프가 그려져요
+            {trained.length === 0
+              ? "운동을 기록하면 성장 그래프가 그려져요"
+              : "중량 운동을 기록하면 추정 1RM 성장이 그려져요"}
+          </div>
+        ) : visibleTrained.length === 0 ? (
+          <div className="py-8 text-center text-sm text-text-3">
+            모든 종목을 숨겼어요. 우측 상단 필터에서 다시 켜보세요.
           </div>
         ) : (
           <>
             <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
-              {trained.slice(0, 12).map((e) => (
+              {visibleTrained.slice(0, 12).map((e) => (
                 <button
                   key={e.id}
                   onClick={() => setSelectedEx(e.id)}
@@ -167,6 +229,11 @@ export default function StatsPage() {
               </div>
             )}
           </>
+        )}
+        {nonMeasurableCount > 0 && (
+          <p className="mt-3 text-[11px] leading-snug text-text-3">
+            중량이 없는 {nonMeasurableCount}개 종목(맨몸·스트레칭 등)은 1RM 측정이 어려워 제외했어요.
+          </p>
         )}
       </section>
 
@@ -207,6 +274,41 @@ export default function StatsPage() {
       )}
 
       <BodyweightSheet open={bwOpen} unit={unit} onClose={() => setBwOpen(false)} />
+
+      {/* 성장 그래프 종목 필터 */}
+      <Sheet
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        title="성장 그래프에 표시할 종목"
+      >
+        <p className="mb-3 text-sm text-text-3">
+          보고 싶은 종목만 남겨보세요. 숨긴 종목은 그래프 목록에서 빠져요.
+        </p>
+        <div className="space-y-1.5">
+          {eligible.map((e) => {
+            const hidden = hiddenIds.has(e.id);
+            return (
+              <button
+                key={e.id}
+                onClick={() => toggleHidden(e.id)}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-app border px-3 py-2.5 text-left transition",
+                  hidden
+                    ? "border-border bg-surface text-text-3"
+                    : "border-brand/40 bg-brand-soft/40 text-text"
+                )}
+              >
+                <span className="font-semibold">{e.nameKo}</span>
+                {hidden ? (
+                  <EyeOff size={18} className="text-text-3" />
+                ) : (
+                  <Eye size={18} className="text-brand" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </Sheet>
     </div>
   );
 }
