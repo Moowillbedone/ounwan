@@ -17,6 +17,7 @@ import { LoginForm } from "@/components/onboarding";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { useProfile, useUpdateProfile } from "@/lib/hooks";
+import { playRestDoneChime, armFeedback } from "@/lib/feedback";
 import * as repo from "@/lib/repo";
 import { APP_NAME } from "@/lib/constants";
 import type { ThemePref, Unit } from "@/lib/types";
@@ -146,6 +147,28 @@ export default function SettingsPage() {
               { value: "sun", label: "일요일" },
             ]}
             onChange={(v) => updateProfile.mutate({ weekStartsMonday: v === "mon" })}
+          />
+        </div>
+        <div className="flex items-center justify-between px-4 py-3">
+          <div>
+            <div className="text-sm font-semibold">휴식 종료 알림</div>
+            <button
+              onClick={() => {
+                armFeedback();
+                playRestDoneChime();
+              }}
+              className="mt-0.5 text-xs font-semibold text-brand"
+            >
+              소리 미리듣기 ♪
+            </button>
+          </div>
+          <Segmented<string>
+            value={profile?.restAlert !== false ? "on" : "off"}
+            options={[
+              { value: "on", label: "켜기" },
+              { value: "off", label: "끄기" },
+            ]}
+            onChange={(v) => updateProfile.mutate({ restAlert: v === "on" })}
           />
         </div>
         <div className="px-4 py-3">

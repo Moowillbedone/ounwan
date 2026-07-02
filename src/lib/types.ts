@@ -135,6 +135,7 @@ export interface Profile extends SyncMeta {
   unit: Unit;
   theme: ThemePref;
   weekStartsMonday: boolean;
+  restAlert?: boolean; // 휴식 종료 알림(소리·진동) — 미지정=켜짐
   onboardedAt?: string | null;
 }
 

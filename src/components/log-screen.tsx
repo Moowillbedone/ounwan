@@ -19,6 +19,7 @@ import { Button, IconButton, Sheet, useToast, EmptyState, cn } from "./ui";
 import { ExercisePicker } from "./exercise-picker";
 import { RestTimer } from "./rest-timer";
 import { useSaveSession, useProfile, useExerciseMap } from "@/lib/hooks";
+import { armFeedback } from "@/lib/feedback";
 import * as repo from "@/lib/repo";
 import {
   uid,
@@ -262,6 +263,7 @@ export function LogScreen() {
     });
     if (nextCompleted) {
       update((s) => (s.startedAt ? s : { ...s, startedAt: nowISO() }));
+      armFeedback(); // 제스처 안에서 오디오 언락(휴식 종료음 대비)
       const meta = exMap.get(ex.exerciseId);
       const rest = effectiveRest(ex, meta);
       if (rest > 0) setRestEndsAt(Date.now() + rest * 1000);

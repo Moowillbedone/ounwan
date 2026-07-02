@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Plus, Minus, Timer } from "lucide-react";
 import { fmtDuration } from "@/lib/utils";
+import { vibrate, playRestDoneChime } from "@/lib/feedback";
+import { useProfile } from "@/lib/hooks";
 
 export function RestTimer({
   endsAt,
@@ -13,22 +15,37 @@ export function RestTimer({
   setEndsAt: (v: number | null) => void;
   onClose: () => void;
 }) {
+  const { data: profile } = useProfile();
+  const alertRef = useRef(true);
+  alertRef.current = profile?.restAlert !== false;
   const [remaining, setRemaining] = useState(0);
   const buzzed = useRef(false);
+  const lastRem = useRef(-1);
 
   useEffect(() => {
-    if (!endsAt) return;
+    if (!endsAt) {
+      lastRem.current = -1;
+      return;
+    }
     buzzed.current = false;
     const tick = () => {
-      const rem = Math.max(0, Math.round((endsAt - Date.now()) / 1000));
+      const rem = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
       setRemaining(rem);
+      if (rem !== lastRem.current) {
+        // 종료 5초 전부터 매초 카운트다운 진동
+        if (alertRef.current && rem >= 1 && rem <= 5) vibrate(70);
+        lastRem.current = rem;
+      }
       if (rem <= 0 && !buzzed.current) {
         buzzed.current = true;
-        if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+        if (alertRef.current) {
+          vibrate([120, 60, 120]);
+          playRestDoneChime();
+        }
       }
     };
     tick();
-    const iv = setInterval(tick, 250);
+    const iv = setInterval(tick, 200);
     return () => clearInterval(iv);
   }, [endsAt]);
 
