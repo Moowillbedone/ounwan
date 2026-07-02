@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Plus, Minus, Timer } from "lucide-react";
 import { fmtDuration } from "@/lib/utils";
-import { vibrate, playRestSound } from "@/lib/feedback";
+import { vibrate, scheduleRestSound, cancelScheduledRestSound } from "@/lib/feedback";
 import { useProfile } from "@/lib/hooks";
 import type { RestSound } from "@/lib/types";
 
@@ -31,25 +31,30 @@ export function RestTimer({
       return;
     }
     buzzed.current = false;
+    // 백그라운드에서도 정시에 울리도록 종료음을 오디오 타임라인에 예약
+    if (alertRef.current) {
+      scheduleRestSound(soundRef.current, (endsAt - Date.now()) / 1000);
+    }
     const tick = () => {
       const rem = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
       setRemaining(rem);
       if (rem !== lastRem.current) {
-        // 종료 5초 전부터 매초 카운트다운 진동
+        // 종료 5초 전부터 매초 카운트다운 진동(포그라운드)
         if (alertRef.current && rem >= 1 && rem <= 5) vibrate(70);
         lastRem.current = rem;
       }
       if (rem <= 0 && !buzzed.current) {
         buzzed.current = true;
-        if (alertRef.current) {
-          vibrate([120, 60, 120]);
-          playRestSound(soundRef.current);
-        }
+        // 소리는 예약분(scheduleRestSound)이 담당 → 진동만
+        if (alertRef.current) vibrate([120, 60, 120]);
       }
     };
     tick();
     const iv = setInterval(tick, 200);
-    return () => clearInterval(iv);
+    return () => {
+      clearInterval(iv);
+      cancelScheduledRestSound();
+    };
   }, [endsAt]);
 
   if (!endsAt) return null;

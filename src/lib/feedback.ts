@@ -75,25 +75,103 @@ const SOUND_NOTES: Record<RestSound, Note[]> = {
   ],
 };
 
-/** 휴식 종료 알림음 재생(기본 chime). Web Audio라 시스템 출력·볼륨을 그대로 따른다. */
-export function playRestSound(sound: RestSound = "chime") {
-  const c = getCtx();
-  if (!c) return;
-  if (c.state === "suspended") c.resume().catch(() => {});
-  const now = c.currentTime;
+function emitNotes(
+  c: AudioContext,
+  sound: RestSound,
+  base: number,
+  collect?: { osc: OscillatorNode; gain: GainNode }[]
+) {
   const notes = SOUND_NOTES[sound] ?? SOUND_NOTES.chime;
   for (const { f, t, dur, type = "sine", peak = 0.3 } of notes) {
     const osc = c.createOscillator();
     const gain = c.createGain();
     osc.type = type;
     osc.frequency.value = f;
-    const start = now + t;
+    const start = base + t;
     gain.gain.setValueAtTime(0.0001, start);
     gain.gain.exponentialRampToValueAtTime(peak, start + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
     osc.connect(gain);
     gain.connect(c.destination);
     osc.start(start);
-    osc.stop(start + dur + 0.03);
+    osc.stop(start + dur + 0.05);
+    collect?.push({ osc, gain });
   }
+}
+
+/** 휴식 종료 알림음 즉시 재생(미리듣기 등). */
+export function playRestSound(sound: RestSound = "chime") {
+  const c = getCtx();
+  if (!c) return;
+  if (c.state === "suspended") c.resume().catch(() => {});
+  emitNotes(c, sound, c.currentTime);
+}
+
+// --- 백그라운드 대응: 종료음을 오디오 타임라인에 예약 + 무음 keep-alive로 컨텍스트 유지 ---
+let scheduled: { osc: OscillatorNode; gain: GainNode }[] = [];
+let keepAlive: { osc: OscillatorNode; gain: GainNode } | null = null;
+
+function startKeepAlive(stopAt: number) {
+  const c = getCtx();
+  if (!c) return;
+  stopKeepAlive();
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sine";
+  osc.frequency.value = 440;
+  gain.gain.value = 0.00015; // 사실상 무음(약 -76dB) — 컨텍스트만 살려둠
+  osc.connect(gain);
+  gain.connect(c.destination);
+  osc.start();
+  try {
+    if (stopAt) osc.stop(stopAt);
+  } catch {
+    /* noop */
+  }
+  keepAlive = { osc, gain };
+}
+function stopKeepAlive() {
+  if (!keepAlive) return;
+  try {
+    keepAlive.osc.stop();
+  } catch {
+    /* noop */
+  }
+  try {
+    keepAlive.osc.disconnect();
+    keepAlive.gain.disconnect();
+  } catch {
+    /* noop */
+  }
+  keepAlive = null;
+}
+
+/** 종료음을 delaySec 뒤에 울리도록 오디오 타임라인에 예약(백그라운드에서도 발화). */
+export function scheduleRestSound(sound: RestSound, delaySec: number) {
+  cancelScheduledRestSound();
+  const c = getCtx();
+  if (!c || delaySec <= 0) return;
+  if (c.state === "suspended") c.resume().catch(() => {});
+  const base = c.currentTime + delaySec;
+  emitNotes(c, sound, base, scheduled);
+  startKeepAlive(base + 3);
+}
+
+/** 예약된 종료음 취소(휴식 조정/스킵/종료 시). */
+export function cancelScheduledRestSound() {
+  for (const { osc, gain } of scheduled) {
+    try {
+      osc.stop();
+    } catch {
+      /* noop */
+    }
+    try {
+      osc.disconnect();
+      gain.disconnect();
+    } catch {
+      /* noop */
+    }
+  }
+  scheduled = [];
+  stopKeepAlive();
 }
