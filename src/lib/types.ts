@@ -105,6 +105,7 @@ export interface WorkoutSession extends SyncMeta {
   ownerId: string;
   date: string; // YYYY-MM-DD (로컬 날짜)
   title?: string | null;
+  label?: string | null; // 캘린더 셀에 표시되는 짧은 라벨(예: 상체A)
   sessionIndexOfDay: number; // 1~3 (하루 다중 세션)
   routineId?: string | null;
   startedAt?: string | null;

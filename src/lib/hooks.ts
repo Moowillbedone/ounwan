@@ -4,6 +4,7 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
+  keepPreviousData,
 } from "@tanstack/react-query";
 import * as repo from "./repo";
 import { scheduleSync } from "./sync";
@@ -53,6 +54,8 @@ export function useExerciseHistory(exerciseId: string | null) {
     queryKey: qk.history(exerciseId ?? ""),
     queryFn: () => repo.getExerciseHistory(exerciseId!),
     enabled: !!exerciseId,
+    // 운동 전환 시 이전 데이터를 유지해 차트/PR 영역 높이가 줄었다 늘어나는 깜빡임 방지
+    placeholderData: keepPreviousData,
   });
 }
 

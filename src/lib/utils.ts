@@ -29,11 +29,19 @@ export function todayKey(): string {
   return toDateKey(new Date());
 }
 
-/** Epley 1RM 추정 */
+/**
+ * 추정 1RM (estimated one-rep max).
+ * - 1RM은 그 종목을 딱 1회 들 수 있는 최대 중량의 "추정치"로, 체중과는 무관하다.
+ * - 여러 번 든 세트(예: 60kg×10)로부터 1회 최대치를 역산하므로 실제 1회 시도보다 높게 나온다(정상).
+ * - 반복수가 많아질수록 공식 오차가 커져 12회로 상한을 두고, Epley·Brzycki 평균으로 보수적으로 추정.
+ */
 export function estimate1RM(weight: number, reps: number): number {
   if (weight <= 0 || reps <= 0) return 0;
   if (reps === 1) return weight;
-  return weight * (1 + reps / 30);
+  const r = Math.min(reps, 12); // 12회 초과는 신뢰도가 급락 → 상한
+  const epley = weight * (1 + r / 30);
+  const brzycki = weight * (36 / (37 - r));
+  return (epley + brzycki) / 2;
 }
 
 /** kg ↔ 표시 단위 */

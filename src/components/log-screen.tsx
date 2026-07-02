@@ -13,6 +13,7 @@ import {
   Minus,
   Timer,
   Pencil,
+  Tag,
 } from "lucide-react";
 import { Button, IconButton, Sheet, useToast, EmptyState, cn } from "./ui";
 import { ExercisePicker } from "./exercise-picker";
@@ -379,6 +380,18 @@ export function LogScreen() {
       </header>
 
       <div className="px-3 pt-3 space-y-3">
+        {/* 캘린더 라벨 */}
+        <div className="flex items-center gap-1.5 rounded-app border border-border bg-surface px-3 py-2">
+          <Tag size={14} className="shrink-0 text-brand" />
+          <input
+            value={session.label ?? ""}
+            maxLength={6}
+            onChange={(e) => update((s) => ({ ...s, label: e.target.value }))}
+            placeholder="캘린더 라벨 (예: 상체A)"
+            className="w-full bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-text-3/70"
+          />
+        </div>
+
         {session.exercises.length === 0 && (
           <EmptyState
             icon={<Dumbbell size={40} />}

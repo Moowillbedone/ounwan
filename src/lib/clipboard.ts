@@ -21,6 +21,7 @@ export interface ClipExercise {
 export interface WorkoutClip {
   sourceDate: string;
   title: string | null;
+  label?: string | null;
   exercises: ClipExercise[];
 }
 

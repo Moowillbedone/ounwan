@@ -162,6 +162,7 @@ export default function HomePage() {
               ? [...new Set(daySessions.flatMap((s) => s.bodyParts))]
               : [];
             const hasBw = bwByDate.has(key);
+            const dayLabel = daySessions?.map((s) => s.label).find(Boolean) ?? null;
             return (
               <button
                 key={key}
@@ -179,18 +180,24 @@ export default function HomePage() {
                 >
                   {day.getDate()}
                 </span>
-                <span className="flex h-1.5 items-center gap-0.5">
-                  {parts.slice(0, 3).map((bp) => (
-                    <span
-                      key={bp}
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: BODY_PART_META[bp].color }}
-                    />
-                  ))}
-                  {parts.length === 0 && hasBw && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-text-3/40" />
-                  )}
-                </span>
+                {dayLabel ? (
+                  <span className="block w-full truncate px-0.5 text-center text-[9px] font-bold leading-none text-brand-strong">
+                    {dayLabel}
+                  </span>
+                ) : (
+                  <span className="flex h-1.5 items-center gap-0.5">
+                    {parts.slice(0, 3).map((bp) => (
+                      <span
+                        key={bp}
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ background: BODY_PART_META[bp].color }}
+                      />
+                    ))}
+                    {parts.length === 0 && hasBw && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-text-3/40" />
+                    )}
+                  </span>
+                )}
               </button>
             );
           })}

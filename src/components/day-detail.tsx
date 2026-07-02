@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ChevronRight,
   Plus,
@@ -10,6 +10,7 @@ import {
   Trash2,
   Copy,
   ClipboardPaste,
+  Tag,
 } from "lucide-react";
 import { Sheet, Button, Chip, EmptyState, IconButton, useToast, useConfirm } from "./ui";
 import {
@@ -71,6 +72,7 @@ export function DayDetailSheet({
     setClipboard({
       sourceDate: s.date,
       title: s.title ?? null,
+      label: s.label ?? null,
       exercises: s.exercises.map((e) => ({
         exerciseId: e.exerciseId,
         note: e.note ?? null,
@@ -110,6 +112,7 @@ export function DayDetailSheet({
     const base = newEmptySession(dateKey, idx);
     base.startedAt = null;
     base.title = clip.title || "복사한 운동";
+    base.label = clip.label ?? null;
     base.exercises = clip.exercises.map((e, i) => ({
       id: uid(),
       exerciseId: e.exerciseId,
@@ -192,6 +195,7 @@ export function DayDetailSheet({
               onOpen={() => router.push(`/log?id=${s.id}`)}
               onCopy={() => doCopy(s)}
               onDelete={() => doDelete(s)}
+              onSetLabel={(label) => saveSession.mutate({ ...s, label: label || null })}
             />
           ))}
         </div>
@@ -207,6 +211,7 @@ export function SessionSummaryCard({
   onOpen,
   onCopy,
   onDelete,
+  onSetLabel,
 }: {
   session: WorkoutSession;
   exName: (id: string) => string;
@@ -214,9 +219,24 @@ export function SessionSummaryCard({
   onOpen?: () => void;
   onCopy?: () => void;
   onDelete?: () => void;
+  onSetLabel?: (label: string) => void;
 }) {
+  const [labelText, setLabelText] = useState(session.label ?? "");
   return (
     <div className="rounded-app border border-border bg-surface p-4">
+      {onSetLabel && (
+        <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-surface-2/60 px-2.5 py-1.5">
+          <Tag size={13} className="shrink-0 text-brand" />
+          <input
+            value={labelText}
+            maxLength={6}
+            onChange={(e) => setLabelText(e.target.value)}
+            onBlur={() => onSetLabel(labelText.trim())}
+            placeholder="라벨 (예: 상체A) — 캘린더에 표시"
+            className="w-full bg-transparent text-sm font-bold text-brand-strong outline-none placeholder:font-normal placeholder:text-text-3/70"
+          />
+        </div>
+      )}
       <div className="flex items-start gap-2">
         <button onClick={onOpen} className="flex flex-1 min-w-0 items-center gap-1.5 text-left">
           <span className="flex flex-wrap items-center gap-1.5 min-w-0">

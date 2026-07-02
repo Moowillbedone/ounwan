@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, ChevronUp, ChevronDown, Plus, Minus } from "lucide-react";
-import { Sheet, Button, cn, useToast } from "./ui";
+import { Trash2, ChevronUp, ChevronDown, Plus, Minus, CalendarDays } from "lucide-react";
+import { Sheet, Button, useToast } from "./ui";
 import { ExercisePicker } from "./exercise-picker";
-import { useSaveRoutine, useExerciseMap } from "@/lib/hooks";
+import { useSaveRoutine, useExerciseMap, useSessions } from "@/lib/hooks";
 import { BODY_PART_META } from "@/lib/constants";
-import type { Routine, RoutineExerciseRef } from "@/lib/types";
+import { relativeDayLabel } from "@/lib/utils";
+import type { Routine, RoutineExerciseRef, WorkoutSession } from "@/lib/types";
 
 const EMOJIS = ["🔥", "💪", "🦵", "🏋️", "⚡", "🎯", "🌅", "🌙", "🏃", "🧘"];
 
@@ -26,6 +27,8 @@ export function RoutineEditor({
   const [emoji, setEmoji] = useState("🔥");
   const [items, setItems] = useState<RoutineExerciseRef[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
+  const { data: sessions } = useSessions();
 
   useEffect(() => {
     if (open) {
@@ -60,6 +63,22 @@ export function RoutineEditor({
     );
 
   const remove = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
+
+  // 캘린더(과거 세션)에서 운동 구성 불러오기
+  const importFromSession = (s: WorkoutSession) => {
+    setItems((prev) => {
+      const existing = new Set(prev.map((p) => p.exerciseId));
+      const added = s.exercises
+        .filter((e) => !existing.has(e.exerciseId))
+        .map((e) => ({ exerciseId: e.exerciseId, targetSets: Math.max(1, e.sets.length) }));
+      return [...prev, ...added];
+    });
+    if (!name.trim() && (s.label || s.title)) setName((s.label || s.title) as string);
+    setCalOpen(false);
+    toast(`${s.exercises.length}개 운동을 불러왔어요`);
+  };
+
+  const importable = (sessions ?? []).filter((s) => s.exercises.length > 0).slice(0, 40);
 
   const save = async () => {
     if (!name.trim()) {
@@ -180,14 +199,14 @@ export function RoutineEditor({
           })}
         </div>
 
-        <Button
-          variant="secondary"
-          size="lg"
-          className="mt-3"
-          onClick={() => setPickerOpen(true)}
-        >
-          <Plus size={18} /> 운동 추가
-        </Button>
+        <div className="mt-3 space-y-2">
+          <Button variant="secondary" size="lg" onClick={() => setPickerOpen(true)}>
+            <Plus size={18} /> 운동 추가
+          </Button>
+          <Button variant="secondary" size="lg" onClick={() => setCalOpen(true)}>
+            <CalendarDays size={18} /> 캘린더에서 불러오기
+          </Button>
+        </div>
       </Sheet>
 
       <ExercisePicker
@@ -195,6 +214,40 @@ export function RoutineEditor({
         onClose={() => setPickerOpen(false)}
         onConfirm={addExercises}
       />
+
+      <Sheet open={calOpen} onClose={() => setCalOpen(false)} title="캘린더에서 불러오기">
+        <p className="mb-3 text-sm text-text-3">
+          과거에 기록한 날의 운동 구성을 그대로 루틴에 불러와요.
+        </p>
+        {importable.length === 0 ? (
+          <div className="py-8 text-center text-sm text-text-3">불러올 기록이 없어요</div>
+        ) : (
+          <div className="space-y-2">
+            {importable.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => importFromSession(s)}
+                className="w-full rounded-app border border-border bg-surface p-3 text-left active:scale-[0.99]"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold truncate">
+                    {s.label || s.title || `${relativeDayLabel(s.date)} 운동`}
+                  </span>
+                  <span className="shrink-0 text-xs text-text-3">
+                    {relativeDayLabel(s.date)} · 운동 {s.exercises.length}개
+                  </span>
+                </div>
+                <div className="mt-1 text-xs text-text-3 line-clamp-1">
+                  {s.exercises
+                    .map((e) => exMap.get(e.exerciseId)?.nameKo)
+                    .filter(Boolean)
+                    .join(" · ")}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </Sheet>
     </>
   );
 }
