@@ -7,7 +7,8 @@ import {
   Plus,
   Check,
   Trash2,
-  GripVertical,
+  ChevronUp,
+  ChevronDown,
   MoreVertical,
   Dumbbell,
   Minus,
@@ -211,6 +212,17 @@ export function LogScreen() {
         .map((e, i) => ({ ...e, orderIndex: i })),
     }));
 
+  // 운동 순서 변경(위/아래로 한 칸)
+  const moveExercise = (exId: string, dir: -1 | 1) =>
+    update((s) => {
+      const sorted = [...s.exercises].sort((a, b) => a.orderIndex - b.orderIndex);
+      const i = sorted.findIndex((e) => e.id === exId);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= sorted.length) return s;
+      [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
+      return { ...s, exercises: sorted.map((e, idx) => ({ ...e, orderIndex: idx })) };
+    });
+
   const patchSet = (exId: string, setId: string, patch: Partial<WorkoutSet>) =>
     update((s) => ({
       ...s,
@@ -405,13 +417,17 @@ export function LogScreen() {
         {session.exercises
           .slice()
           .sort((a, b) => a.orderIndex - b.orderIndex)
-          .map((ex) => (
+          .map((ex, i, arr) => (
             <ExerciseLogCard
               key={ex.id}
               ex={ex}
               exercise={exMap.get(ex.exerciseId)}
               unit={unit}
               lastPerf={lastPerf.current[ex.exerciseId]}
+              isFirst={i === 0}
+              isLast={i === arr.length - 1}
+              onMoveUp={() => moveExercise(ex.id, -1)}
+              onMoveDown={() => moveExercise(ex.id, 1)}
               onPatchSet={(setId, patch) => patchSet(ex.id, setId, patch)}
               onPatchExercise={(patch) => patchExercise(ex.id, patch)}
               onToggle={(setId) => toggleComplete(ex.id, setId)}
@@ -525,6 +541,10 @@ function ExerciseLogCard({
   exercise,
   unit,
   lastPerf,
+  isFirst,
+  isLast,
+  onMoveUp,
+  onMoveDown,
   onPatchSet,
   onPatchExercise,
   onToggle,
@@ -536,6 +556,10 @@ function ExerciseLogCard({
   exercise?: Exercise;
   unit: Unit;
   lastPerf?: { exercise: SessionExercise; date: string };
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
   onPatchSet: (setId: string, patch: Partial<WorkoutSet>) => void;
   onPatchExercise: (patch: Partial<SessionExercise>) => void;
   onToggle: (setId: string) => void;
@@ -558,7 +582,24 @@ function ExerciseLogCard({
     <div className="rounded-app border border-border bg-surface shadow-[var(--shadow-card)]">
       {/* 헤더 */}
       <div className="flex items-center gap-1.5 px-3 pt-3">
-        <GripVertical size={18} className="text-text-3/50 shrink-0" />
+        <div className="flex shrink-0 flex-col -my-1">
+          <button
+            onClick={onMoveUp}
+            disabled={isFirst}
+            aria-label="위로 이동"
+            className="grid h-5 w-6 place-items-center rounded text-text-3 active:text-brand disabled:opacity-20"
+          >
+            <ChevronUp size={17} />
+          </button>
+          <button
+            onClick={onMoveDown}
+            disabled={isLast}
+            aria-label="아래로 이동"
+            className="grid h-5 w-6 place-items-center rounded text-text-3 active:text-brand disabled:opacity-20"
+          >
+            <ChevronDown size={17} />
+          </button>
+        </div>
         <div className="flex-1 min-w-0">
           <div className="font-bold truncate">{exercise?.nameKo ?? "운동"}</div>
           {prevSummary && (
