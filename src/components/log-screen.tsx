@@ -570,7 +570,7 @@ function ExerciseLogCard({
           </>
         )}
         {mode === "reps" && <span className="text-center">횟수</span>}
-        {mode === "time" && <span className="text-center">시간(초)</span>}
+        {mode === "time" && <span className="text-center">시간 (분·초)</span>}
         <span />
       </div>
 
@@ -683,16 +683,37 @@ function SetRow({
       onBump={(dir) => onPatch({ reps: Math.max(0, set.reps + dir) })}
     />
   );
+  const dur = set.durationSec ?? 0;
+  const prevDur = prev?.durationSec ?? 0;
+  const timeInputCls =
+    "h-9 w-full min-w-0 rounded-md bg-surface-2 text-center text-[15px] font-semibold tabular-nums outline-none focus:ring-2 focus:ring-brand/40 placeholder:text-text-3/60";
   const timeField = (
-    <Stepper
-      value={set.durationSec && set.durationSec > 0 ? String(set.durationSec) : ""}
-      placeholder={prev?.durationSec ? String(prev.durationSec) : "0"}
-      onInput={(v) => {
-        const n = parseInt(v, 10);
-        onPatch({ durationSec: isNaN(n) ? 0 : Math.max(0, n) });
-      }}
-      onBump={(dir) => onPatch({ durationSec: Math.max(0, (set.durationSec ?? 0) + dir * 15) })}
-    />
+    <div className="flex items-center gap-1">
+      <input
+        type="number"
+        inputMode="numeric"
+        value={dur > 0 ? String(Math.floor(dur / 60)) : ""}
+        placeholder={prevDur > 0 ? String(Math.floor(prevDur / 60)) : "0"}
+        onChange={(e) => {
+          const m = Math.max(0, parseInt(e.target.value, 10) || 0);
+          onPatch({ durationSec: m * 60 + (dur % 60) });
+        }}
+        className={timeInputCls}
+      />
+      <span className="shrink-0 text-xs text-text-3">분</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        value={dur > 0 ? String(dur % 60) : ""}
+        placeholder={prevDur > 0 ? String(prevDur % 60) : "0"}
+        onChange={(e) => {
+          const s = Math.min(59, Math.max(0, parseInt(e.target.value, 10) || 0));
+          onPatch({ durationSec: Math.floor(dur / 60) * 60 + s });
+        }}
+        className={timeInputCls}
+      />
+      <span className="shrink-0 text-xs text-text-3">초</span>
+    </div>
   );
 
   return (
