@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastProvider>
-      <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-bg text-text shadow-[0_0_60px_rgba(0,0,0,0.06)]">
+      <div className="relative mx-auto min-h-dvh w-full max-w-[480px] overflow-x-clip bg-bg text-text shadow-[0_0_60px_rgba(0,0,0,0.06)]">
         {needGate ? (
           <OnboardingGate />
         ) : (

@@ -56,9 +56,11 @@ export default function RoutinesPage() {
     <div className="px-4 pt-4">
       <header className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-black">루틴</h1>
-        <Button size="sm" onClick={openNew}>
-          <Plus size={18} /> 새 루틴
-        </Button>
+        {list.length > 0 && (
+          <Button size="sm" onClick={openNew}>
+            <Plus size={18} /> 새 루틴
+          </Button>
+        )}
       </header>
 
       {list.length === 0 ? (
@@ -69,7 +71,7 @@ export default function RoutinesPage() {
             desc="자주 하는 운동을 루틴으로 저장하면, 다음엔 한 번에 불러와요."
             action={
               <Button onClick={openNew}>
-                <Plus size={18} /> 직접 만들기
+                <Plus size={18} /> 새 루틴 만들기
               </Button>
             }
           />
@@ -85,9 +87,9 @@ export default function RoutinesPage() {
                     onClick={() => addStarter(s)}
                     className="flex w-full items-center gap-3 rounded-app border border-border bg-surface p-3 text-left active:scale-[0.99]"
                   >
-                    <span className="text-2xl">{s.emoji}</span>
-                    <span className="flex-1">
-                      <span className="block font-bold">{s.name}</span>
+                    <span className="text-2xl shrink-0">{s.emoji}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-bold truncate">{s.name}</span>
                       <span className="block text-xs text-text-3 truncate">
                         {s.exerciseIds
                           .map((id) => exMap.get(id)?.nameKo)
@@ -118,7 +120,7 @@ export default function RoutinesPage() {
                 className="rounded-app border border-border bg-surface p-4 shadow-[var(--shadow-card)]"
               >
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">{r.emoji ?? "🔥"}</span>
+                  <span className="text-2xl shrink-0">{r.emoji ?? "🔥"}</span>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold">{r.name}</div>
                     <div className="mt-0.5 flex flex-wrap gap-1">
