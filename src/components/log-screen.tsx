@@ -50,7 +50,7 @@ const MODE_LABEL: Record<TrackingMode, string> = {
 };
 
 function defaultModeFor(category?: string): TrackingMode {
-  if (category === "cardio") return "time";
+  if (category === "cardio" || category === "stretching") return "time";
   if (category === "bodyweight") return "reps";
   return "weight_reps";
 }
