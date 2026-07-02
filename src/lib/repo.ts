@@ -235,14 +235,14 @@ export function newEmptySession(dateKey = todayKey(), indexOfDay = 1): WorkoutSe
 export async function getLastPerformance(
   exerciseId: string,
   excludeSessionId?: string
-): Promise<{ session: WorkoutSession; sets: WorkoutSet[] } | null> {
+): Promise<{ session: WorkoutSession; exercise: SessionExercise } | null> {
   const sessions = await listSessions(); // 최신순
   for (const s of sessions) {
     if (s.id === excludeSessionId) continue;
     const ex = s.exercises.find(
       (e) => e.exerciseId === exerciseId && e.sets.some((x) => x.isCompleted)
     );
-    if (ex) return { session: s, sets: ex.sets };
+    if (ex) return { session: s, exercise: ex };
   }
   return null;
 }

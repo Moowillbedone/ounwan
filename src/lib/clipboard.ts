@@ -1,18 +1,21 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { SetType } from "./types";
+import type { SetType, TrackingMode } from "./types";
 
 // 운동 복사/붙여넣기용 클립보드 (localStorage 기반, 탭/새로고침에도 유지)
 export interface ClipSet {
   setType: SetType;
   weight: number;
   reps: number;
+  durationSec?: number | null;
   isCompleted: boolean;
 }
 export interface ClipExercise {
   exerciseId: string;
   note?: string | null;
+  trackingMode?: TrackingMode;
+  restSeconds?: number | null;
   sets: ClipSet[];
 }
 export interface WorkoutClip {

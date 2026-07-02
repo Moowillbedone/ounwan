@@ -90,7 +90,10 @@ export function recomputeSessionDerived(
     const bp = bodyPartOf(ex.exerciseId);
     const completed = ex.sets.filter((s) => s.isCompleted);
     if (bp && completed.length > 0) parts.add(bp);
-    volume += setsVolume(ex.sets);
+    // 볼륨은 '중량+횟수' 방식만 집계(횟수만/시간만은 0)
+    if (!ex.trackingMode || ex.trackingMode === "weight_reps") {
+      volume += setsVolume(ex.sets);
+    }
     setCount += completed.length;
   }
   return {

@@ -74,10 +74,13 @@ export function DayDetailSheet({
       exercises: s.exercises.map((e) => ({
         exerciseId: e.exerciseId,
         note: e.note ?? null,
+        trackingMode: e.trackingMode,
+        restSeconds: e.restSeconds ?? null,
         sets: e.sets.map((x) => ({
           setType: x.setType,
           weight: x.weight,
           reps: x.reps,
+          durationSec: x.durationSec ?? null,
           isCompleted: x.isCompleted,
         })),
       })),
@@ -112,11 +115,14 @@ export function DayDetailSheet({
       exerciseId: e.exerciseId,
       orderIndex: i,
       note: e.note ?? null,
+      trackingMode: e.trackingMode,
+      restSeconds: e.restSeconds ?? null,
       sets: e.sets.map((s) => ({
         id: uid(),
         setType: s.setType,
         weight: s.weight,
         reps: s.reps,
+        durationSec: s.durationSec ?? null,
         isCompleted: s.isCompleted,
       })),
     }));

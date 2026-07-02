@@ -11,8 +11,10 @@ import {
   MoreVertical,
   Dumbbell,
   Minus,
+  Timer,
+  Pencil,
 } from "lucide-react";
-import { Button, IconButton, useToast, EmptyState, cn } from "./ui";
+import { Button, IconButton, Sheet, useToast, EmptyState, cn } from "./ui";
 import { ExercisePicker } from "./exercise-picker";
 import { RestTimer } from "./rest-timer";
 import { useSaveSession, useProfile, useExerciseMap } from "@/lib/hooks";
@@ -36,7 +38,25 @@ import type {
   WorkoutSet,
   Unit,
   Exercise,
+  TrackingMode,
 } from "@/lib/types";
+
+const MEMO_MAX = 30;
+const REST_PRESETS = [0, 30, 45, 60, 90, 120, 150, 180, 240, 300];
+const MODE_LABEL: Record<TrackingMode, string> = {
+  weight_reps: "중량 + 횟수",
+  reps: "횟수만",
+  time: "시간만",
+};
+
+function defaultModeFor(category?: string): TrackingMode {
+  if (category === "cardio") return "time";
+  if (category === "bodyweight") return "reps";
+  return "weight_reps";
+}
+function effectiveRest(ex: SessionExercise, exercise?: Exercise): number {
+  return ex.restSeconds != null ? ex.restSeconds : exercise?.defaultRestSeconds ?? 90;
+}
 
 export function LogScreen() {
   const router = useRouter();
@@ -50,15 +70,14 @@ export function LogScreen() {
   const [session, setSession] = useState<WorkoutSession | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
-  const lastPerf = useRef<Record<string, { sets: WorkoutSet[]; date: string }>>({});
-  const prBest = useRef<Record<string, number>>({}); // exerciseId → best 1RM 기존
+  const lastPerf = useRef<Record<string, { exercise: SessionExercise; date: string }>>({});
+  const prBest = useRef<Record<string, number>>({});
   const [, forceTick] = useState(0);
 
   const idParam = params.get("id");
   const dateParam = params.get("date");
   const routineParam = params.get("routine");
 
-  // 초기 세션 구성
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -82,9 +101,22 @@ export function LogScreen() {
           const exs: SessionExercise[] = [];
           for (let i = 0; i < r.exercises.length; i++) {
             const ref = r.exercises[i];
+            const meta = await repo.getExercise(ref.exerciseId);
             const lp = await repo.getLastPerformance(ref.exerciseId);
-            if (lp) lastPerf.current[ref.exerciseId] = { sets: lp.sets, date: lp.session.date };
-            exs.push(buildExercise(ref.exerciseId, i, lp?.sets, ref.targetSets));
+            if (lp)
+              lastPerf.current[ref.exerciseId] = {
+                exercise: lp.exercise,
+                date: lp.session.date,
+              };
+            exs.push(
+              buildExercise(
+                ref.exerciseId,
+                i,
+                lp?.exercise,
+                ref.targetSets,
+                defaultModeFor(meta?.category)
+              )
+            );
           }
           s.exercises = exs;
         }
@@ -101,7 +133,7 @@ export function LogScreen() {
     for (const eid of exerciseIds) {
       if (!lastPerf.current[eid]) {
         const lp = await repo.getLastPerformance(eid, excludeId);
-        if (lp) lastPerf.current[eid] = { sets: lp.sets, date: lp.session.date };
+        if (lp) lastPerf.current[eid] = { exercise: lp.exercise, date: lp.session.date };
       }
       if (prBest.current[eid] === undefined) {
         const pr = await repo.getPersonalRecord(eid);
@@ -111,21 +143,18 @@ export function LogScreen() {
     forceTick((n) => n + 1);
   }
 
-  // 자동 저장(디바운스) — 운동이 1개 이상일 때만
+  // 자동 저장(디바운스)
   const saveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!session || session.exercises.length === 0) return;
     if (saveRef.current) clearTimeout(saveRef.current);
-    saveRef.current = setTimeout(() => {
-      saveSession.mutate(session);
-    }, 700);
+    saveRef.current = setTimeout(() => saveSession.mutate(session), 700);
     return () => {
       if (saveRef.current) clearTimeout(saveRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
-  // 경과 시간 표시용 tick
   useEffect(() => {
     const iv = setInterval(() => forceTick((n) => n + 1), 1000);
     return () => clearInterval(iv);
@@ -140,11 +169,23 @@ export function LogScreen() {
     update((s) => {
       const base = s.exercises.length;
       const added = ids.map((eid, i) =>
-        buildExercise(eid, base + i, lastPerf.current[eid]?.sets)
+        buildExercise(
+          eid,
+          base + i,
+          lastPerf.current[eid]?.exercise,
+          undefined,
+          defaultModeFor(exMap.get(eid)?.category)
+        )
       );
       return { ...s, exercises: [...s.exercises, ...added] };
     });
   };
+
+  const patchExercise = (exId: string, patch: Partial<SessionExercise>) =>
+    update((s) => ({
+      ...s,
+      exercises: s.exercises.map((e) => (e.id !== exId ? e : { ...e, ...patch })),
+    }));
 
   const removeExercise = (exId: string) =>
     update((s) => ({
@@ -160,10 +201,7 @@ export function LogScreen() {
       exercises: s.exercises.map((e) =>
         e.id !== exId
           ? e
-          : {
-              ...e,
-              sets: e.sets.map((st) => (st.id === setId ? { ...st, ...patch } : st)),
-            }
+          : { ...e, sets: e.sets.map((st) => (st.id === setId ? { ...st, ...patch } : st)) }
       ),
     }));
 
@@ -182,6 +220,7 @@ export function LogScreen() {
               setType: "working",
               weight: last?.weight ?? 0,
               reps: last?.reps ?? 0,
+              durationSec: last?.durationSec ?? (e.trackingMode === "time" ? 0 : null),
               isCompleted: false,
             },
           ],
@@ -207,14 +246,13 @@ export function LogScreen() {
       completedAt: nextCompleted ? nowISO() : null,
     });
     if (nextCompleted) {
-      // 첫 세트 완료 시 타이머 자동 시작
       update((s) => (s.startedAt ? s : { ...s, startedAt: nowISO() }));
-      // 휴식 타이머
       const meta = exMap.get(ex.exerciseId);
-      const rest = meta?.defaultRestSeconds ?? 90;
+      const rest = effectiveRest(ex, meta);
       if (rest > 0) setRestEndsAt(Date.now() + rest * 1000);
-      // PR 체크
-      if (st.weight > 0 && st.reps > 0) {
+      // PR은 '중량+횟수' 방식만
+      const mode = ex.trackingMode ?? "weight_reps";
+      if (mode === "weight_reps" && st.weight > 0 && st.reps > 0) {
         const oneRM = estimate1RM(st.weight, st.reps);
         const prev = prBest.current[ex.exerciseId] ?? 0;
         if (oneRM > prev + 0.01 && prev > 0) {
@@ -231,7 +269,6 @@ export function LogScreen() {
 
   const finish = () => {
     if (session && session.exercises.length > 0) {
-      // 완료된 세트 체크시각으로 시작/종료 자동 보정
       const stamps = session.exercises
         .flatMap((e) => e.sets)
         .filter((x) => x.isCompleted && x.completedAt)
@@ -248,11 +285,13 @@ export function LogScreen() {
     router.back();
   };
 
-  if (!session) {
-    return <div className="p-6 text-text-3">불러오는 중…</div>;
-  }
+  if (!session) return <div className="p-6 text-text-3">불러오는 중…</div>;
 
-  const liveVolume = session.exercises.reduce((n, e) => n + setsVolume(e.sets), 0);
+  const liveVolume = session.exercises.reduce(
+    (n, e) =>
+      n + (e.trackingMode && e.trackingMode !== "weight_reps" ? 0 : setsVolume(e.sets)),
+    0
+  );
   const liveSets = session.exercises.reduce(
     (n, e) => n + e.sets.filter((x) => x.isCompleted).length,
     0
@@ -261,11 +300,8 @@ export function LogScreen() {
     ? Math.max(0, Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 1000))
     : 0;
 
-  const d = session.date;
-
   return (
     <div className="min-h-dvh pb-40">
-      {/* 상단바 */}
       <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-border bg-surface/95 px-2 py-2 backdrop-blur-md">
         <IconButton onClick={close} aria-label="닫기">
           <X size={22} />
@@ -274,11 +310,13 @@ export function LogScreen() {
           <input
             value={session.title ?? ""}
             onChange={(e) => update((s) => ({ ...s, title: e.target.value }))}
-            placeholder={`${relativeDayLabel(d)} 운동`}
+            placeholder={`${relativeDayLabel(session.date)} 운동`}
             className="w-full bg-transparent text-base font-bold outline-none placeholder:text-text-3"
           />
           <div className="flex gap-3 text-xs text-text-3">
-            <span className={`tabular-nums ${session.startedAt ? "text-brand font-semibold" : ""}`}>
+            <span
+              className={`tabular-nums ${session.startedAt ? "text-brand font-semibold" : ""}`}
+            >
               {session.startedAt ? `⏱ ${fmtDuration(elapsedSec)}` : "시작 전"}
             </span>
             <span>볼륨 {fmtNum(liveVolume)}</span>
@@ -290,17 +328,12 @@ export function LogScreen() {
             운동 완료
           </Button>
         ) : (
-          <Button
-            size="sm"
-            onClick={startWorkout}
-            disabled={session.exercises.length === 0}
-          >
+          <Button size="sm" onClick={startWorkout} disabled={session.exercises.length === 0}>
             운동 시작
           </Button>
         )}
       </header>
 
-      {/* 운동 목록 */}
       <div className="px-3 pt-3 space-y-3">
         {session.exercises.length === 0 && (
           <EmptyState
@@ -321,6 +354,7 @@ export function LogScreen() {
               unit={unit}
               lastPerf={lastPerf.current[ex.exerciseId]}
               onPatchSet={(setId, patch) => patchSet(ex.id, setId, patch)}
+              onPatchExercise={(patch) => patchExercise(ex.id, patch)}
               onToggle={(setId) => toggleComplete(ex.id, setId)}
               onAddSet={() => addSet(ex.id)}
               onRemoveSet={(setId) => removeSet(ex.id, setId)}
@@ -343,7 +377,6 @@ export function LogScreen() {
         onClose={() => setPickerOpen(false)}
         onConfirm={addExercises}
       />
-
       <RestTimer
         endsAt={restEndsAt}
         setEndsAt={setRestEndsAt}
@@ -358,16 +391,19 @@ export function LogScreen() {
 function buildExercise(
   exerciseId: string,
   orderIndex: number,
-  prevSets?: WorkoutSet[],
-  targetSets?: number
+  prevEx?: SessionExercise,
+  targetSets?: number,
+  defaultMode: TrackingMode = "weight_reps"
 ): SessionExercise {
+  const mode = prevEx?.trackingMode ?? defaultMode;
   let sets: WorkoutSet[];
-  if (prevSets && prevSets.length > 0) {
-    sets = prevSets.map((s) => ({
+  if (prevEx && prevEx.sets.length > 0) {
+    sets = prevEx.sets.map((s) => ({
       id: uid(),
       setType: s.setType,
       weight: s.weight,
       reps: s.reps,
+      durationSec: s.durationSec ?? null,
       isCompleted: false,
     }));
   } else {
@@ -377,10 +413,35 @@ function buildExercise(
       setType: "working" as const,
       weight: 0,
       reps: 0,
+      durationSec: mode === "time" ? 0 : null,
       isCompleted: false,
     }));
   }
-  return { id: uid(), exerciseId, orderIndex, sets };
+  return {
+    id: uid(),
+    exerciseId,
+    orderIndex,
+    trackingMode: mode,
+    restSeconds: prevEx?.restSeconds ?? null,
+    note: null,
+    sets,
+  };
+}
+
+function prevSummaryText(
+  prevEx: SessionExercise | undefined,
+  mode: TrackingMode,
+  unit: Unit
+): string | null {
+  if (!prevEx) return null;
+  const working = prevEx.sets.filter((s) => s.setType !== "warmup");
+  if (working.length === 0) return null;
+  const parts = working.slice(0, 4).map((s) => {
+    if (mode === "time") return fmtDuration(s.durationSec ?? 0);
+    if (mode === "reps") return `${s.reps}회`;
+    return `${fmtWeight(s.weight, unit).replace(unit, "")}×${s.reps}`;
+  });
+  return parts.join(", ");
 }
 
 /* ---------- 운동 카드 ---------- */
@@ -391,6 +452,7 @@ function ExerciseLogCard({
   unit,
   lastPerf,
   onPatchSet,
+  onPatchExercise,
   onToggle,
   onAddSet,
   onRemoveSet,
@@ -399,26 +461,29 @@ function ExerciseLogCard({
   ex: SessionExercise;
   exercise?: Exercise;
   unit: Unit;
-  lastPerf?: { sets: WorkoutSet[]; date: string };
+  lastPerf?: { exercise: SessionExercise; date: string };
   onPatchSet: (setId: string, patch: Partial<WorkoutSet>) => void;
+  onPatchExercise: (patch: Partial<SessionExercise>) => void;
   onToggle: (setId: string) => void;
   onAddSet: () => void;
   onRemoveSet: (setId: string) => void;
   onRemoveExercise: () => void;
 }) {
   const [menu, setMenu] = useState(false);
-  const isCardio = exercise?.category === "cardio";
-  const prevSummary = lastPerf
-    ? lastPerf.sets
-        .filter((s) => s.setType !== "warmup")
-        .slice(0, 4)
-        .map((s) => `${fmtWeight(s.weight, unit).replace(unit, "")}×${s.reps}`)
-        .join(", ")
-    : null;
+  const [restOpen, setRestOpen] = useState(false);
+  const mode: TrackingMode = ex.trackingMode ?? "weight_reps";
+  const rest = effectiveRest(ex, exercise);
+  const prevSummary = prevSummaryText(lastPerf?.exercise, mode, unit);
+
+  const cols =
+    mode === "weight_reps"
+      ? "grid-cols-[26px_1fr_1fr_40px]"
+      : "grid-cols-[26px_1fr_40px]";
 
   return (
     <div className="rounded-app border border-border bg-surface shadow-[var(--shadow-card)]">
-      <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
+      {/* 헤더 */}
+      <div className="flex items-center gap-1.5 px-3 pt-3">
         <GripVertical size={18} className="text-text-3/50 shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="font-bold truncate">{exercise?.nameKo ?? "운동"}</div>
@@ -428,14 +493,39 @@ function ExerciseLogCard({
             </div>
           )}
         </div>
-        <div className="relative">
-          <IconButton onClick={() => setMenu((m) => !m)} aria-label="메뉴">
+        {/* 휴식 시간 칩 */}
+        <button
+          onClick={() => setRestOpen(true)}
+          className="flex shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2.5 h-8 text-xs font-semibold text-text-2 active:scale-95"
+        >
+          <Timer size={14} className="text-brand" />
+          {rest === 0 ? "휴식 끔" : fmtDuration(rest)}
+        </button>
+        <div className="relative shrink-0">
+          <IconButton onClick={() => setMenu((m) => !m)} aria-label="메뉴" className="h-8 w-8">
             <MoreVertical size={18} />
           </IconButton>
           {menu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
-              <div className="absolute right-0 top-10 z-20 w-36 rounded-xl border border-border bg-surface p-1 shadow-[var(--shadow-pop)]">
+              <div className="absolute right-0 top-9 z-20 w-40 rounded-xl border border-border bg-surface p-1 shadow-[var(--shadow-pop)]">
+                <div className="px-3 pt-1.5 pb-1 text-[11px] font-bold text-text-3">
+                  기록 방식
+                </div>
+                {(Object.keys(MODE_LABEL) as TrackingMode[]).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      onPatchExercise({ trackingMode: m });
+                      setMenu(false);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-surface-2"
+                  >
+                    {MODE_LABEL[m]}
+                    {mode === m && <Check size={15} className="text-brand" />}
+                  </button>
+                ))}
+                <div className="my-1 border-t border-border" />
                 <button
                   onClick={() => {
                     onRemoveExercise();
@@ -451,12 +541,37 @@ function ExerciseLogCard({
         </div>
       </div>
 
+      {/* 메모 */}
+      <div className="px-3 pt-1.5 pb-1">
+        <div className="flex items-center gap-1.5 rounded-lg bg-surface-2/60 px-2.5 py-1.5">
+          <Pencil size={13} className="shrink-0 text-text-3" />
+          <input
+            value={ex.note ?? ""}
+            maxLength={MEMO_MAX}
+            onChange={(e) => onPatchExercise({ note: e.target.value })}
+            placeholder="메모 (예: 견갑 고정, 반동 없이)"
+            className="w-full bg-transparent text-xs text-text-2 outline-none placeholder:text-text-3/70"
+          />
+          {ex.note && (
+            <span className="shrink-0 text-[10px] tabular-nums text-text-3/60">
+              {ex.note.length}/{MEMO_MAX}
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* 세트 헤더 */}
-      <div className="grid grid-cols-[28px_1fr_1fr_44px] items-center gap-1 px-3 pb-1 text-[11px] font-semibold text-text-3">
+      <div className={cn("grid items-center gap-1 px-3 pb-1 text-[11px] font-semibold text-text-3", cols)}>
         <span className="text-center">세트</span>
-        <span className="text-center">{isCardio ? "거리/속도" : unit.toUpperCase()}</span>
-        <span className="text-center">{isCardio ? "시간(분)" : "횟수"}</span>
-        <span></span>
+        {mode === "weight_reps" && (
+          <>
+            <span className="text-center">{unit.toUpperCase()}</span>
+            <span className="text-center">횟수</span>
+          </>
+        )}
+        {mode === "reps" && <span className="text-center">횟수</span>}
+        {mode === "time" && <span className="text-center">시간(초)</span>}
+        <span />
       </div>
 
       <div className="px-2 pb-2">
@@ -465,8 +580,10 @@ function ExerciseLogCard({
             key={st.id}
             index={i + 1}
             set={st}
-            prev={lastPerf?.sets[i]}
+            prev={lastPerf?.exercise.sets[i]}
             unit={unit}
+            mode={mode}
+            cols={cols}
             onPatch={(patch) => onPatchSet(st.id, patch)}
             onToggle={() => onToggle(st.id)}
             onRemove={() => onRemoveSet(st.id)}
@@ -479,6 +596,32 @@ function ExerciseLogCard({
           <Plus size={16} /> 세트 추가
         </button>
       </div>
+
+      {/* 휴식시간 선택 시트 */}
+      <Sheet open={restOpen} onClose={() => setRestOpen(false)} title="휴식 시간">
+        <p className="mb-3 text-sm text-text-3">
+          이 운동의 세트 완료 후 자동으로 시작할 휴식 시간을 정해요.
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {REST_PRESETS.map((sec) => (
+            <button
+              key={sec}
+              onClick={() => {
+                onPatchExercise({ restSeconds: sec });
+                setRestOpen(false);
+              }}
+              className={cn(
+                "h-12 rounded-app border text-sm font-bold transition",
+                rest === sec
+                  ? "border-brand bg-brand-soft text-brand-strong"
+                  : "border-border text-text-2"
+              )}
+            >
+              {sec === 0 ? "끄기" : fmtDuration(sec)}
+            </button>
+          ))}
+        </div>
+      </Sheet>
     </div>
   );
 }
@@ -490,6 +633,8 @@ function SetRow({
   set,
   prev,
   unit,
+  mode,
+  cols,
   onPatch,
   onToggle,
   onRemove,
@@ -498,41 +643,71 @@ function SetRow({
   set: WorkoutSet;
   prev?: WorkoutSet;
   unit: Unit;
+  mode: TrackingMode;
+  cols: string;
   onPatch: (patch: Partial<WorkoutSet>) => void;
   onToggle: () => void;
   onRemove: () => void;
 }) {
   const step = unit === "lb" ? 5 : 2.5;
-  const dispWeight = set.weight > 0 ? String(toDisplayWeight(set.weight, unit)) : "";
-  const prevWeight = prev ? toDisplayWeight(prev.weight, unit) : null;
 
-  const changeWeight = (v: string) => {
-    const num = parseFloat(v);
-    onPatch({ weight: isNaN(num) ? 0 : fromDisplayWeight(num, unit) });
-  };
-  const bumpWeight = (dir: number) => {
-    const cur = set.weight > 0 ? toDisplayWeight(set.weight, unit) : prevWeight ?? 0;
-    const next = Math.max(0, Math.round((cur + dir * step) * 100) / 100);
-    onPatch({ weight: fromDisplayWeight(next, unit) });
-  };
-  const changeReps = (v: string) => {
-    const num = parseInt(v, 10);
-    onPatch({ reps: isNaN(num) ? 0 : Math.max(0, num) });
-  };
+  const weightField = (
+    <Stepper
+      value={set.weight > 0 ? String(toDisplayWeight(set.weight, unit)) : ""}
+      placeholder={prev && prev.weight > 0 ? String(toDisplayWeight(prev.weight, unit)) : "0"}
+      decimal
+      onInput={(v) => {
+        const n = parseFloat(v);
+        onPatch({ weight: isNaN(n) ? 0 : fromDisplayWeight(n, unit) });
+      }}
+      onBump={(dir) => {
+        const cur =
+          set.weight > 0
+            ? toDisplayWeight(set.weight, unit)
+            : prev
+            ? toDisplayWeight(prev.weight, unit)
+            : 0;
+        const next = Math.max(0, Math.round((cur + dir * step) * 100) / 100);
+        onPatch({ weight: fromDisplayWeight(next, unit) });
+      }}
+    />
+  );
+  const repsField = (
+    <Stepper
+      value={set.reps > 0 ? String(set.reps) : ""}
+      placeholder={prev && prev.reps > 0 ? String(prev.reps) : "0"}
+      onInput={(v) => {
+        const n = parseInt(v, 10);
+        onPatch({ reps: isNaN(n) ? 0 : Math.max(0, n) });
+      }}
+      onBump={(dir) => onPatch({ reps: Math.max(0, set.reps + dir) })}
+    />
+  );
+  const timeField = (
+    <Stepper
+      value={set.durationSec && set.durationSec > 0 ? String(set.durationSec) : ""}
+      placeholder={prev?.durationSec ? String(prev.durationSec) : "0"}
+      onInput={(v) => {
+        const n = parseInt(v, 10);
+        onPatch({ durationSec: isNaN(n) ? 0 : Math.max(0, n) });
+      }}
+      onBump={(dir) => onPatch({ durationSec: Math.max(0, (set.durationSec ?? 0) + dir * 15) })}
+    />
+  );
 
   return (
     <div
       className={cn(
-        "grid grid-cols-[28px_1fr_1fr_44px] items-center gap-1 rounded-lg py-1 transition",
+        "grid items-center gap-1 rounded-lg py-1 transition",
+        cols,
         set.isCompleted && "bg-brand-soft/60"
       )}
     >
       <button
         onClick={() => {
-          if (set.setType === "working") onPatch({ setType: "warmup" });
-          else if (set.setType === "warmup") onPatch({ setType: "drop" });
-          else if (set.setType === "drop") onPatch({ setType: "failure" });
-          else onPatch({ setType: "working" });
+          const order: WorkoutSet["setType"][] = ["working", "warmup", "drop", "failure"];
+          const next = order[(order.indexOf(set.setType) + 1) % order.length];
+          onPatch({ setType: next });
         }}
         className="grid h-7 w-7 place-items-center rounded-full text-[13px] font-bold text-text-2"
         title="세트 유형 변경"
@@ -553,59 +728,15 @@ function SetRow({
         )}
       </button>
 
-      {/* 무게 */}
-      <div className="flex items-center gap-0.5">
-        <button
-          onClick={() => bumpWeight(-1)}
-          className="grid h-7 w-6 shrink-0 place-items-center rounded-md text-text-3 active:bg-surface-2"
-          tabIndex={-1}
-        >
-          <Minus size={13} />
-        </button>
-        <input
-          type="number"
-          inputMode="decimal"
-          value={dispWeight}
-          onChange={(e) => changeWeight(e.target.value)}
-          placeholder={prevWeight != null ? String(prevWeight) : "0"}
-          className="h-9 w-full min-w-0 rounded-md bg-surface-2 text-center text-[15px] font-semibold tabular-nums outline-none focus:ring-2 focus:ring-brand/40 placeholder:text-text-3/60"
-        />
-        <button
-          onClick={() => bumpWeight(1)}
-          className="grid h-7 w-6 shrink-0 place-items-center rounded-md text-text-3 active:bg-surface-2"
-          tabIndex={-1}
-        >
-          <Plus size={13} />
-        </button>
-      </div>
+      {mode === "weight_reps" && (
+        <>
+          {weightField}
+          {repsField}
+        </>
+      )}
+      {mode === "reps" && repsField}
+      {mode === "time" && timeField}
 
-      {/* 횟수 */}
-      <div className="flex items-center gap-0.5">
-        <button
-          onClick={() => onPatch({ reps: Math.max(0, set.reps - 1) })}
-          className="grid h-7 w-6 shrink-0 place-items-center rounded-md text-text-3 active:bg-surface-2"
-          tabIndex={-1}
-        >
-          <Minus size={13} />
-        </button>
-        <input
-          type="number"
-          inputMode="numeric"
-          value={set.reps > 0 ? String(set.reps) : ""}
-          onChange={(e) => changeReps(e.target.value)}
-          placeholder={prev ? String(prev.reps) : "0"}
-          className="h-9 w-full min-w-0 rounded-md bg-surface-2 text-center text-[15px] font-semibold tabular-nums outline-none focus:ring-2 focus:ring-brand/40 placeholder:text-text-3/60"
-        />
-        <button
-          onClick={() => onPatch({ reps: set.reps + 1 })}
-          className="grid h-7 w-6 shrink-0 place-items-center rounded-md text-text-3 active:bg-surface-2"
-          tabIndex={-1}
-        >
-          <Plus size={13} />
-        </button>
-      </div>
-
-      {/* 완료 토글 */}
       <div className="flex items-center justify-center">
         <button
           onClick={onToggle}
@@ -615,15 +746,54 @@ function SetRow({
           }}
           className={cn(
             "grid h-8 w-8 place-items-center rounded-full border-2 transition active:scale-90",
-            set.isCompleted
-              ? "border-brand bg-brand text-white"
-              : "border-border text-text-3"
+            set.isCompleted ? "border-brand bg-brand text-white" : "border-border text-text-3"
           )}
           aria-label="세트 완료"
         >
           <Check size={16} strokeWidth={3} />
         </button>
       </div>
+    </div>
+  );
+}
+
+function Stepper({
+  value,
+  placeholder,
+  decimal,
+  onInput,
+  onBump,
+}: {
+  value: string;
+  placeholder: string;
+  decimal?: boolean;
+  onInput: (v: string) => void;
+  onBump: (dir: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-0.5">
+      <button
+        onClick={() => onBump(-1)}
+        tabIndex={-1}
+        className="grid h-7 w-6 shrink-0 place-items-center rounded-md text-text-3 active:bg-surface-2"
+      >
+        <Minus size={13} />
+      </button>
+      <input
+        type="number"
+        inputMode={decimal ? "decimal" : "numeric"}
+        value={value}
+        onChange={(e) => onInput(e.target.value)}
+        placeholder={placeholder}
+        className="h-9 w-full min-w-0 rounded-md bg-surface-2 text-center text-[15px] font-semibold tabular-nums outline-none focus:ring-2 focus:ring-brand/40 placeholder:text-text-3/60"
+      />
+      <button
+        onClick={() => onBump(1)}
+        tabIndex={-1}
+        className="grid h-7 w-6 shrink-0 place-items-center rounded-md text-text-3 active:bg-surface-2"
+      >
+        <Plus size={13} />
+      </button>
     </div>
   );
 }
