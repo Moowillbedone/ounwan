@@ -35,6 +35,7 @@ export type TrackingMode = "weight_reps" | "reps" | "time";
 
 export type Unit = "kg" | "lb";
 export type ThemePref = "system" | "light" | "dark";
+export type RestSound = "chime" | "beep" | "arcade";
 
 /** sync 공통 메타 */
 export interface SyncMeta {
@@ -106,6 +107,7 @@ export interface WorkoutSession extends SyncMeta {
   date: string; // YYYY-MM-DD (로컬 날짜)
   title?: string | null;
   label?: string | null; // 캘린더 셀에 표시되는 짧은 라벨(예: 상체A)
+  labelColor?: string | null; // 라벨 텍스트 색(미지정=기본 그린)
   sessionIndexOfDay: number; // 1~3 (하루 다중 세션)
   routineId?: string | null;
   startedAt?: string | null;
@@ -136,6 +138,7 @@ export interface Profile extends SyncMeta {
   theme: ThemePref;
   weekStartsMonday: boolean;
   restAlert?: boolean; // 휴식 종료 알림(소리·진동) — 미지정=켜짐
+  restSound?: RestSound; // 휴식 종료 알림음 — 미지정=chime(기본)
   onboardedAt?: string | null;
 }
 

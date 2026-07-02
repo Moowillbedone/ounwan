@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Plus, Minus, Timer } from "lucide-react";
 import { fmtDuration } from "@/lib/utils";
-import { vibrate, playRestDoneChime } from "@/lib/feedback";
+import { vibrate, playRestSound } from "@/lib/feedback";
 import { useProfile } from "@/lib/hooks";
+import type { RestSound } from "@/lib/types";
 
 export function RestTimer({
   endsAt,
@@ -18,6 +19,8 @@ export function RestTimer({
   const { data: profile } = useProfile();
   const alertRef = useRef(true);
   alertRef.current = profile?.restAlert !== false;
+  const soundRef = useRef<RestSound>("chime");
+  soundRef.current = profile?.restSound ?? "chime";
   const [remaining, setRemaining] = useState(0);
   const buzzed = useRef(false);
   const lastRem = useRef(-1);
@@ -40,7 +43,7 @@ export function RestTimer({
         buzzed.current = true;
         if (alertRef.current) {
           vibrate([120, 60, 120]);
-          playRestDoneChime();
+          playRestSound(soundRef.current);
         }
       }
     };

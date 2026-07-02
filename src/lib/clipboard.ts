@@ -22,6 +22,7 @@ export interface WorkoutClip {
   sourceDate: string;
   title: string | null;
   label?: string | null;
+  labelColor?: string | null;
   exercises: ClipExercise[];
 }
 

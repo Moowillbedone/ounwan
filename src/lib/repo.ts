@@ -59,6 +59,7 @@ export async function getProfile(): Promise<Profile> {
     theme: "system",
     weekStartsMonday: true,
     restAlert: true,
+    restSound: "chime",
     onboardedAt: null,
     updatedAt: nowISO(),
     _dirty: 1,

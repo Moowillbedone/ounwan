@@ -59,3 +59,15 @@ export const PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25];
 export const BAR_WEIGHT_KG = 20;
 
 export const THEME_KEY = "ounwan-theme";
+
+// 메모 라벨 텍스트 색상 — 라이트/다크 양쪽에서 읽히고 브랜드를 해치지 않는 차분한 형광톤
+export const DEFAULT_LABEL_COLOR = "#16c47f"; // 기본(브랜드 그린)
+export const LABEL_COLORS: { name: string; value: string }[] = [
+  { name: "그린", value: "#16c47f" },
+  { name: "빨강", value: "#f2555a" },
+  { name: "주황", value: "#f5893c" },
+  { name: "노랑", value: "#e0a82e" },
+  { name: "파랑", value: "#4d8dfe" },
+  { name: "남색", value: "#7b74f0" },
+  { name: "보라", value: "#c264d6" },
+];

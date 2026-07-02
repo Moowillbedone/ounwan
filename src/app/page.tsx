@@ -13,7 +13,7 @@ import {
 import { ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { useSessions, useBodyMetrics, useProfile } from "@/lib/hooks";
 import { toDateKey, todayKey, fmtNum, computeStreak } from "@/lib/utils";
-import { BODY_PART_META } from "@/lib/constants";
+import { BODY_PART_META, DEFAULT_LABEL_COLOR } from "@/lib/constants";
 import { Heatmap, HeatmapLegend } from "@/components/heatmap";
 import { DayDetailSheet } from "@/components/day-detail";
 import { SyncPill } from "@/components/sync-pill";
@@ -162,7 +162,9 @@ export default function HomePage() {
               ? [...new Set(daySessions.flatMap((s) => s.bodyParts))]
               : [];
             const hasBw = bwByDate.has(key);
-            const dayLabel = daySessions?.map((s) => s.label).find(Boolean) ?? null;
+            const labeledSession = daySessions?.find((s) => s.label);
+            const dayLabel = labeledSession?.label ?? null;
+            const dayLabelColor = labeledSession?.labelColor || DEFAULT_LABEL_COLOR;
             return (
               <button
                 key={key}
@@ -181,7 +183,10 @@ export default function HomePage() {
                   {day.getDate()}
                 </span>
                 {dayLabel ? (
-                  <span className="block w-full truncate px-0.5 text-center text-[9px] font-bold leading-none text-brand-strong">
+                  <span
+                    className="block w-full truncate px-0.5 text-center text-[9px] font-bold leading-none"
+                    style={{ color: dayLabelColor }}
+                  >
                     {dayLabel}
                   </span>
                 ) : (

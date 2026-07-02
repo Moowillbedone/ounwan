@@ -17,7 +17,7 @@ import { LoginForm } from "@/components/onboarding";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
 import { useProfile, useUpdateProfile } from "@/lib/hooks";
-import { playRestDoneChime, armFeedback } from "@/lib/feedback";
+import { playRestSound, armFeedback, REST_SOUNDS } from "@/lib/feedback";
 import * as repo from "@/lib/repo";
 import { APP_NAME } from "@/lib/constants";
 import type { ThemePref, Unit } from "@/lib/types";
@@ -150,18 +150,7 @@ export default function SettingsPage() {
           />
         </div>
         <div className="flex items-center justify-between px-4 py-3">
-          <div>
-            <div className="text-sm font-semibold">휴식 종료 알림</div>
-            <button
-              onClick={() => {
-                armFeedback();
-                playRestDoneChime();
-              }}
-              className="mt-0.5 text-xs font-semibold text-brand"
-            >
-              소리 미리듣기 ♪
-            </button>
-          </div>
+          <span className="text-sm font-semibold">휴식 종료 알림</span>
           <Segmented<string>
             value={profile?.restAlert !== false ? "on" : "off"}
             options={[
@@ -171,6 +160,35 @@ export default function SettingsPage() {
             onChange={(v) => updateProfile.mutate({ restAlert: v === "on" })}
           />
         </div>
+        {profile?.restAlert !== false && (
+          <div className="px-4 py-3">
+            <div className="mb-2 text-sm font-semibold">
+              알림음{" "}
+              <span className="text-xs font-normal text-text-3">(탭하면 미리듣기)</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {REST_SOUNDS.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    armFeedback();
+                    playRestSound(s.id);
+                    updateProfile.mutate({ restSound: s.id });
+                  }}
+                  className={cn(
+                    "rounded-app border py-2.5 text-center transition active:scale-95",
+                    (profile?.restSound ?? "chime") === s.id
+                      ? "border-brand bg-brand-soft text-brand-strong"
+                      : "border-border text-text-2"
+                  )}
+                >
+                  <div className="text-sm font-bold">{s.label}</div>
+                  <div className="mt-0.5 text-[10px] text-text-3">{s.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="px-4 py-3">
           <div className="mb-2 text-sm font-semibold">테마</div>
           <div className="grid grid-cols-3 gap-2">
