@@ -36,18 +36,20 @@ export default function StatsPage() {
 
   const [bwOpen, setBwOpen] = useState(false);
 
+  const weekStartsOn: 0 | 1 = profile?.weekStartsMonday === false ? 0 : 1;
+
   // 요약
   const summary = useMemo(() => {
     const all = sessions ?? [];
     const totalVol = all.reduce((n, s) => n + s.totalVolume, 0);
-    const streak = computeStreak(new Set(all.map((s) => s.date)));
+    const streak = computeStreak(new Set(all.map((s) => s.date)), weekStartsOn);
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const thisWeek = new Set(
       all.filter((s) => dateKeyToDate(s.date) >= weekAgo).map((s) => s.date)
     ).size;
     return { count: new Set(all.map((s) => s.date)).size, totalVol, streak, thisWeek };
-  }, [sessions]);
+  }, [sessions, weekStartsOn]);
 
   // 부위별 볼륨(최근 28일)
   const partVolume = useMemo(() => {

@@ -12,7 +12,7 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { useSessions, useBodyMetrics, useProfile } from "@/lib/hooks";
-import { toDateKey, todayKey, fmtNum, computeStreak } from "@/lib/utils";
+import { toDateKey, todayKey, fmtNum, computeStreak, dateKeyToDate } from "@/lib/utils";
 import { BODY_PART_META, DEFAULT_LABEL_COLOR } from "@/lib/constants";
 import { Heatmap, HeatmapLegend } from "@/components/heatmap";
 import { DayDetailSheet } from "@/components/day-detail";
@@ -26,7 +26,7 @@ export default function HomePage() {
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  const weekStartsOn = profile?.weekStartsMonday === false ? 0 : 1;
+  const weekStartsOn: 0 | 1 = profile?.weekStartsMonday === false ? 0 : 1;
 
   const byDate = useMemo(() => {
     const m = new Map<string, WorkoutSession[]>();
@@ -44,20 +44,28 @@ export default function HomePage() {
     return m;
   }, [metrics]);
 
-  // 잔디 레벨: 하루 총 세트수 기준
+  // 잔디 레벨: 하루 '완료 세트수' 기준. 완료 세트 0이면 미기록(회색)으로 남겨 신뢰성 유지.
   const heatData = useMemo(() => {
     const m = new Map<string, number>();
     for (const [date, arr] of byDate) {
       const sets = arr.reduce((n, s) => n + s.totalSets, 0);
-      const lvl = sets === 0 ? 1 : sets < 9 ? 1 : sets < 17 ? 2 : sets < 25 ? 3 : 4;
-      m.set(date, Math.max(1, lvl));
+      if (sets > 0) m.set(date, sets < 9 ? 1 : sets < 17 ? 2 : sets < 25 ? 3 : 4);
     }
     return m;
   }, [byDate]);
 
+  // 신규·데이터 적은 유저는 잔디 범위를 좁혀(최소 8주) 휑함을 줄이고, 쌓이면 15주까지 확장
+  const heatWeeks = useMemo(() => {
+    let min: string | null = null;
+    for (const k of byDate.keys()) if (!min || k < min) min = k;
+    if (!min) return 8;
+    const days = Math.round((Date.now() - dateKeyToDate(min).getTime()) / 86400000);
+    return Math.min(15, Math.max(8, Math.floor(days / 7) + 1));
+  }, [byDate]);
+
   const streak = useMemo(
-    () => computeStreak(new Set(byDate.keys())),
-    [byDate]
+    () => computeStreak(new Set(byDate.keys()), weekStartsOn),
+    [byDate, weekStartsOn]
   );
 
   // 이번 달 통계
@@ -108,7 +116,7 @@ export default function HomePage() {
               {streak.current}
             </span>
           }
-          sub="일째"
+          sub={streak.current > 0 ? "일째" : "오늘 시작!"}
         />
         <StatBox label="이번 달 운동" value={monthStats.days} sub="일" />
         <StatBox
@@ -217,10 +225,31 @@ export default function HomePage() {
             최장 {streak.longest}일
           </span>
         </div>
-        <Heatmap data={heatData} weeks={15} onSelect={setSelectedDay} />
-        <div className="mt-3 flex justify-end">
-          <HeatmapLegend />
-        </div>
+        {heatData.size === 0 ? (
+          <div className="rounded-xl border border-dashed border-border px-4 py-7 text-center">
+            <div className="text-sm font-semibold text-text-2">
+              첫 운동을 기록하면 여기 잔디가 자라기 시작해요 🌱
+            </div>
+            <div className="mt-1 text-xs text-text-3">
+              한 주에 한 번만 운동해도 연속기록은 이어져요
+            </div>
+          </div>
+        ) : (
+          <>
+            <Heatmap
+              data={heatData}
+              weeks={heatWeeks}
+              weekStartsOn={weekStartsOn}
+              onSelect={setSelectedDay}
+            />
+            <div className="mt-3 flex justify-end">
+              <HeatmapLegend />
+            </div>
+            <p className="mt-2 text-[11px] leading-snug text-text-3">
+              💡 한 주에 한 번만 운동해도 연속기록은 이어져요. 휴식일엔 그대로 유지돼요.
+            </p>
+          </>
+        )}
       </section>
 
       <DayDetailSheet dateKey={selectedDay} onClose={() => setSelectedDay(null)} />

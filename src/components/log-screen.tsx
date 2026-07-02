@@ -45,7 +45,9 @@ import type {
 } from "@/lib/types";
 
 const MEMO_MAX = 30;
-const REST_PRESETS = [0, 30, 45, 60, 90, 120, 150, 180, 240, 300];
+const REST_PRESETS = [
+  0, 30, 45, 60, 90, 120, 150, 180, 240, 300, 360, 420, 480, 540, 600,
+];
 const MODE_LABEL: Record<TrackingMode, string> = {
   weight_reps: "중량 + 횟수",
   reps: "횟수만",

@@ -132,34 +132,55 @@ export function relativeDayLabel(key: string): string {
 }
 
 /** 연속기록(스트릭) 계산 — 운동한 날짜 집합 기준 */
-export function computeStreak(dateKeys: Set<string>): {
-  current: number;
-  longest: number;
-} {
+/** 주(週) 시작 자정의 epoch(ms). weekStartsOn: 0=일요일, 1=월요일. 로컬 타임존 기준. */
+function weekStartMs(key: string, weekStartsOn: 0 | 1): number {
+  const d = dateKeyToDate(key);
+  const diff = (d.getDay() - weekStartsOn + 7) % 7;
+  d.setDate(d.getDate() - diff);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/**
+ * 관대한 연속기록. 단위는 '일'이지만 휴식일로는 끊기지 않는다.
+ * 끊김 조건은 오직 "운동 0회인 완결된 한 주(週)"가 생겼을 때뿐 —
+ * 한 주에 한 번이라도 운동하면 그 주는 연속을 이어준다(주3회+휴식4일도 유지).
+ * 진행 중인 이번 주는 아직 0회여도 깨지 않고 유예한다(주가 끝나야 판정).
+ * weekStartsOn을 캘린더/잔디와 동일하게 넘겨 주 경계를 통일한다.
+ */
+export function computeStreak(
+  dateKeys: Set<string>,
+  weekStartsOn: 0 | 1 = 1
+): { current: number; longest: number } {
   if (dateKeys.size === 0) return { current: 0, longest: 0 };
   const sorted = [...dateKeys].sort();
-  let longest = 0;
-  let run = 0;
-  let prev: Date | null = null;
-  for (const k of sorted) {
-    const d = dateKeyToDate(k);
-    if (prev && (d.getTime() - prev.getTime()) / 86400000 === 1) {
-      run += 1;
-    } else {
-      run = 1;
-    }
+  const WEEK = 7 * 86400000;
+  // 두 운동일 사이에 '통째로 빈 주'가 없으면 연결(같은 주=0, 인접 주=1 허용).
+  // DST로 주 간격이 ±1시간 흔들려도 반올림으로 안전.
+  const linked = (a: string, b: string) =>
+    Math.round((weekStartMs(b, weekStartsOn) - weekStartMs(a, weekStartsOn)) / WEEK) <= 1;
+
+  // 최장: 인접 운동일이 '연결'인 동안 이어지는 총 운동일 수의 최댓값
+  let longest = 1;
+  let run = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    run = linked(sorted[i - 1], sorted[i]) ? run + 1 : 1;
     longest = Math.max(longest, run);
-    prev = d;
   }
-  // 현재 스트릭: 오늘 또는 어제부터 역방향 연속
+
+  // 현재: 최근 운동이 이번 주(0) 또는 지난 주(1, 유예)에 있어야 살아있음.
+  // 그 이전에 '완결된 빈 주'가 있으면(gap>=2) 끊긴 것.
+  const lastKey = sorted[sorted.length - 1];
+  const gapWeeks = Math.round(
+    (weekStartMs(todayKey(), weekStartsOn) - weekStartMs(lastKey, weekStartsOn)) / WEEK
+  );
   let current = 0;
-  const cursor = dateKeyToDate(todayKey());
-  if (!dateKeys.has(toDateKey(cursor))) {
-    cursor.setDate(cursor.getDate() - 1); // 오늘 안 했으면 어제부터
-  }
-  while (dateKeys.has(toDateKey(cursor))) {
-    current += 1;
-    cursor.setDate(cursor.getDate() - 1);
+  if (gapWeeks <= 1) {
+    current = 1;
+    for (let i = sorted.length - 1; i > 0; i--) {
+      if (linked(sorted[i - 1], sorted[i])) current += 1;
+      else break;
+    }
   }
   return { current, longest };
 }
