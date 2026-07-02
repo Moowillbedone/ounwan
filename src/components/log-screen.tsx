@@ -83,6 +83,7 @@ export function LogScreen() {
   const [session, setSession] = useState<WorkoutSession | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+  const [resumeOpen, setResumeOpen] = useState(false);
   const lastPerf = useRef<Record<string, { exercise: SessionExercise; date: string }>>({});
   const prBest = useRef<Record<string, number>>({});
   const [, forceTick] = useState(0);
@@ -280,6 +281,21 @@ export function LogScreen() {
 
   const startWorkout = () => update((s) => ({ ...s, startedAt: nowISO() }));
 
+  // 완료된 운동을 이어서: 완료 시점까지의 경과시간에서 이어서 진행
+  const resumeWorkout = () => {
+    update((s) => {
+      const st = s.startedAt ? new Date(s.startedAt).getTime() : Date.now();
+      const en = s.endedAt ? new Date(s.endedAt).getTime() : Date.now();
+      const frozenMs = Math.max(0, en - st);
+      return {
+        ...s,
+        startedAt: new Date(Date.now() - frozenMs).toISOString(),
+        endedAt: null,
+      };
+    });
+    setResumeOpen(false);
+  };
+
   const finish = () => {
     if (session && session.exercises.length > 0) {
       const stamps = session.exercises
@@ -309,9 +325,18 @@ export function LogScreen() {
     (n, e) => n + e.sets.filter((x) => x.isCompleted).length,
     0
   );
-  const elapsedSec = session.startedAt
-    ? Math.max(0, Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 1000))
-    : 0;
+  const startedMs = session.startedAt ? new Date(session.startedAt).getTime() : null;
+  const endedMs = session.endedAt ? new Date(session.endedAt).getTime() : null;
+  const notStarted = startedMs === null;
+  const finished = startedMs !== null && endedMs !== null; // 완료됨 → 시간 고정
+  const ticking = startedMs !== null && endedMs === null; // 진행 중 → 흐름
+  const elapsedSec =
+    startedMs !== null
+      ? Math.max(
+          0,
+          Math.floor(((finished ? (endedMs as number) : Date.now()) - startedMs) / 1000)
+        )
+      : 0;
 
   return (
     <div className="min-h-dvh pb-40">
@@ -327,22 +352,28 @@ export function LogScreen() {
             className="w-full bg-transparent text-base font-bold outline-none placeholder:text-text-3"
           />
           <div className="flex gap-3 text-xs text-text-3">
-            <span
-              className={`tabular-nums ${session.startedAt ? "text-brand font-semibold" : ""}`}
-            >
-              {session.startedAt ? `⏱ ${fmtDuration(elapsedSec)}` : "시작 전"}
+            <span className={cn("tabular-nums", ticking && "text-brand font-semibold")}>
+              {notStarted
+                ? "시작 전"
+                : `⏱ ${fmtDuration(elapsedSec)}${finished ? " · 완료" : ""}`}
             </span>
             <span>볼륨 {fmtNum(liveVolume)}</span>
             <span>{liveSets}세트</span>
           </div>
         </div>
-        {session.startedAt ? (
+        {notStarted && (
+          <Button size="sm" onClick={startWorkout} disabled={session.exercises.length === 0}>
+            운동 시작
+          </Button>
+        )}
+        {ticking && (
           <Button size="sm" onClick={finish}>
             운동 완료
           </Button>
-        ) : (
-          <Button size="sm" onClick={startWorkout} disabled={session.exercises.length === 0}>
-            운동 시작
+        )}
+        {finished && (
+          <Button size="sm" variant="secondary" onClick={() => setResumeOpen(true)}>
+            운동 이어서
           </Button>
         )}
       </header>
@@ -395,6 +426,21 @@ export function LogScreen() {
         setEndsAt={setRestEndsAt}
         onClose={() => setRestEndsAt(null)}
       />
+
+      <Sheet open={resumeOpen} onClose={() => setResumeOpen(false)} title="운동 이어서 하기">
+        <p className="text-sm leading-relaxed text-text-2">
+          이 운동은 이미 <b>완료</b>됐어요. 완료 시점의 시간(⏱ {fmtDuration(elapsedSec)})에서
+          이어서 다시 시작할까요?
+        </p>
+        <div className="mt-4 flex gap-2">
+          <Button variant="ghost" className="flex-1" onClick={() => setResumeOpen(false)}>
+            취소
+          </Button>
+          <Button className="flex-1" onClick={resumeWorkout}>
+            이어서 하기
+          </Button>
+        </div>
+      </Sheet>
     </div>
   );
 }
