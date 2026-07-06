@@ -19,7 +19,7 @@ import {
   computeStreak,
   fmtNum,
   fmtWeight,
-  setsVolume,
+  exerciseVolume,
   toDisplayWeight,
   fromDisplayWeight,
   todayKey,
@@ -43,7 +43,10 @@ export default function StatsPage() {
   // 요약 (운동 일수·연속기록은 '완료(종료)한 날'만 카운트, 볼륨은 완료 세트 합계)
   const summary = useMemo(() => {
     const all = sessions ?? [];
-    const totalVol = all.reduce((n, s) => n + s.totalVolume, 0);
+    // 볼륨도 '완료(운동 종료)한 세션'만 합산(계획/미완료 세션 제외)
+    const totalVol = all
+      .filter(isSessionDone)
+      .reduce((n, s) => n + s.totalVolume, 0);
     const doneDates = all.filter(isSessionDone).map((s) => s.date);
     const streak = computeStreak(new Set(doneDates), weekStartsOn);
     const weekAgo = new Date();
@@ -62,11 +65,12 @@ export default function StatsPage() {
     cutoff.setDate(cutoff.getDate() - 28);
     const m = new Map<BodyPart, number>();
     for (const s of sessions ?? []) {
+      if (!isSessionDone(s)) continue; // 완료 세션만
       if (dateKeyToDate(s.date) < cutoff) continue;
       for (const ex of s.exercises) {
         const bp = exMap.get(ex.exerciseId)?.bodyPart;
         if (!bp) continue;
-        m.set(bp, (m.get(bp) ?? 0) + setsVolume(ex.sets));
+        m.set(bp, (m.get(bp) ?? 0) + exerciseVolume(ex)); // 중량+횟수 모드만
       }
     }
     return BODY_PARTS.map((bp) => ({
@@ -76,26 +80,32 @@ export default function StatsPage() {
     })).filter((d) => d.value > 0);
   }, [sessions, exMap]);
 
-  // 훈련한 운동(빈도순)
+  // 훈련한 운동(빈도순) — 완료(운동 종료)한 세션만
   const trained = useMemo(() => {
     const freq = new Map<string, number>();
-    for (const s of sessions ?? [])
+    for (const s of sessions ?? []) {
+      if (!isSessionDone(s)) continue;
       for (const ex of s.exercises)
         if (ex.sets.some((x) => x.isCompleted))
           freq.set(ex.exerciseId, (freq.get(ex.exerciseId) ?? 0) + 1);
+    }
     return [...freq.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([id]) => exMap.get(id))
       .filter(Boolean) as Exercise[];
   }, [sessions, exMap]);
 
-  // 1RM 측정 가능한 종목만: 완료 세트 중 '중량>0'이 하나라도 있는 종목
-  // (스트레칭·맨몸운동은 매번 0으로 나와 자동 제외)
+  // 1RM 측정 가능한 종목: 완료 세션에서 '중량+횟수 모드 + 중량>0' 완료세트가 있는 종목
+  // (스트레칭·맨몸·횟수만/시간만은 자동 제외 → 볼륨/1RM 기준과 일치)
   const measurableIds = useMemo(() => {
     const s = new Set<string>();
-    for (const sess of sessions ?? [])
-      for (const ex of sess.exercises)
+    for (const sess of sessions ?? []) {
+      if (!isSessionDone(sess)) continue;
+      for (const ex of sess.exercises) {
+        if (ex.trackingMode && ex.trackingMode !== "weight_reps") continue;
         if (ex.sets.some((x) => x.isCompleted && x.weight > 0)) s.add(ex.exerciseId);
+      }
+    }
     return s;
   }, [sessions]);
 

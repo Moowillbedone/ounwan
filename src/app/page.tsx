@@ -84,9 +84,10 @@ export default function HomePage() {
     for (const [date, arr] of byDate) {
       const d = new Date(date);
       if (isSameMonth(d, monthCursor)) {
-        if (arr.some(isSessionDone)) days++;
-        volume += arr.reduce((n, s) => n + s.totalVolume, 0);
-        sets += arr.reduce((n, s) => n + s.totalSets, 0);
+        const done = arr.filter(isSessionDone);
+        if (done.length) days++;
+        volume += done.reduce((n, s) => n + s.totalVolume, 0);
+        sets += done.reduce((n, s) => n + s.totalSets, 0);
       }
     }
     return { days, volume, sets };

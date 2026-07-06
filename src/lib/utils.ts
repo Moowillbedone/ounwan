@@ -1,4 +1,10 @@
-import type { Unit, WorkoutSet, WorkoutSession, BodyPart } from "./types";
+import type {
+  Unit,
+  WorkoutSet,
+  WorkoutSession,
+  SessionExercise,
+  BodyPart,
+} from "./types";
 
 /** uuid (브라우저/Node 24 모두 지원) */
 export function uid(): string {
@@ -79,6 +85,12 @@ export function setsVolume(sets: WorkoutSet[]): number {
   }, 0);
 }
 
+/** 운동 하나의 볼륨(kg·회) — '중량+횟수' 모드만 집계(횟수만/시간만은 0). 통계 전반 일관성용. */
+export function exerciseVolume(ex: SessionExercise): number {
+  if (ex.trackingMode && ex.trackingMode !== "weight_reps") return 0;
+  return setsVolume(ex.sets);
+}
+
 export function bestSet1RM(sets: WorkoutSet[]): number {
   return sets.reduce((best, s) => {
     if (!s.isCompleted) return best;
@@ -98,10 +110,7 @@ export function recomputeSessionDerived(
     const bp = bodyPartOf(ex.exerciseId);
     const completed = ex.sets.filter((s) => s.isCompleted);
     if (bp && completed.length > 0) parts.add(bp);
-    // 볼륨은 '중량+횟수' 방식만 집계(횟수만/시간만은 0)
-    if (!ex.trackingMode || ex.trackingMode === "weight_reps") {
-      volume += setsVolume(ex.sets);
-    }
+    volume += exerciseVolume(ex); // '중량+횟수' 모드만 집계
     setCount += completed.length;
   }
   return {

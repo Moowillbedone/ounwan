@@ -6,7 +6,7 @@ import {
   nowISO,
   todayKey,
   estimate1RM,
-  setsVolume,
+  exerciseVolume,
   recomputeSessionDerived,
 } from "./utils";
 import type {
@@ -271,6 +271,7 @@ export async function getExerciseHistory(
   const sessions = await listSessions();
   const points: ExerciseHistoryPoint[] = [];
   for (const s of sessions) {
+    if (!s.endedAt) continue; // 실제 완료(운동 종료)한 세션만 성장 지표에 반영
     for (const ex of s.exercises) {
       if (ex.exerciseId !== exerciseId) continue;
       const done = ex.sets.filter((x) => x.isCompleted);
@@ -287,7 +288,7 @@ export async function getExerciseHistory(
         topSetWeight: top.weight,
         topSetReps: top.reps,
         best1RM: Math.round(best1RM * 10) / 10,
-        volume: Math.round(setsVolume(ex.sets)),
+        volume: Math.round(exerciseVolume(ex)),
         sets: ex.sets,
       });
     }
