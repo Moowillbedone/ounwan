@@ -109,8 +109,9 @@ export function recomputeSessionDerived(
   for (const ex of session.exercises) {
     const bp = bodyPartOf(ex.exerciseId);
     const completed = ex.sets.filter((s) => s.isCompleted);
-    if (bp && completed.length > 0) parts.add(bp);
-    volume += exerciseVolume(ex); // '중량+횟수' 모드만 집계
+    // 부위는 '이 세션이 자극하는 부위'로 표기 → 계획(미완료)만 있어도 캘린더에 보이게
+    if (bp && ex.sets.length > 0) parts.add(bp);
+    volume += exerciseVolume(ex); // '중량+횟수' 모드만 집계(완료 세트)
     setCount += completed.length;
   }
   return {

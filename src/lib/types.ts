@@ -140,6 +140,7 @@ export interface Profile extends SyncMeta {
   restAlert?: boolean; // 휴식 종료 알림(소리·진동) — 미지정=켜짐
   restSound?: RestSound; // 휴식 종료 알림음 — 미지정=chime(기본)
   hiddenStats?: string[]; // 통계 '운동별 성장'에서 사용자가 숨긴 exerciseId 목록
+  exerciseNotes?: Record<string, string>; // 종목별 공유 메모(exerciseId→메모) — 날짜 무관 연동
   onboardedAt?: string | null;
 }
 

@@ -19,7 +19,7 @@ import { Button, IconButton, Sheet, useToast, EmptyState, cn } from "./ui";
 import { LabelField } from "./label-field";
 import { ExercisePicker } from "./exercise-picker";
 import { RestTimer } from "./rest-timer";
-import { useSaveSession, useProfile, useExerciseMap } from "@/lib/hooks";
+import { useSaveSession, useProfile, useUpdateProfile, useExerciseMap } from "@/lib/hooks";
 import { armFeedback } from "@/lib/feedback";
 import * as repo from "@/lib/repo";
 import {
@@ -82,8 +82,21 @@ export function LogScreen() {
   const toast = useToast();
   const saveSession = useSaveSession();
   const { data: profile } = useProfile();
+  const updateProfile = useUpdateProfile();
   const exMap = useExerciseMap();
   const unit: Unit = profile?.unit ?? "kg";
+
+  // 종목별 공유 메모(exerciseId→메모): 같은 종목이면 날짜가 달라도 연동
+  const exerciseNotes = profile?.exerciseNotes ?? {};
+  const commitExerciseNote = (exerciseId: string, text: string) => {
+    const t = text.trim();
+    const cur = profile?.exerciseNotes ?? {};
+    if ((cur[exerciseId] ?? "") === t) return;
+    const next = { ...cur };
+    if (t) next[exerciseId] = t;
+    else delete next[exerciseId];
+    updateProfile.mutate({ exerciseNotes: next });
+  };
 
   const [session, setSession] = useState<WorkoutSession | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -423,6 +436,8 @@ export function LogScreen() {
               exercise={exMap.get(ex.exerciseId)}
               unit={unit}
               lastPerf={lastPerf.current[ex.exerciseId]}
+              note={exerciseNotes[ex.exerciseId] ?? ex.note ?? ""}
+              onCommitNote={(t) => commitExerciseNote(ex.exerciseId, t)}
               isFirst={i === 0}
               isLast={i === arr.length - 1}
               onMoveUp={() => moveExercise(ex.id, -1)}
@@ -540,6 +555,8 @@ function ExerciseLogCard({
   exercise,
   unit,
   lastPerf,
+  note,
+  onCommitNote,
   isFirst,
   isLast,
   onMoveUp,
@@ -555,6 +572,8 @@ function ExerciseLogCard({
   exercise?: Exercise;
   unit: Unit;
   lastPerf?: { exercise: SessionExercise; date: string };
+  note: string;
+  onCommitNote: (text: string) => void;
   isFirst: boolean;
   isLast: boolean;
   onMoveUp: () => void;
@@ -568,6 +587,9 @@ function ExerciseLogCard({
 }) {
   const [menu, setMenu] = useState(false);
   const [restOpen, setRestOpen] = useState(false);
+  // 종목 공유 메모: 입력 중엔 로컬, blur 시 커밋. 외부(다른 날짜/기기)에서 바뀌면 동기화
+  const [memo, setMemo] = useState(note);
+  useEffect(() => setMemo(note), [note]);
   const mode: TrackingMode = ex.trackingMode ?? "weight_reps";
   const rest = effectiveRest(ex, exercise);
   const prevSummary = prevSummaryText(lastPerf?.exercise, mode, unit);
@@ -660,15 +682,16 @@ function ExerciseLogCard({
         <div className="flex items-center gap-1.5 rounded-lg bg-surface-2/60 px-2.5 py-1.5">
           <Pencil size={13} className="shrink-0 text-text-3" />
           <input
-            value={ex.note ?? ""}
+            value={memo}
             maxLength={MEMO_MAX}
-            onChange={(e) => onPatchExercise({ note: e.target.value })}
-            placeholder="메모 (예: 견갑 고정, 반동 없이)"
+            onChange={(e) => setMemo(e.target.value)}
+            onBlur={() => onCommitNote(memo)}
+            placeholder="메모 (같은 종목끼리 공유 · 예: 견갑 고정)"
             className="w-full bg-transparent text-xs text-text-2 outline-none placeholder:text-text-3/70"
           />
-          {ex.note && (
+          {memo && (
             <span className="shrink-0 text-[10px] tabular-nums text-text-3/60">
-              {ex.note.length}/{MEMO_MAX}
+              {memo.length}/{MEMO_MAX}
             </span>
           )}
         </div>
