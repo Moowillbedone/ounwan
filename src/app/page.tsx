@@ -52,7 +52,8 @@ export default function HomePage() {
       const done = arr.filter(isSessionDone);
       if (done.length === 0) continue;
       const sets = done.reduce((n, s) => n + s.totalSets, 0);
-      m.set(date, sets < 9 ? 1 : sets < 17 ? 2 : sets < 25 ? 3 : 4);
+      // 임계값을 낮춰(일반 볼륨이 한 단계로 뭉치지 않게) 단계가 퍼지도록
+      m.set(date, sets < 8 ? 1 : sets < 14 ? 2 : sets < 20 ? 3 : 4);
     }
     return m;
   }, [byDate]);

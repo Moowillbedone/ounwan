@@ -4,7 +4,7 @@ import { toDateKey, todayKey } from "@/lib/utils";
 
 const WEEKDAY = ["일", "월", "화", "수", "목", "금", "토"];
 const LEVEL_COLOR = ["--grass-0", "--grass-1", "--grass-2", "--grass-3", "--grass-4"];
-const CELL = 14;
+const CELL = 16;
 const GAP = 3;
 const PITCH = CELL + GAP;
 const LABEL_W = 20;
