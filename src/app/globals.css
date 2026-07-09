@@ -19,12 +19,12 @@
   --brand-strong: #0f9d63;
   --brand-soft: #d3f5e6;
 
-  /* 히트맵(잔디) 5단계 — 단계별 명도 뚜렷하게(가벼움→빡셈) */
-  --grass-0: #dfe4ea;
-  --grass-1: #96e6c0;
-  --grass-2: #3fce90;
-  --grass-3: #12a76b;
-  --grass-4: #077440;
+  /* 히트맵(잔디) 5단계 — 명도+색상(민트→에메랄드→딥그린→딥틸) 이중 변화로 단계 구분 */
+  --grass-0: #e2e6eb;
+  --grass-1: #a1e0c1;
+  --grass-2: #3cc789;
+  --grass-3: #10a77a;
+  --grass-4: #06604c;
 
   /* 표면/텍스트 (라이트) */
   --bg: #f6f7f9;
@@ -58,10 +58,10 @@
   --brand-soft: #123528;
 
   --grass-0: #37414e;
-  --grass-1: #1a6b41;
-  --grass-2: #23a86c;
-  --grass-3: #34d68d;
-  --grass-4: #63eeae;
+  --grass-1: #196b47;
+  --grass-2: #24a86f;
+  --grass-3: #3cd691;
+  --grass-4: #62f1c3;
 
   --bg: #0a0e13;
   --surface: #121821;
