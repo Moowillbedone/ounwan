@@ -37,7 +37,9 @@ export default function SettingsPage() {
     const sessions = await repo.listSessions();
     const exs = await repo.listExercises();
     const nameOf = new Map(exs.map((e) => [e.id, e.nameKo]));
-    const rows = [["날짜", "세션", "운동", "세트", "무게(kg)", "횟수", "세트유형", "완료"]];
+    const rows = [
+      ["날짜", "세션", "운동", "종목ID", "세트", "무게(kg)", "횟수", "세트유형", "완료", "종료됨"],
+    ];
     for (const s of sessions.slice().reverse()) {
       for (const ex of s.exercises) {
         ex.sets.forEach((st, i) => {
@@ -45,11 +47,13 @@ export default function SettingsPage() {
             s.date,
             s.title ?? "",
             nameOf.get(ex.exerciseId) ?? ex.exerciseId,
+            ex.exerciseId,
             String(i + 1),
             String(st.weight),
             String(st.reps),
             st.setType,
             st.isCompleted ? "O" : "",
+            s.endedAt ? "O" : "",
           ]);
         });
       }

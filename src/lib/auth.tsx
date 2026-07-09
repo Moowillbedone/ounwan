@@ -16,6 +16,7 @@ import {
   setCurrentOwner,
   migrateLocalDataTo,
   clearCopiedTitles,
+  migrateExerciseNotes,
 } from "./repo";
 import { LOCAL_OWNER } from "./constants";
 import {
@@ -72,13 +73,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await KV.set(migKey, true);
       }
       setUser(u);
-      // 과거 붙여넣기가 남긴 '복사한 운동' 제목 정리(이미 로컬에 있는 데이터, dirty로 표시됨)
+      // 과거 데이터 정리·이관(로컬에 이미 있는 데이터, dirty로 표시됨)
       await clearCopiedTitles();
+      await migrateExerciseNotes(); // 세션별 메모 → 종목 공유 메모
       await qc.invalidateQueries();
       bindRealtime(u.id);
-      // 원격 pull 후에도 한 번 더 정리(다른 기기에서 온 데이터 대비) → 정리분 재푸시
+      // 원격 pull 후에도 한 번 더 정리·이관(다른 기기에서 온 데이터 대비) → 변경분 재푸시
       void fullSync().then(async () => {
-        if (await clearCopiedTitles()) {
+        const changed = (await clearCopiedTitles()) + (await migrateExerciseNotes());
+        if (changed) {
           await qc.invalidateQueries();
           void fullSync();
         }
@@ -92,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       await ensureSeeded();
       await clearCopiedTitles(); // 게스트(로컬) 데이터의 과거 '복사한 운동' 제목 정리
+      await migrateExerciseNotes(); // 세션별 메모 → 종목 공유 메모 이관
       const chosen = (await KV.get<boolean>("guestChosen")) ?? false;
       setGuestChosen(chosen);
       unsubSync = onSyncState(setSync);

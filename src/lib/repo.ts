@@ -1,4 +1,4 @@
-import { getDB } from "./db";
+import { getDB, KV } from "./db";
 import { BUILTIN_EXERCISES } from "@/data/exercises";
 import { LOCAL_OWNER } from "./constants";
 import {
@@ -204,6 +204,39 @@ export async function deleteSession(id: string): Promise<void> {
   const s = await db.sessions.get(id);
   if (!s) return;
   await db.sessions.put(touch({ ...s, deletedAt: nowISO() }));
+}
+
+/**
+ * 종목별 공유 메모 마이그레이션: 과거 세션별 메모(ex.note)를 종목(exerciseId) 공유
+ * 스토어(profile.exerciseNotes)로 올린다. R16 이전/미편집 메모가 다른 날짜에서
+ * 안 보이던 문제 해결. 공유 스토어가 이미 채워져 있으면(사용 시작함) 건너뜀 → 재실행 안전.
+ * 반환: 새로 채운 종목 수.
+ */
+export async function migrateExerciseNotes(): Promise<number> {
+  const db = getDB();
+  const flagKey = `exNotesMigrated:${_owner}`;
+  if (await KV.get<boolean>(flagKey)) return 0; // 소유자당 1회만(정리한 메모 되살아나지 않게)
+  const profile = await db.profile.get(_owner);
+  if (!profile) return 0;
+  const existing = profile.exerciseNotes ?? {};
+  const sessions = await db.sessions.where("ownerId").equals(_owner).toArray();
+  sessions.sort((a, b) => b.date.localeCompare(a.date)); // 최신 날짜 먼저
+  const merged = { ...existing };
+  let added = 0;
+  for (const s of sessions) {
+    if (s.deletedAt) continue;
+    for (const ex of s.exercises ?? []) {
+      const note = (ex.note ?? "").trim();
+      // 종목별 '가장 최근 비어있지 않은 메모' 채택. 이미 공유값 있으면 유지(사용자 편집 우선)
+      if (note && merged[ex.exerciseId] === undefined) {
+        merged[ex.exerciseId] = note;
+        added++;
+      }
+    }
+  }
+  if (added > 0) await db.profile.put(touch({ ...profile, exerciseNotes: merged }));
+  await KV.set(flagKey, true);
+  return added;
 }
 
 /**
