@@ -19,12 +19,12 @@
   --brand-strong: #0f9d63;
   --brand-soft: #d3f5e6;
 
-  /* 히트맵(잔디) 5단계 */
-  --grass-0: #eaedf0;
-  --grass-1: #b7ecd4;
-  --grass-2: #6fdcac;
-  --grass-3: #2bc586;
-  --grass-4: #0f9d63;
+  /* 히트맵(잔디) 5단계 — 단계별 명도 뚜렷하게(가벼움→빡셈) */
+  --grass-0: #dfe4ea;
+  --grass-1: #96e6c0;
+  --grass-2: #3fce90;
+  --grass-3: #12a76b;
+  --grass-4: #077440;
 
   /* 표면/텍스트 (라이트) */
   --bg: #f6f7f9;
@@ -57,11 +57,11 @@
   --brand-strong: #34e79a;
   --brand-soft: #123528;
 
-  --grass-0: #1c232c;
-  --grass-1: #14432a;
-  --grass-2: #1c7a4c;
-  --grass-3: #24b877;
-  --grass-4: #45e39c;
+  --grass-0: #37414e;
+  --grass-1: #1a6b41;
+  --grass-2: #23a86c;
+  --grass-3: #34d68d;
+  --grass-4: #63eeae;
 
   --bg: #0a0e13;
   --surface: #121821;
