@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { ToastProvider, cn, Spinner } from "./ui";
 import { OnboardingGate } from "./onboarding";
 import { StartWorkoutSheet } from "./start-workout";
+import { RestTimer } from "./rest-timer";
 import { APP_NAME } from "@/lib/constants";
 
 const TABS = [
@@ -112,6 +113,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               />
             )}
             <StartWorkoutSheet open={startOpen} onClose={() => setStartOpen(false)} />
+            {/* 휴식 타이머는 전역 — 화면을 옮겨도 유지 */}
+            <RestTimer immersive={immersive} />
           </>
         )}
       </div>

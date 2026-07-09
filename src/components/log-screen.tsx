@@ -14,11 +14,12 @@ import {
   Minus,
   Timer,
   Pencil,
+  History,
 } from "lucide-react";
 import { Button, IconButton, Sheet, useToast, EmptyState, cn } from "./ui";
 import { LabelField } from "./label-field";
 import { ExercisePicker } from "./exercise-picker";
-import { RestTimer } from "./rest-timer";
+import { startRest } from "@/lib/rest-timer";
 import { useSaveSession, useProfile, useUpdateProfile, useExerciseMap } from "@/lib/hooks";
 import { armFeedback } from "@/lib/feedback";
 import * as repo from "@/lib/repo";
@@ -100,7 +101,6 @@ export function LogScreen() {
 
   const [session, setSession] = useState<WorkoutSession | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [resumeOpen, setResumeOpen] = useState(false);
   const lastPerf = useRef<Record<string, { exercise: SessionExercise; date: string }>>({});
   const prBest = useRef<Record<string, number>>({});
@@ -238,6 +238,42 @@ export function LogScreen() {
       return { ...s, exercises: sorted.map((e, idx) => ({ ...e, orderIndex: idx })) };
     });
 
+  // 이 종목의 '가장 최근 실제 수행'(완료 세트가 있는 최신 세션)을 현재 세트에 불러오기
+  const loadLatest = async (exId: string, exerciseId: string) => {
+    // 현재 세션 제외(로드 중이라 session이 아직 null일 수 있어 idParam도 함께)
+    const lp = await repo.getLastPerformance(exerciseId, idParam || session?.id);
+    if (!lp) {
+      toast("이 종목의 최근 실제 기록이 없어요");
+      return;
+    }
+    const src = lp.exercise;
+    update((s) => ({
+      ...s,
+      exercises: s.exercises.map((e) =>
+        e.id !== exId
+          ? e
+          : {
+              ...e,
+              trackingMode: src.trackingMode ?? e.trackingMode,
+              restSeconds: src.restSeconds ?? e.restSeconds,
+              sets: src.sets.map((st) => ({
+                id: uid(),
+                setType: st.setType,
+                weight: st.weight,
+                reps: st.reps,
+                durationSec: st.durationSec ?? null,
+                isCompleted: false,
+              })),
+            }
+      ),
+    }));
+    toast(
+      `${exMap.get(exerciseId)?.nameKo ?? "운동"} · ${relativeDayLabel(
+        lp.session.date
+      )} 기록을 불러왔어요`
+    );
+  };
+
   const patchSet = (exId: string, setId: string, patch: Partial<WorkoutSet>) =>
     update((s) => ({
       ...s,
@@ -293,7 +329,9 @@ export function LogScreen() {
       armFeedback(); // 제스처 안에서 오디오 언락(휴식 종료음 대비)
       const meta = exMap.get(ex.exerciseId);
       const rest = effectiveRest(ex, meta);
-      if (rest > 0) setRestEndsAt(Date.now() + rest * 1000);
+      // 전역 휴식 타이머 시작 → 화면 이동/재진입에도 유지·알람
+      if (rest > 0)
+        startRest(rest, profile?.restSound ?? "chime", profile?.restAlert !== false);
       // PR은 '중량+횟수' 방식만
       const mode = ex.trackingMode ?? "weight_reps";
       if (mode === "weight_reps" && st.weight > 0 && st.reps > 0) {
@@ -444,6 +482,7 @@ export function LogScreen() {
               onMoveDown={() => moveExercise(ex.id, 1)}
               onPatchSet={(setId, patch) => patchSet(ex.id, setId, patch)}
               onPatchExercise={(patch) => patchExercise(ex.id, patch)}
+              onLoadLatest={() => loadLatest(ex.id, ex.exerciseId)}
               onToggle={(setId) => toggleComplete(ex.id, setId)}
               onAddSet={() => addSet(ex.id)}
               onRemoveSet={(setId) => removeSet(ex.id, setId)}
@@ -466,12 +505,6 @@ export function LogScreen() {
         onClose={() => setPickerOpen(false)}
         onConfirm={addExercises}
       />
-      <RestTimer
-        endsAt={restEndsAt}
-        setEndsAt={setRestEndsAt}
-        onClose={() => setRestEndsAt(null)}
-      />
-
       <Sheet open={resumeOpen} onClose={() => setResumeOpen(false)} title="운동 이어서 하기">
         <p className="text-sm leading-relaxed text-text-2">
           이 운동은 이미 <b>완료</b>됐어요. 완료 시점의 시간(⏱ {fmtDuration(elapsedSec)})에서
@@ -563,6 +596,7 @@ function ExerciseLogCard({
   onMoveDown,
   onPatchSet,
   onPatchExercise,
+  onLoadLatest,
   onToggle,
   onAddSet,
   onRemoveSet,
@@ -574,6 +608,7 @@ function ExerciseLogCard({
   lastPerf?: { exercise: SessionExercise; date: string };
   note: string;
   onCommitNote: (text: string) => void;
+  onLoadLatest: () => void;
   isFirst: boolean;
   isLast: boolean;
   onMoveUp: () => void;
@@ -644,7 +679,17 @@ function ExerciseLogCard({
           {menu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
-              <div className="absolute right-0 top-9 z-20 w-40 rounded-xl border border-border bg-surface p-1 shadow-[var(--shadow-pop)]">
+              <div className="absolute right-0 top-9 z-20 w-44 rounded-xl border border-border bg-surface p-1 shadow-[var(--shadow-pop)]">
+                <button
+                  onClick={() => {
+                    onLoadLatest();
+                    setMenu(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-2"
+                >
+                  <History size={15} className="text-brand" /> 최신 기록 불러오기
+                </button>
+                <div className="my-1 border-t border-border" />
                 <div className="px-3 pt-1.5 pb-1 text-[11px] font-bold text-text-3">
                   기록 방식
                 </div>
