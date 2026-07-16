@@ -95,6 +95,7 @@ export function DayDetailSheet({
           weight: x.weight,
           reps: x.reps,
           durationSec: x.durationSec ?? null,
+          restSeconds: x.restSeconds ?? null,
           isCompleted: x.isCompleted,
         })),
       })),
@@ -163,7 +164,8 @@ export function DayDetailSheet({
         weight: s.weight,
         reps: s.reps,
         durationSec: s.durationSec ?? null,
-        isCompleted: false, // 복사 시 '완료' 진행상황은 빼고, 무게·횟수(계획)만 가져옴
+        restSeconds: s.restSeconds ?? null,
+        isCompleted: false, // 복사 시 '완료' 진행상황은 빼고, 무게·횟수·휴식(계획)만 가져옴
       })),
     }));
     await saveSession.mutateAsync(base);

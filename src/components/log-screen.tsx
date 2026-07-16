@@ -262,6 +262,7 @@ export function LogScreen() {
                 weight: st.weight,
                 reps: st.reps,
                 durationSec: st.durationSec ?? null,
+                restSeconds: st.restSeconds ?? null,
                 isCompleted: false,
               })),
             }
@@ -300,6 +301,7 @@ export function LogScreen() {
               weight: last?.weight ?? 0,
               reps: last?.reps ?? 0,
               durationSec: last?.durationSec ?? (e.trackingMode === "time" ? 0 : null),
+              restSeconds: last?.restSeconds ?? null,
               isCompleted: false,
             },
           ],
@@ -328,7 +330,8 @@ export function LogScreen() {
       update((s) => (s.startedAt ? s : { ...s, startedAt: nowISO() }));
       armFeedback(); // 제스처 안에서 오디오 언락(휴식 종료음 대비)
       const meta = exMap.get(ex.exerciseId);
-      const rest = effectiveRest(ex, meta);
+      // 이 세트에 개별 휴식이 지정돼 있으면 우선, 없으면 종목 기본 휴식
+      const rest = st.restSeconds != null ? st.restSeconds : effectiveRest(ex, meta);
       // 전역 휴식 타이머 시작 → 화면 이동/재진입에도 유지·알람
       if (rest > 0)
         startRest(rest, profile?.restSound ?? "chime", profile?.restAlert !== false);
@@ -541,6 +544,7 @@ function buildExercise(
       weight: s.weight,
       reps: s.reps,
       durationSec: s.durationSec ?? null,
+      restSeconds: s.restSeconds ?? null,
       isCompleted: false,
     }));
   } else {
@@ -622,6 +626,8 @@ function ExerciseLogCard({
 }) {
   const [menu, setMenu] = useState(false);
   const [restOpen, setRestOpen] = useState(false);
+  const [restTab, setRestTab] = useState<"all" | "perset">("all");
+  const [restSetId, setRestSetId] = useState<string | null>(null);
   // 종목 공유 메모: 입력 중엔 로컬, blur 시 커밋. 외부(다른 날짜/기기)에서 바뀌면 동기화
   const [memo, setMemo] = useState(note);
   useEffect(() => setMemo(note), [note]);
@@ -779,30 +785,132 @@ function ExerciseLogCard({
         </button>
       </div>
 
-      {/* 휴식시간 선택 시트 */}
+      {/* 휴식시간 선택 시트 — 전체 / 세트별 */}
       <Sheet open={restOpen} onClose={() => setRestOpen(false)} title="휴식 시간">
-        <p className="mb-3 text-sm text-text-3">
-          이 운동의 세트 완료 후 자동으로 시작할 휴식 시간을 정해요.
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {REST_PRESETS.map((sec) => (
+        <div className="mb-3 grid grid-cols-2 gap-1 rounded-full bg-surface-2 p-1">
+          {(["all", "perset"] as const).map((t) => (
             <button
-              key={sec}
+              key={t}
               onClick={() => {
-                onPatchExercise({ restSeconds: sec });
-                setRestOpen(false);
+                setRestTab(t);
+                if (t === "perset" && !restSetId) setRestSetId(ex.sets[0]?.id ?? null);
               }}
               className={cn(
-                "h-12 rounded-app border text-sm font-bold transition",
-                rest === sec
-                  ? "border-brand bg-brand-soft text-brand-strong"
-                  : "border-border text-text-2"
+                "h-8 rounded-full text-sm font-semibold transition",
+                restTab === t
+                  ? "bg-surface text-brand shadow-[var(--shadow-card)]"
+                  : "text-text-3"
               )}
             >
-              {sec === 0 ? "끄기" : fmtDuration(sec)}
+              {t === "all" ? "전체" : "세트별"}
             </button>
           ))}
         </div>
+
+        {restTab === "all" ? (
+          <>
+            <p className="mb-3 text-sm text-text-3">
+              세트 완료 후 자동으로 시작할 <b className="text-text-2">공통 휴식</b>이에요.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {REST_PRESETS.map((sec) => (
+                <button
+                  key={sec}
+                  onClick={() => {
+                    onPatchExercise({ restSeconds: sec });
+                    setRestOpen(false);
+                  }}
+                  className={cn(
+                    "h-12 rounded-app border text-sm font-bold transition",
+                    rest === sec
+                      ? "border-brand bg-brand-soft text-brand-strong"
+                      : "border-border text-text-2"
+                  )}
+                >
+                  {sec === 0 ? "끄기" : fmtDuration(sec)}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          (() => {
+            const targetId =
+              ex.sets.find((s) => s.id === restSetId)?.id ?? ex.sets[0]?.id ?? null;
+            const target = ex.sets.find((s) => s.id === targetId);
+            const cur = target?.restSeconds ?? null;
+            const targetIdx = ex.sets.findIndex((s) => s.id === targetId) + 1;
+            return (
+              <>
+                <p className="mb-3 text-sm text-text-3">
+                  특정 세트만 다른 휴식을 줄 수 있어요. 지정 안 한 세트는{" "}
+                  <b className="text-text-2">{rest === 0 ? "휴식 끔" : fmtDuration(rest)}</b>
+                  (전체)을 따라요.
+                </p>
+                {/* 세트 선택 */}
+                <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+                  {ex.sets.map((s, i) => {
+                    const custom = s.restSeconds != null;
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => setRestSetId(s.id)}
+                        className={cn(
+                          "relative flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl border font-bold transition",
+                          s.id === targetId
+                            ? "border-brand bg-brand-soft text-brand-strong"
+                            : "border-border text-text-2"
+                        )}
+                      >
+                        {custom && (
+                          <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-brand" />
+                        )}
+                        <span className="text-sm leading-none">{i + 1}</span>
+                        <span className="mt-1 text-[9px] font-semibold leading-none text-text-3">
+                          {custom ? fmtDuration(s.restSeconds!) : "기본"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* 선택 세트 휴식 프리셋 */}
+                {targetId && (
+                  <>
+                    <div className="mb-2 text-xs font-bold text-text-2">
+                      {targetIdx}세트 휴식
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() => onPatchSet(targetId, { restSeconds: null })}
+                        className={cn(
+                          "h-12 rounded-app border text-sm font-bold transition",
+                          cur === null
+                            ? "border-brand bg-brand-soft text-brand-strong"
+                            : "border-border text-text-2"
+                        )}
+                      >
+                        기본값
+                      </button>
+                      {REST_PRESETS.map((sec) => (
+                        <button
+                          key={sec}
+                          onClick={() => onPatchSet(targetId, { restSeconds: sec })}
+                          className={cn(
+                            "h-12 rounded-app border text-sm font-bold transition",
+                            cur === sec
+                              ? "border-brand bg-brand-soft text-brand-strong"
+                              : "border-border text-text-2"
+                          )}
+                        >
+                          {sec === 0 ? "끄기" : fmtDuration(sec)}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            );
+          })()
+        )}
       </Sheet>
     </div>
   );
@@ -910,9 +1018,15 @@ function SetRow({
     >
       <button
         onClick={() => setOptionsOpen(true)}
-        className="grid h-7 w-7 place-items-center rounded-full text-[13px] font-bold text-text-2 active:bg-surface-2"
+        className="relative grid h-7 w-7 place-items-center rounded-full text-[13px] font-bold text-text-2 active:bg-surface-2"
         title="세트 유형 · 삭제"
       >
+        {set.restSeconds != null && (
+          <span
+            className="absolute right-0 top-0 h-1.5 w-1.5 rounded-full bg-brand"
+            title={`이 세트 휴식 ${set.restSeconds === 0 ? "끔" : fmtDuration(set.restSeconds)}`}
+          />
+        )}
         {set.setType === "working" ? (
           index
         ) : (

@@ -9,6 +9,7 @@ export interface ClipSet {
   weight: number;
   reps: number;
   durationSec?: number | null;
+  restSeconds?: number | null;
   isCompleted: boolean;
 }
 export interface ClipExercise {
