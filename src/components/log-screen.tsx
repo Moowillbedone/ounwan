@@ -15,6 +15,7 @@ import {
   Timer,
   Pencil,
   History,
+  RefreshCw,
 } from "lucide-react";
 import { Button, IconButton, Sheet, useToast, EmptyState, cn } from "./ui";
 import { LabelField } from "./label-field";
@@ -275,6 +276,49 @@ export function LogScreen() {
     );
   };
 
+  // 이 세션의 모든 운동을 한 번에 각자의 '가장 최근 실제 수행'으로 최신화
+  const refreshAll = async () => {
+    if (!session || session.exercises.length === 0) return;
+    const excludeId = idParam || session.id;
+    const found = await Promise.all(
+      session.exercises.map(async (ex) => ({
+        exId: ex.id,
+        lp: await repo.getLastPerformance(ex.exerciseId, excludeId),
+      }))
+    );
+    const map = new Map(found.filter((r) => r.lp).map((r) => [r.exId, r.lp!]));
+    if (map.size === 0) {
+      toast("불러올 최근 기록이 없어요");
+      return;
+    }
+    update((s) => ({
+      ...s,
+      exercises: s.exercises.map((e) => {
+        const lp = map.get(e.id);
+        if (!lp) return e;
+        const src = lp.exercise;
+        return {
+          ...e,
+          trackingMode: src.trackingMode ?? e.trackingMode,
+          restSeconds: src.restSeconds ?? e.restSeconds,
+          sets: src.sets.map((st) => ({
+            id: uid(),
+            setType: st.setType,
+            weight: st.weight,
+            reps: st.reps,
+            durationSec: st.durationSec ?? null,
+            restSeconds: st.restSeconds ?? null,
+            isCompleted: false,
+          })),
+        };
+      }),
+    }));
+    const skipped = session.exercises.length - map.size;
+    toast(
+      `${map.size}개 종목 최신화 완료${skipped > 0 ? ` (기록 없는 ${skipped}개 제외)` : ""}`
+    );
+  };
+
   const patchSet = (exId: string, setId: string, patch: Partial<WorkoutSet>) =>
     update((s) => ({
       ...s,
@@ -432,6 +476,17 @@ export function LogScreen() {
             <span>{liveSets}세트</span>
           </div>
         </div>
+        {notStarted && session.exercises.length > 0 && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={refreshAll}
+            className="shrink-0 px-2 text-text-2"
+            title="모든 운동을 각자 최근 기록으로 최신화"
+          >
+            <RefreshCw size={15} /> 최신화
+          </Button>
+        )}
         {notStarted && (
           <Button size="sm" onClick={startWorkout} disabled={session.exercises.length === 0}>
             운동 시작
