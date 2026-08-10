@@ -87,7 +87,7 @@ function emitNotes(
     const gain = c.createGain();
     osc.type = type;
     osc.frequency.value = f;
-    const start = base + t;
+    const start = Math.max(base + t, c.currentTime); // 과거 시각이면 즉시로 클램프(무음/클릭 방지)
     gain.gain.setValueAtTime(0.0001, start);
     gain.gain.exponentialRampToValueAtTime(peak, start + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
@@ -99,17 +99,24 @@ function emitNotes(
   }
 }
 
-/** 휴식 종료 알림음 즉시 재생(미리듣기 등). */
-export function playRestSound(sound: RestSound = "chime") {
+/** 휴식 종료 알림음 즉시 재생(미리듣기 등). resume을 await해 언락 후 발화. */
+export async function playRestSound(sound: RestSound = "chime") {
   const c = getCtx();
   if (!c) return;
-  if (c.state === "suspended") c.resume().catch(() => {});
+  try {
+    if (c.state !== "running") await c.resume();
+  } catch {
+    /* noop */
+  }
   emitNotes(c, sound, c.currentTime);
 }
 
-// --- 백그라운드 대응: 종료음을 오디오 타임라인에 예약 + 무음 keep-alive로 컨텍스트 유지 ---
+// --- 휴식 종료음: 포그라운드 '지금 재생'이 1차, 백그라운드 예약은 보조. 단일 발화 플래그로 중복 방지 ---
 let scheduled: { osc: OscillatorNode; gain: GainNode }[] = [];
 let keepAlive: { osc: OscillatorNode; gain: GainNode } | null = null;
+let restFired = false; // 이번 휴식 종료음이 이미 울렸는지(예약 발화 or 즉시재생)
+let restEndsAt = 0; // 벽시계 종료 예정(ms) — 복귀 시 재앵커용
+let restSoundCur: RestSound = "chime";
 
 function startKeepAlive(stopAt: number) {
   const c = getCtx();
@@ -146,20 +153,68 @@ function stopKeepAlive() {
   keepAlive = null;
 }
 
-/** 종료음을 delaySec 뒤에 울리도록 오디오 타임라인에 예약(백그라운드에서도 발화). */
-export function scheduleRestSound(sound: RestSound, delaySec: number) {
+/**
+ * 종료음을 delaySec 뒤에 울리도록 오디오 타임라인에 예약(백그라운드 보조).
+ * resume을 await한 뒤, await 중 흐른 시간을 반영해 남은시간으로 base를 재앵커 → 벽시계와 정렬.
+ */
+export async function scheduleRestSound(sound: RestSound, delaySec: number) {
   cancelScheduledRestSound();
   const c = getCtx();
   if (!c || delaySec <= 0) return;
-  if (c.state === "suspended") c.resume().catch(() => {});
-  const base = c.currentTime + delaySec;
+  restFired = false;
+  restEndsAt = Date.now() + delaySec * 1000;
+  restSoundCur = sound;
+  try {
+    if (c.state !== "running") await c.resume();
+  } catch {
+    /* noop */
+  }
+  const remain = Math.max(0, (restEndsAt - Date.now()) / 1000);
+  const base = c.currentTime + remain;
   emitNotes(c, sound, base, scheduled);
+  // 예약음이 실제로 끝나면(=울렸으면) 표시 → 복귀 후 즉시재생 폴백이 중복 발화하지 않게
+  const last = scheduled[scheduled.length - 1];
+  if (last)
+    last.osc.onended = () => {
+      restFired = true;
+    };
   startKeepAlive(base + 3);
 }
 
-/** 예약된 종료음 취소(휴식 조정/스킵/종료 시). */
+/**
+ * 포그라운드에서 종료 순간 '지금 즉시' 재생(1차 경로, 가장 신뢰).
+ * 이미 울렸으면(restFired) 스킵 → 예약분과 겹쳐도 1회만.
+ */
+export function fireRestNow(sound: RestSound = restSoundCur) {
+  if (restFired) return;
+  restFired = true;
+  const c = getCtx();
+  if (!c) return;
+  cancelScheduledRestSound(); // 대기 중 예약 제거(이중재생 차단)
+  try {
+    if (c.state !== "running") c.resume();
+  } catch {
+    /* noop */
+  }
+  emitNotes(c, sound, c.currentTime); // 추적 안 함(짧은 일회성)
+}
+
+/** 포그라운드 복귀 시: 남은 시간으로 재앵커, 이미 지났고 미발화면 지금 발화. */
+export function reanchorRest() {
+  if (!restEndsAt || restFired) return;
+  const rem = (restEndsAt - Date.now()) / 1000;
+  if (rem > 0.1) void scheduleRestSound(restSoundCur, rem);
+  else fireRestNow(restSoundCur);
+}
+
+/** 예약된 종료음 취소(재예약/즉시재생 직전에도 사용). 앵커 상태는 건드리지 않음. */
 export function cancelScheduledRestSound() {
   for (const { osc, gain } of scheduled) {
+    try {
+      osc.onended = null; // 취소 노드의 늦은 onended가 restFired를 잘못 세팅하지 않게
+    } catch {
+      /* noop */
+    }
     try {
       osc.stop();
     } catch {
@@ -174,4 +229,11 @@ export function cancelScheduledRestSound() {
   }
   scheduled = [];
   stopKeepAlive();
+}
+
+/** 휴식 종료/스킵/닫기 — 예약 취소 + 앵커 클리어(복귀 폴백이 안 울리게). */
+export function clearRestAudio() {
+  cancelScheduledRestSound();
+  restEndsAt = 0;
+  restFired = true;
 }

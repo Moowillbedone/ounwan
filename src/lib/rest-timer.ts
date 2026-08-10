@@ -7,7 +7,7 @@
 //   오디오 컨텍스트는 사라져 소리는 재예약되지 않음(제스처 없이는 언락 불가).
 
 import { useSyncExternalStore } from "react";
-import { scheduleRestSound, cancelScheduledRestSound } from "./feedback";
+import { scheduleRestSound, clearRestAudio } from "./feedback";
 import type { RestSound } from "./types";
 
 const KEY = "ounwan-rest";
@@ -50,30 +50,30 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
-/** 휴식 시작(세트 완료 제스처 안에서 호출). 종료음을 오디오 타임라인에 예약. */
+/** 휴식 시작(세트 완료 제스처 안에서 호출). 종료음을 오디오 타임라인에 예약(백그라운드 보조). */
 export function startRest(seconds: number, sound: RestSound, alert = true) {
-  cancelScheduledRestSound();
   state = { endsAt: Date.now() + seconds * 1000, sound, alert };
   persist();
-  if (alert && seconds > 0) scheduleRestSound(sound, seconds);
+  if (alert && seconds > 0) void scheduleRestSound(sound, seconds);
+  else clearRestAudio();
   emit();
 }
 
-/** +/-초 조정 → 예약음 취소 후 새 종료시각으로 재예약. */
+/** +/-초 조정 → 새 종료시각으로 재예약(scheduleRestSound가 이전 예약 취소·재앵커). */
 export function adjustRest(deltaMs: number) {
   if (!state) return;
   const endsAt = state.endsAt + deltaMs;
-  cancelScheduledRestSound();
   state = { ...state, endsAt };
   persist();
   const remain = (endsAt - Date.now()) / 1000;
-  if (state.alert && remain > 0) scheduleRestSound(state.sound, remain);
+  if (state.alert && remain > 0) void scheduleRestSound(state.sound, remain);
+  else clearRestAudio();
   emit();
 }
 
-/** 휴식 종료/닫기 → 예약음 취소, 상태 제거. */
+/** 휴식 종료/닫기 → 예약음 취소 + 오디오 앵커 클리어(복귀 폴백 방지), 상태 제거. */
 export function stopRest() {
-  cancelScheduledRestSound();
+  clearRestAudio();
   state = null;
   persist();
   emit();

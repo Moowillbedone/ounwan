@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth";
 import { scheduleSync } from "@/lib/sync";
+import { reanchorRest } from "@/lib/feedback";
 import { AppShell } from "./app-shell";
 
 function GlobalEffects() {
@@ -18,16 +19,25 @@ function GlobalEffects() {
         .register("/sw.js", { scope: "/" })
         .catch(() => {});
     }
-    const onFocus = () => scheduleSync(300);
+    // 포그라운드 복귀 시: 동기화 + 휴식 종료음 재앵커(서스펜드됐던 오디오 되살려 제때 울리게)
+    const onFocus = () => {
+      scheduleSync(300);
+      reanchorRest();
+    };
     const onOnline = () => scheduleSync(300);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        scheduleSync(300);
+        reanchorRest();
+      }
+    };
     window.addEventListener("focus", onFocus);
     window.addEventListener("online", onOnline);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") scheduleSync(300);
-    });
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
   return null;

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Plus, Minus, Timer } from "lucide-react";
 import { fmtDuration } from "@/lib/utils";
-import { vibrate } from "@/lib/feedback";
+import { vibrate, fireRestNow } from "@/lib/feedback";
 import { useProfile } from "@/lib/hooks";
 import { useRestTimer, adjustRest, stopRest } from "@/lib/rest-timer";
 
@@ -35,20 +35,34 @@ export function RestTimer({ immersive }: { immersive?: boolean }) {
       }
       if (rem <= 0 && !buzzed.current) {
         buzzed.current = true;
-        // 소리는 스토어가 예약함 → 여기선 진동만
-        if (alertRef.current) vibrate([120, 60, 120]);
+        if (alertRef.current) {
+          vibrate([120, 60, 120]);
+          // 포그라운드 1차 경로: 종료 순간 '지금 즉시' 재생(예약분과 겹쳐도 restFired로 1회만)
+          if (typeof document !== "undefined" && document.visibilityState === "visible")
+            fireRestNow(rest?.sound ?? "chime");
+        }
       }
     };
     tick();
     const iv = setInterval(tick, 200);
     return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endsAt]);
 
-  // 휴식 완료 6초 뒤 자동 정리 — 전역 바가 '완료' 상태로 계속 남지 않도록
+  // 휴식 완료 6초 뒤 자동 정리 — 정리 직전, 아직 안 울렸으면 보장 재생 후 정리
   useEffect(() => {
     if (!endsAt) return;
-    const t = setTimeout(stopRest, Math.max(0, endsAt + 6000 - Date.now()));
+    const t = setTimeout(() => {
+      if (
+        alertRef.current &&
+        typeof document !== "undefined" &&
+        document.visibilityState === "visible"
+      )
+        fireRestNow(rest?.sound ?? "chime");
+      stopRest();
+    }, Math.max(0, endsAt + 6000 - Date.now()));
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endsAt]);
 
   if (!endsAt) return null;
