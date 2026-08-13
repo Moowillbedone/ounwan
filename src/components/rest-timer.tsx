@@ -115,7 +115,7 @@ export function RestTimer({ immersive }: { immersive?: boolean }) {
   return (
     <div
       ref={barRef}
-      className="fixed left-1/2 z-[60] w-[calc(100%-2rem)] max-w-[448px] animate-slide-up"
+      className="fixed left-1/2 z-[60] w-[calc(100%-2rem)] max-w-[448px] animate-fade-in"
       style={{
         transform: `translateX(-50%) translateY(${dragY ?? 0}px)`,
         ...(pos === "top"
