@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Plus, Minus, Timer, GripVertical } from "lucide-react";
 import { fmtDuration } from "@/lib/utils";
 import { vibrate, fireRestNow } from "@/lib/feedback";
@@ -112,7 +113,7 @@ export function RestTimer({ immersive }: { immersive?: boolean }) {
     setDragY(null);
   };
 
-  return (
+  const bar = (
     <div
       ref={barRef}
       className="fixed left-1/2 z-[60] w-[calc(100%-2rem)] max-w-[448px] animate-fade-in"
@@ -191,4 +192,9 @@ export function RestTimer({ immersive }: { immersive?: boolean }) {
       </div>
     </div>
   );
+
+  // AppShell 컨테이너의 overflow:clip 바깥(body)으로 포탈 → 어떤 조상도 못 자르게(WebKit 대응)
+  return typeof document !== "undefined"
+    ? createPortal(bar, document.body)
+    : null;
 }
