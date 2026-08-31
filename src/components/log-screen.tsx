@@ -16,6 +16,8 @@ import {
   Pencil,
   History,
   RefreshCw,
+  Link2,
+  Unlink,
 } from "lucide-react";
 import { Button, IconButton, Sheet, useToast, EmptyState, cn } from "./ui";
 import { LabelField } from "./label-field";
@@ -76,6 +78,53 @@ function defaultModeFor(category?: string): TrackingMode {
 }
 function effectiveRest(ex: SessionExercise, exercise?: Exercise): number {
   return ex.restSeconds != null ? ex.restSeconds : exercise?.defaultRestSeconds ?? 90;
+}
+
+/* ---------- 슈퍼세트(세트운동) ---------- */
+
+/** 정렬된 운동들을 '블록'으로 묶는다. 블록 = 단일 운동 또는 같은 supersetGroup 인접 묶음 */
+function toBlocks(sorted: SessionExercise[]): SessionExercise[][] {
+  const blocks: SessionExercise[][] = [];
+  for (const ex of sorted) {
+    const g = ex.supersetGroup ?? null;
+    const last = blocks[blocks.length - 1];
+    if (g != null && last && (last[0].supersetGroup ?? null) === g) last.push(ex);
+    else blocks.push([ex]);
+  }
+  return blocks;
+}
+
+/** 멤버가 1개뿐인 묶음은 해제(삭제/이동 후 정리) */
+function normalizeGroups(exs: SessionExercise[]): SessionExercise[] {
+  const count = new Map<number, number>();
+  for (const e of exs)
+    if (e.supersetGroup != null)
+      count.set(e.supersetGroup, (count.get(e.supersetGroup) ?? 0) + 1);
+  return exs.map((e) =>
+    e.supersetGroup != null && (count.get(e.supersetGroup) ?? 0) < 2
+      ? { ...e, supersetGroup: null }
+      : e
+  );
+}
+
+/**
+ * 묶음의 라운드 진행 상황.
+ * completedRounds = 모든 멤버가 끝낸 라운드 수, doneInCurrent = 현재 라운드에서 끝낸 종목 수.
+ * (멤버별 세트수가 다르면, 세트가 없는 멤버는 그 라운드를 '완료'로 본다)
+ */
+function roundProgress(members: SessionExercise[]) {
+  const total = Math.max(...members.map((m) => m.sets.length), 0);
+  let completed = 0;
+  while (completed < total) {
+    const allDone = members.every((m) => {
+      const s = m.sets[completed];
+      return !s || s.isCompleted;
+    });
+    if (!allDone) break;
+    completed += 1;
+  }
+  const doneInCurrent = members.filter((m) => m.sets[completed]?.isCompleted).length;
+  return { total, completed, doneInCurrent, size: members.length };
 }
 
 export function LogScreen() {
@@ -223,20 +272,58 @@ export function LogScreen() {
   const removeExercise = (exId: string) =>
     update((s) => ({
       ...s,
-      exercises: s.exercises
-        .filter((e) => e.id !== exId)
-        .map((e, i) => ({ ...e, orderIndex: i })),
+      exercises: normalizeGroups(
+        s.exercises.filter((e) => e.id !== exId).sort((a, b) => a.orderIndex - b.orderIndex)
+      ).map((e, i) => ({ ...e, orderIndex: i })),
     }));
 
-  // 운동 순서 변경(위/아래로 한 칸)
+  // 운동 순서 변경 — 슈퍼세트는 묶음(블록) 통째로 한 칸 이동
   const moveExercise = (exId: string, dir: -1 | 1) =>
     update((s) => {
       const sorted = [...s.exercises].sort((a, b) => a.orderIndex - b.orderIndex);
-      const i = sorted.findIndex((e) => e.id === exId);
+      const blocks = toBlocks(sorted);
+      const i = blocks.findIndex((b) => b.some((e) => e.id === exId));
       const j = i + dir;
-      if (i < 0 || j < 0 || j >= sorted.length) return s;
-      [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
-      return { ...s, exercises: sorted.map((e, idx) => ({ ...e, orderIndex: idx })) };
+      if (i < 0 || j < 0 || j >= blocks.length) return s;
+      [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+      return {
+        ...s,
+        exercises: blocks.flat().map((e, idx) => ({ ...e, orderIndex: idx })),
+      };
+    });
+
+  /** 슈퍼세트 묶기/변경: anchor + 선택 종목들을 한 묶음으로(anchor 자리로 모음). 1개 이하면 해제 */
+  const setSuperset = (anchorId: string, memberIds: string[]) =>
+    update((s) => {
+      const sorted = [...s.exercises].sort((a, b) => a.orderIndex - b.orderIndex);
+      const ids = new Set([anchorId, ...memberIds]);
+      if (ids.size < 2) {
+        // 해제: anchor가 속한 묶음 전체 해제
+        const g = sorted.find((e) => e.id === anchorId)?.supersetGroup ?? null;
+        return {
+          ...s,
+          exercises: sorted.map((e) =>
+            g != null && (e.supersetGroup ?? null) === g
+              ? { ...e, supersetGroup: null }
+              : e
+          ),
+        };
+      }
+      const nextGroup =
+        Math.max(0, ...s.exercises.map((e) => e.supersetGroup ?? 0)) + 1;
+      const members = sorted
+        .filter((e) => ids.has(e.id))
+        .map((e) => ({ ...e, supersetGroup: nextGroup }));
+      const others = sorted.filter((e) => !ids.has(e.id));
+      const anchorIdx = sorted.findIndex((e) => e.id === anchorId);
+      const insertAt = sorted
+        .slice(0, anchorIdx)
+        .filter((e) => !ids.has(e.id)).length;
+      const flat = [...others.slice(0, insertAt), ...members, ...others.slice(insertAt)];
+      return {
+        ...s,
+        exercises: normalizeGroups(flat).map((e, i) => ({ ...e, orderIndex: i })),
+      };
     });
 
   // 이 종목의 '가장 최근 실제 수행'(완료 세트가 있는 최신 세션)을 현재 세트에 불러오기
@@ -374,10 +461,29 @@ export function LogScreen() {
       update((s) => (s.startedAt ? s : { ...s, startedAt: nowISO() }));
       armFeedback(); // 제스처 안에서 오디오 언락(휴식 종료음 대비)
       const meta = exMap.get(ex.exerciseId);
-      // 이 세트에 개별 휴식이 지정돼 있으면 우선, 없으면 종목 기본 휴식
-      const rest = st.restSeconds != null ? st.restSeconds : effectiveRest(ex, meta);
+      // 슈퍼세트면 '묶음의 모든 종목이 이번 라운드를 끝냈을 때'만 휴식 시작
+      const group = ex.supersetGroup ?? null;
+      let readyToRest = true;
+      let restBase = ex; // 휴식 기준 운동(묶음이면 첫 종목 = 묶음 대표)
+      if (group != null && session) {
+        const members = [...session.exercises]
+          .filter((e) => (e.supersetGroup ?? null) === group)
+          .sort((a, b) => a.orderIndex - b.orderIndex);
+        const idx = ex.sets.findIndex((x) => x.id === setId); // 이번 라운드 번호
+        readyToRest = members.every((m) => {
+          if (m.id === ex.id) return true; // 방금 완료한 종목
+          const s = m.sets[idx];
+          return !s || s.isCompleted; // 세트가 없으면 그 라운드는 완료로 간주
+        });
+        restBase = members[0] ?? ex;
+      }
+      // 이 세트에 개별 휴식이 지정돼 있으면 우선, 없으면 (묶음)종목 휴식
+      const rest =
+        st.restSeconds != null
+          ? st.restSeconds
+          : effectiveRest(restBase, exMap.get(restBase.exerciseId));
       // 전역 휴식 타이머 시작 → 화면 이동/재진입에도 유지·알람
-      if (rest > 0)
+      if (readyToRest && rest > 0)
         startRest(rest, profile?.restSound ?? "chime", profile?.restAlert !== false);
       // PR은 '중량+횟수' 방식만
       const mode = ex.trackingMode ?? "weight_reps";
@@ -522,31 +628,70 @@ export function LogScreen() {
           />
         )}
 
-        {session.exercises
-          .slice()
-          .sort((a, b) => a.orderIndex - b.orderIndex)
-          .map((ex, i, arr) => (
-            <ExerciseLogCard
-              key={ex.id}
-              ex={ex}
-              exercise={exMap.get(ex.exerciseId)}
-              unit={unit}
-              lastPerf={lastPerf.current[ex.exerciseId]}
-              note={exerciseNotes[ex.exerciseId] ?? ex.note ?? ""}
-              onCommitNote={(t) => commitExerciseNote(ex.exerciseId, t)}
-              isFirst={i === 0}
-              isLast={i === arr.length - 1}
-              onMoveUp={() => moveExercise(ex.id, -1)}
-              onMoveDown={() => moveExercise(ex.id, 1)}
-              onPatchSet={(setId, patch) => patchSet(ex.id, setId, patch)}
-              onPatchExercise={(patch) => patchExercise(ex.id, patch)}
-              onLoadLatest={() => loadLatest(ex.id, ex.exerciseId)}
-              onToggle={(setId) => toggleComplete(ex.id, setId)}
-              onAddSet={() => addSet(ex.id)}
-              onRemoveSet={(setId) => removeSet(ex.id, setId)}
-              onRemoveExercise={() => removeExercise(ex.id)}
-            />
-          ))}
+        {(() => {
+          const sorted = [...session.exercises].sort(
+            (a, b) => a.orderIndex - b.orderIndex
+          );
+          const blocks = toBlocks(sorted);
+          return blocks.map((block, bi) => {
+            const isGroup = block.length > 1 && block[0].supersetGroup != null;
+            const cards = block.map((ex, mi) => (
+              <ExerciseLogCard
+                key={ex.id}
+                ex={ex}
+                exercise={exMap.get(ex.exerciseId)}
+                unit={unit}
+                lastPerf={lastPerf.current[ex.exerciseId]}
+                note={exerciseNotes[ex.exerciseId] ?? ex.note ?? ""}
+                onCommitNote={(t) => commitExerciseNote(ex.exerciseId, t)}
+                grouped={isGroup}
+                groupIndex={isGroup ? mi + 1 : undefined}
+                isGroupFirst={mi === 0}
+                others={sorted
+                  .filter((o) => o.id !== ex.id)
+                  .map((o) => ({
+                    id: o.id,
+                    name: exMap.get(o.exerciseId)?.nameKo ?? "운동",
+                  }))}
+                groupMemberIds={isGroup ? block.map((e) => e.id) : []}
+                onSetSuperset={(ids) => setSuperset(ex.id, ids)}
+                isFirst={bi === 0}
+                isLast={bi === blocks.length - 1}
+                onMoveUp={() => moveExercise(ex.id, -1)}
+                onMoveDown={() => moveExercise(ex.id, 1)}
+                onPatchSet={(setId, patch) => patchSet(ex.id, setId, patch)}
+                onPatchExercise={(patch) => patchExercise(ex.id, patch)}
+                onLoadLatest={() => loadLatest(ex.id, ex.exerciseId)}
+                onToggle={(setId) => toggleComplete(ex.id, setId)}
+                onAddSet={() => addSet(ex.id)}
+                onRemoveSet={(setId) => removeSet(ex.id, setId)}
+                onRemoveExercise={() => removeExercise(ex.id)}
+              />
+            ));
+            if (!isGroup) return cards;
+            const rp = roundProgress(block);
+            return (
+              <div
+                key={`g-${block[0].supersetGroup}`}
+                className="rounded-app border border-brand/35 bg-brand-soft/25 p-1.5"
+              >
+                <div className="flex items-center justify-between px-1.5 pb-1.5 pt-0.5">
+                  <span className="flex items-center gap-1 text-[11px] font-bold text-brand-strong">
+                    <Link2 size={12} /> 슈퍼세트 · {block.length}종목
+                  </span>
+                  <span className="text-[11px] font-semibold text-text-3">
+                    {rp.total === 0
+                      ? "세트를 추가해요"
+                      : rp.completed >= rp.total
+                      ? `${rp.total}라운드 완료`
+                      : `${rp.completed + 1}라운드 · ${rp.doneInCurrent}/${rp.size}`}
+                  </span>
+                </div>
+                <div className="space-y-1.5">{cards}</div>
+              </div>
+            );
+          });
+        })()}
 
         <Button
           variant="secondary"
@@ -649,6 +794,12 @@ function ExerciseLogCard({
   lastPerf,
   note,
   onCommitNote,
+  grouped,
+  groupIndex,
+  isGroupFirst,
+  others,
+  groupMemberIds,
+  onSetSuperset,
   isFirst,
   isLast,
   onMoveUp,
@@ -668,6 +819,12 @@ function ExerciseLogCard({
   note: string;
   onCommitNote: (text: string) => void;
   onLoadLatest: () => void;
+  grouped?: boolean;
+  groupIndex?: number;
+  isGroupFirst?: boolean;
+  others: { id: string; name: string }[];
+  groupMemberIds: string[];
+  onSetSuperset: (memberIds: string[]) => void;
   isFirst: boolean;
   isLast: boolean;
   onMoveUp: () => void;
@@ -680,6 +837,8 @@ function ExerciseLogCard({
   onRemoveExercise: () => void;
 }) {
   const [menu, setMenu] = useState(false);
+  const [ssOpen, setSsOpen] = useState(false);
+  const [ssSel, setSsSel] = useState<string[]>([]);
   const [restOpen, setRestOpen] = useState(false);
   const [restTab, setRestTab] = useState<"all" | "perset">("all");
   const [restSetId, setRestSetId] = useState<string | null>(null);
@@ -718,21 +877,31 @@ function ExerciseLogCard({
           </button>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-bold truncate">{exercise?.nameKo ?? "운동"}</div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {grouped && groupIndex != null && (
+              <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-brand text-[10px] font-black text-white">
+                {groupIndex}
+              </span>
+            )}
+            <span className="font-bold truncate">{exercise?.nameKo ?? "운동"}</span>
+          </div>
           {prevSummary && (
             <div className="text-[11px] text-text-3 truncate">
               지난 {relativeDayLabel(lastPerf!.date)} · {prevSummary}
             </div>
           )}
         </div>
-        {/* 휴식 시간 칩 */}
-        <button
-          onClick={() => setRestOpen(true)}
-          className="flex shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2.5 h-8 text-xs font-semibold text-text-2 active:scale-95"
-        >
-          <Timer size={14} className="text-brand" />
-          {rest === 0 ? "휴식 끔" : fmtDuration(rest)}
-        </button>
+        {/* 휴식 시간 칩 — 슈퍼세트는 대표(첫 종목)만 노출: 묶음 전체 휴식 */}
+        {(!grouped || isGroupFirst) && (
+          <button
+            onClick={() => setRestOpen(true)}
+            className="flex shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2.5 h-8 text-xs font-semibold text-text-2 active:scale-95"
+            title={grouped ? "묶음 전체 휴식" : undefined}
+          >
+            <Timer size={14} className="text-brand" />
+            {rest === 0 ? "휴식 끔" : fmtDuration(rest)}
+          </button>
+        )}
         <div className="relative shrink-0">
           <IconButton onClick={() => setMenu((m) => !m)} aria-label="메뉴" className="h-8 w-8">
             <MoreVertical size={18} />
@@ -749,6 +918,24 @@ function ExerciseLogCard({
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-2"
                 >
                   <History size={15} className="text-brand" /> 최신 기록 불러오기
+                </button>
+                <button
+                  onClick={() => {
+                    setSsSel(groupMemberIds.filter((id) => id !== ex.id));
+                    setSsOpen(true);
+                    setMenu(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-surface-2"
+                >
+                  {grouped ? (
+                    <>
+                      <Unlink size={15} className="text-brand" /> 슈퍼세트 편집·해제
+                    </>
+                  ) : (
+                    <>
+                      <Link2 size={15} className="text-brand" /> 슈퍼세트 묶기
+                    </>
+                  )}
                 </button>
                 <div className="my-1 border-t border-border" />
                 <div className="px-3 pt-1.5 pb-1 text-[11px] font-bold text-text-3">
@@ -839,6 +1026,79 @@ function ExerciseLogCard({
           <Plus size={16} /> 세트 추가
         </button>
       </div>
+
+      {/* 슈퍼세트 묶기 시트 */}
+      <Sheet
+        open={ssOpen}
+        onClose={() => setSsOpen(false)}
+        title="슈퍼세트 묶기"
+        footer={
+          <div className="flex gap-2">
+            {grouped && (
+              <Button
+                variant="ghost"
+                className="flex-1"
+                onClick={() => {
+                  onSetSuperset([]);
+                  setSsOpen(false);
+                }}
+              >
+                <Unlink size={18} /> 묶음 해제
+              </Button>
+            )}
+            <Button
+              className="flex-1"
+              onClick={() => {
+                onSetSuperset(ssSel);
+                setSsOpen(false);
+              }}
+            >
+              <Link2 size={18} /> {ssSel.length > 0 ? `${ssSel.length + 1}개 묶기` : "적용"}
+            </Button>
+          </div>
+        }
+      >
+        <p className="mb-3 text-sm text-text-3">
+          <b className="text-text-2">{exercise?.nameKo ?? "이 운동"}</b>과 함께 묶을 운동을
+          고르세요. 묶으면 <b className="text-text-2">모두 한 세트씩 끝내야 1라운드</b>로 보고
+          그때 휴식이 시작돼요.
+        </p>
+        {others.length === 0 ? (
+          <div className="py-6 text-center text-sm text-text-3">
+            묶을 다른 운동이 없어요. 운동을 먼저 추가해주세요.
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {others.map((o) => {
+              const on = ssSel.includes(o.id);
+              return (
+                <button
+                  key={o.id}
+                  onClick={() =>
+                    setSsSel((v) =>
+                      v.includes(o.id) ? v.filter((x) => x !== o.id) : [...v, o.id]
+                    )
+                  }
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-app border px-3 py-2.5 text-left transition",
+                    on ? "border-brand bg-brand-soft/50 text-text" : "border-border text-text-2"
+                  )}
+                >
+                  <span className="font-semibold">{o.name}</span>
+                  <span
+                    className={cn(
+                      "grid h-5 w-5 place-items-center rounded-full border-2",
+                      on ? "border-brand bg-brand text-white" : "border-border"
+                    )}
+                  >
+                    {on && <Check size={13} strokeWidth={3} />}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </Sheet>
 
       {/* 휴식시간 선택 시트 — 전체 / 세트별 */}
       <Sheet open={restOpen} onClose={() => setRestOpen(false)} title="휴식 시간">

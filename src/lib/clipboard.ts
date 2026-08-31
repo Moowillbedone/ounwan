@@ -17,6 +17,7 @@ export interface ClipExercise {
   note?: string | null;
   trackingMode?: TrackingMode;
   restSeconds?: number | null;
+  supersetGroup?: number | null; // 슈퍼세트 묶음(복사 시 유지)
   sets: ClipSet[];
 }
 export interface WorkoutClip {

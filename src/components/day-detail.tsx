@@ -90,6 +90,7 @@ export function DayDetailSheet({
         note: e.note ?? null,
         trackingMode: e.trackingMode,
         restSeconds: e.restSeconds ?? null,
+        supersetGroup: e.supersetGroup ?? null,
         sets: e.sets.map((x) => ({
           setType: x.setType,
           weight: x.weight,
@@ -158,6 +159,7 @@ export function DayDetailSheet({
       note: e.note ?? null,
       trackingMode: e.trackingMode,
       restSeconds: e.restSeconds ?? null,
+      supersetGroup: e.supersetGroup ?? null,
       sets: e.sets.map((s) => ({
         id: uid(),
         setType: s.setType,
