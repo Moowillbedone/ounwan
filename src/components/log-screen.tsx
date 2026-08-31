@@ -292,8 +292,36 @@ export function LogScreen() {
       };
     });
 
+  /** 묶음 '안에서' 순서 바꾸기(같은 그룹끼리만 스왑) */
+  const moveWithinGroup = (exId: string, dir: -1 | 1) =>
+    update((s) => {
+      const sorted = [...s.exercises].sort((a, b) => a.orderIndex - b.orderIndex);
+      const i = sorted.findIndex((e) => e.id === exId);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= sorted.length) return s;
+      if ((sorted[i].supersetGroup ?? null) !== (sorted[j].supersetGroup ?? null))
+        return s; // 묶음 밖으로는 나가지 않음
+      [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
+      return { ...s, exercises: sorted.map((e, idx) => ({ ...e, orderIndex: idx })) };
+    });
+
   /** 슈퍼세트 묶기/변경: anchor + 선택 종목들을 한 묶음으로(anchor 자리로 모음). 1개 이하면 해제 */
-  const setSuperset = (anchorId: string, memberIds: string[]) =>
+  const setSuperset = (anchorId: string, memberIds: string[]) => {
+    // 피드백: 해제 / 묶기(세트 수가 다르면 라운드 기준 안내)
+    const picked = (session?.exercises ?? []).filter(
+      (e) => e.id === anchorId || memberIds.includes(e.id)
+    );
+    if (memberIds.length === 0) toast("슈퍼세트를 해제했어요");
+    else {
+      const counts = [...new Set(picked.map((e) => e.sets.length))];
+      toast(
+        counts.length > 1
+          ? `슈퍼세트로 묶었어요 · 세트가 ${picked
+              .map((e) => e.sets.length)
+              .join("·")}이라 ${Math.max(...counts)}라운드로 진행돼요`
+          : `${picked.length}개 종목을 슈퍼세트로 묶었어요 · 순서를 나란히 정리했어요`
+      );
+    }
     update((s) => {
       const sorted = [...s.exercises].sort((a, b) => a.orderIndex - b.orderIndex);
       const ids = new Set([anchorId, ...memberIds]);
@@ -325,6 +353,7 @@ export function LogScreen() {
         exercises: normalizeGroups(flat).map((e, i) => ({ ...e, orderIndex: i })),
       };
     });
+  };
 
   // 이 종목의 '가장 최근 실제 수행'(완료 세트가 있는 최신 세션)을 현재 세트에 불러오기
   const loadLatest = async (exId: string, exerciseId: string) => {
@@ -465,6 +494,7 @@ export function LogScreen() {
       const group = ex.supersetGroup ?? null;
       let readyToRest = true;
       let restBase = ex; // 휴식 기준 운동(묶음이면 첫 종목 = 묶음 대표)
+      let restSet: WorkoutSet | undefined = st; // 휴식 기준 세트
       if (group != null && session) {
         const members = [...session.exercises]
           .filter((e) => (e.supersetGroup ?? null) === group)
@@ -475,12 +505,14 @@ export function LogScreen() {
           const s = m.sets[idx];
           return !s || s.isCompleted; // 세트가 없으면 그 라운드는 완료로 간주
         });
+        // 묶음 휴식은 '어느 종목을 마지막에 체크했는지'와 무관하게 대표(첫 종목) 기준
         restBase = members[0] ?? ex;
+        restSet = restBase.sets[idx];
       }
-      // 이 세트에 개별 휴식이 지정돼 있으면 우선, 없으면 (묶음)종목 휴식
+      // 기준 세트에 개별 휴식이 있으면 우선, 없으면 (묶음)종목 휴식
       const rest =
-        st.restSeconds != null
-          ? st.restSeconds
+        restSet?.restSeconds != null
+          ? restSet.restSeconds
           : effectiveRest(restBase, exMap.get(restBase.exerciseId));
       // 전역 휴식 타이머 시작 → 화면 이동/재진입에도 유지·알람
       if (readyToRest && rest > 0)
@@ -652,13 +684,19 @@ export function LogScreen() {
                   .map((o) => ({
                     id: o.id,
                     name: exMap.get(o.exerciseId)?.nameKo ?? "운동",
+                    group: o.supersetGroup ?? null,
                   }))}
+                nextId={sorted[sorted.findIndex((e) => e.id === ex.id) + 1]?.id ?? null}
                 groupMemberIds={isGroup ? block.map((e) => e.id) : []}
                 onSetSuperset={(ids) => setSuperset(ex.id, ids)}
-                isFirst={bi === 0}
-                isLast={bi === blocks.length - 1}
-                onMoveUp={() => moveExercise(ex.id, -1)}
-                onMoveDown={() => moveExercise(ex.id, 1)}
+                isFirst={isGroup ? mi === 0 : bi === 0}
+                isLast={isGroup ? mi === block.length - 1 : bi === blocks.length - 1}
+                onMoveUp={() =>
+                  isGroup ? moveWithinGroup(ex.id, -1) : moveExercise(ex.id, -1)
+                }
+                onMoveDown={() =>
+                  isGroup ? moveWithinGroup(ex.id, 1) : moveExercise(ex.id, 1)
+                }
                 onPatchSet={(setId, patch) => patchSet(ex.id, setId, patch)}
                 onPatchExercise={(patch) => patchExercise(ex.id, patch)}
                 onLoadLatest={() => loadLatest(ex.id, ex.exerciseId)}
@@ -677,6 +715,25 @@ export function LogScreen() {
               >
                 <div className="flex items-center justify-between px-1.5 pb-1.5 pt-0.5">
                   <span className="flex items-center gap-1 text-[11px] font-bold text-brand-strong">
+                    {/* 묶음 통째 이동(멤버 카드 화살표는 묶음 안에서만 순서 변경) */}
+                    <span className="flex flex-col">
+                      <button
+                        onClick={() => moveExercise(block[0].id, -1)}
+                        disabled={bi === 0}
+                        aria-label="묶음 위로"
+                        className="text-text-3 disabled:opacity-25"
+                      >
+                        <ChevronUp size={13} />
+                      </button>
+                      <button
+                        onClick={() => moveExercise(block[0].id, 1)}
+                        disabled={bi === blocks.length - 1}
+                        aria-label="묶음 아래로"
+                        className="text-text-3 disabled:opacity-25"
+                      >
+                        <ChevronDown size={13} />
+                      </button>
+                    </span>
                     <Link2 size={12} /> 슈퍼세트 · {block.length}종목
                   </span>
                   <span className="text-[11px] font-semibold text-text-3">
@@ -798,6 +855,7 @@ function ExerciseLogCard({
   groupIndex,
   isGroupFirst,
   others,
+  nextId,
   groupMemberIds,
   onSetSuperset,
   isFirst,
@@ -822,7 +880,8 @@ function ExerciseLogCard({
   grouped?: boolean;
   groupIndex?: number;
   isGroupFirst?: boolean;
-  others: { id: string; name: string }[];
+  others: { id: string; name: string; group: number | null }[];
+  nextId: string | null;
   groupMemberIds: string[];
   onSetSuperset: (memberIds: string[]) => void;
   isFirst: boolean;
@@ -921,7 +980,14 @@ function ExerciseLogCard({
                 </button>
                 <button
                   onClick={() => {
-                    setSsSel(groupMemberIds.filter((id) => id !== ex.id));
+                    // 아직 안 묶였으면 '바로 아래 운동'을 기본 선택(2종목 묶기가 대부분)
+                    const next = others.find((o) => o.id === nextId);
+                    const preset = grouped
+                      ? groupMemberIds.filter((id) => id !== ex.id)
+                      : next && next.group == null
+                      ? [next.id]
+                      : [];
+                    setSsSel(preset);
                     setSsOpen(true);
                     setMenu(false);
                   }}
@@ -1084,10 +1150,17 @@ function ExerciseLogCard({
                     on ? "border-brand bg-brand-soft/50 text-text" : "border-border text-text-2"
                   )}
                 >
-                  <span className="font-semibold">{o.name}</span>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate font-semibold">{o.name}</span>
+                    {o.group != null && !groupMemberIds.includes(o.id) && (
+                      <span className="shrink-0 rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-text-3">
+                        다른 묶음
+                      </span>
+                    )}
+                  </span>
                   <span
                     className={cn(
-                      "grid h-5 w-5 place-items-center rounded-full border-2",
+                      "grid h-5 w-5 shrink-0 place-items-center rounded-full border-2",
                       on ? "border-brand bg-brand text-white" : "border-border"
                     )}
                   >
