@@ -495,6 +495,1367 @@
      "elite": 205
     }
    ]
+  },
+  {
+   "key": "front-squat",
+   "nameKo": "프론트스쿼트",
+   "note": "바벨 총중량(바 20kg 포함) · 백스쿼트보다 15~20% 낮게 나와요",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 30,
+     "novice": 45,
+     "intermediate": 64,
+     "advanced": 87,
+     "elite": 112
+    },
+    {
+     "bw": 60,
+     "beginner": 40,
+     "novice": 57,
+     "intermediate": 79,
+     "advanced": 104,
+     "elite": 130
+    },
+    {
+     "bw": 70,
+     "beginner": 50,
+     "novice": 69,
+     "intermediate": 92,
+     "advanced": 119,
+     "elite": 147
+    },
+    {
+     "bw": 80,
+     "beginner": 59,
+     "novice": 79,
+     "intermediate": 104,
+     "advanced": 133,
+     "elite": 163
+    },
+    {
+     "bw": 90,
+     "beginner": 68,
+     "novice": 90,
+     "intermediate": 116,
+     "advanced": 146,
+     "elite": 177
+    },
+    {
+     "bw": 100,
+     "beginner": 76,
+     "novice": 99,
+     "intermediate": 127,
+     "advanced": 158,
+     "elite": 190
+    },
+    {
+     "bw": 110,
+     "beginner": 84,
+     "novice": 108,
+     "intermediate": 137,
+     "advanced": 169,
+     "elite": 203
+    },
+    {
+     "bw": 120,
+     "beginner": 91,
+     "novice": 117,
+     "intermediate": 147,
+     "advanced": 180,
+     "elite": 215
+    }
+   ]
+  },
+  {
+   "key": "hack-squat",
+   "nameKo": "핵스쿼트",
+   "note": "머신마다 썰매 무게·각도가 달라 편차가 커요 · 얹은 원판 합 기준",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 30,
+     "novice": 58,
+     "intermediate": 97,
+     "advanced": 146,
+     "elite": 203
+    },
+    {
+     "bw": 60,
+     "beginner": 41,
+     "novice": 73,
+     "intermediate": 117,
+     "advanced": 171,
+     "elite": 231
+    },
+    {
+     "bw": 70,
+     "beginner": 52,
+     "novice": 88,
+     "intermediate": 135,
+     "advanced": 193,
+     "elite": 257
+    },
+    {
+     "bw": 80,
+     "beginner": 63,
+     "novice": 102,
+     "intermediate": 152,
+     "advanced": 213,
+     "elite": 280
+    },
+    {
+     "bw": 90,
+     "beginner": 74,
+     "novice": 115,
+     "intermediate": 168,
+     "advanced": 232,
+     "elite": 302
+    },
+    {
+     "bw": 100,
+     "beginner": 84,
+     "novice": 127,
+     "intermediate": 183,
+     "advanced": 249,
+     "elite": 321
+    },
+    {
+     "bw": 110,
+     "beginner": 93,
+     "novice": 139,
+     "intermediate": 197,
+     "advanced": 265,
+     "elite": 340
+    },
+    {
+     "bw": 120,
+     "beginner": 102,
+     "novice": 150,
+     "intermediate": 210,
+     "advanced": 281,
+     "elite": 357
+    }
+   ]
+  },
+  {
+   "key": "leg-press",
+   "nameKo": "레그프레스",
+   "note": "45도 썰매식 기준 · 머신 편차가 커요. 수평식이면 낮게 나와요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 51,
+     "novice": 89,
+     "intermediate": 141,
+     "advanced": 204,
+     "elite": 275
+    },
+    {
+     "bw": 60,
+     "beginner": 71,
+     "novice": 115,
+     "intermediate": 173,
+     "advanced": 242,
+     "elite": 319
+    },
+    {
+     "bw": 70,
+     "beginner": 90,
+     "novice": 139,
+     "intermediate": 202,
+     "advanced": 277,
+     "elite": 359
+    },
+    {
+     "bw": 80,
+     "beginner": 109,
+     "novice": 162,
+     "intermediate": 230,
+     "advanced": 309,
+     "elite": 395
+    },
+    {
+     "bw": 90,
+     "beginner": 127,
+     "novice": 184,
+     "intermediate": 255,
+     "advanced": 338,
+     "elite": 429
+    },
+    {
+     "bw": 100,
+     "beginner": 144,
+     "novice": 205,
+     "intermediate": 280,
+     "advanced": 366,
+     "elite": 460
+    },
+    {
+     "bw": 110,
+     "beginner": 160,
+     "novice": 224,
+     "intermediate": 302,
+     "advanced": 392,
+     "elite": 489
+    },
+    {
+     "bw": 120,
+     "beginner": 176,
+     "novice": 243,
+     "intermediate": 324,
+     "advanced": 417,
+     "elite": 516
+    }
+   ]
+  },
+  {
+   "key": "smith-machine-squat",
+   "nameKo": "스미스머신스쿼트",
+   "note": "스미스머신 바 무게가 기기마다 달라 편차가 커요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 27,
+     "novice": 47,
+     "intermediate": 73,
+     "advanced": 105,
+     "elite": 141
+    },
+    {
+     "bw": 60,
+     "beginner": 37,
+     "novice": 60,
+     "intermediate": 89,
+     "advanced": 124,
+     "elite": 163
+    },
+    {
+     "bw": 70,
+     "beginner": 47,
+     "novice": 72,
+     "intermediate": 104,
+     "advanced": 142,
+     "elite": 183
+    },
+    {
+     "bw": 80,
+     "beginner": 57,
+     "novice": 84,
+     "intermediate": 118,
+     "advanced": 158,
+     "elite": 202
+    },
+    {
+     "bw": 90,
+     "beginner": 66,
+     "novice": 95,
+     "intermediate": 131,
+     "advanced": 173,
+     "elite": 219
+    },
+    {
+     "bw": 100,
+     "beginner": 75,
+     "novice": 106,
+     "intermediate": 144,
+     "advanced": 187,
+     "elite": 234
+    },
+    {
+     "bw": 110,
+     "beginner": 83,
+     "novice": 116,
+     "intermediate": 155,
+     "advanced": 200,
+     "elite": 249
+    },
+    {
+     "bw": 120,
+     "beginner": 91,
+     "novice": 125,
+     "intermediate": 166,
+     "advanced": 213,
+     "elite": 263
+    }
+   ]
+  },
+  {
+   "key": "romanian-deadlift",
+   "nameKo": "루마니안 데드리프트",
+   "note": "바벨 총중량(바 20kg 포함) · 무릎 거의 편 힙힌지 기준",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 32,
+     "novice": 51,
+     "intermediate": 76,
+     "advanced": 106,
+     "elite": 140
+    },
+    {
+     "bw": 60,
+     "beginner": 43,
+     "novice": 65,
+     "intermediate": 93,
+     "advanced": 127,
+     "elite": 163
+    },
+    {
+     "bw": 70,
+     "beginner": 54,
+     "novice": 79,
+     "intermediate": 110,
+     "advanced": 145,
+     "elite": 184
+    },
+    {
+     "bw": 80,
+     "beginner": 65,
+     "novice": 92,
+     "intermediate": 125,
+     "advanced": 163,
+     "elite": 203
+    },
+    {
+     "bw": 90,
+     "beginner": 75,
+     "novice": 104,
+     "intermediate": 139,
+     "advanced": 179,
+     "elite": 221
+    },
+    {
+     "bw": 100,
+     "beginner": 85,
+     "novice": 115,
+     "intermediate": 152,
+     "advanced": 194,
+     "elite": 238
+    },
+    {
+     "bw": 110,
+     "beginner": 95,
+     "novice": 126,
+     "intermediate": 164,
+     "advanced": 208,
+     "elite": 254
+    },
+    {
+     "bw": 120,
+     "beginner": 104,
+     "novice": 137,
+     "intermediate": 176,
+     "advanced": 221,
+     "elite": 268
+    }
+   ]
+  },
+  {
+   "key": "sumo-deadlift",
+   "nameKo": "스모 데드리프트",
+   "note": "바벨 총중량(바 20kg 포함) · 컨벤셔널과 별개 기준표예요",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 56,
+     "novice": 81,
+     "intermediate": 112,
+     "advanced": 148,
+     "elite": 187
+    },
+    {
+     "bw": 60,
+     "beginner": 72,
+     "novice": 100,
+     "intermediate": 134,
+     "advanced": 174,
+     "elite": 216
+    },
+    {
+     "bw": 70,
+     "beginner": 88,
+     "novice": 118,
+     "intermediate": 155,
+     "advanced": 197,
+     "elite": 241
+    },
+    {
+     "bw": 80,
+     "beginner": 102,
+     "novice": 135,
+     "intermediate": 174,
+     "advanced": 218,
+     "elite": 265
+    },
+    {
+     "bw": 90,
+     "beginner": 116,
+     "novice": 150,
+     "intermediate": 192,
+     "advanced": 238,
+     "elite": 287
+    },
+    {
+     "bw": 100,
+     "beginner": 128,
+     "novice": 165,
+     "intermediate": 208,
+     "advanced": 256,
+     "elite": 307
+    },
+    {
+     "bw": 110,
+     "beginner": 141,
+     "novice": 179,
+     "intermediate": 224,
+     "advanced": 273,
+     "elite": 325
+    },
+    {
+     "bw": 120,
+     "beginner": 152,
+     "novice": 192,
+     "intermediate": 238,
+     "advanced": 289,
+     "elite": 343
+    }
+   ]
+  },
+  {
+   "key": "hip-thrust",
+   "nameKo": "힙 쓰러스트",
+   "note": "바벨 총중량(바 20kg 포함) · 전용머신/스미스는 다르게 나와요",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 20,
+     "novice": 46,
+     "intermediate": 85,
+     "advanced": 135,
+     "elite": 193
+    },
+    {
+     "bw": 60,
+     "beginner": 32,
+     "novice": 63,
+     "intermediate": 107,
+     "advanced": 163,
+     "elite": 227
+    },
+    {
+     "bw": 70,
+     "beginner": 44,
+     "novice": 80,
+     "intermediate": 129,
+     "advanced": 189,
+     "elite": 257
+    },
+    {
+     "bw": 80,
+     "beginner": 56,
+     "novice": 96,
+     "intermediate": 149,
+     "advanced": 213,
+     "elite": 285
+    },
+    {
+     "bw": 90,
+     "beginner": 68,
+     "novice": 111,
+     "intermediate": 168,
+     "advanced": 236,
+     "elite": 311
+    },
+    {
+     "bw": 100,
+     "beginner": 80,
+     "novice": 126,
+     "intermediate": 186,
+     "advanced": 257,
+     "elite": 335
+    },
+    {
+     "bw": 110,
+     "beginner": 91,
+     "novice": 140,
+     "intermediate": 203,
+     "advanced": 277,
+     "elite": 358
+    },
+    {
+     "bw": 120,
+     "beginner": 102,
+     "novice": 154,
+     "intermediate": 219,
+     "advanced": 295,
+     "elite": 379
+    }
+   ]
+  },
+  {
+   "key": "bulgarian-split-squat",
+   "nameKo": "불가리안 스플릿 스쿼트",
+   "note": "한쪽당이 아니라 들고 있는 총 외부중량 기준",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 5,
+     "novice": 17,
+     "intermediate": 36,
+     "advanced": 62,
+     "elite": 94
+    },
+    {
+     "bw": 60,
+     "beginner": 10,
+     "novice": 25,
+     "intermediate": 47,
+     "advanced": 77,
+     "elite": 112
+    },
+    {
+     "bw": 70,
+     "beginner": 15,
+     "novice": 33,
+     "intermediate": 58,
+     "advanced": 90,
+     "elite": 128
+    },
+    {
+     "bw": 80,
+     "beginner": 21,
+     "novice": 41,
+     "intermediate": 68,
+     "advanced": 103,
+     "elite": 143
+    },
+    {
+     "bw": 90,
+     "beginner": 26,
+     "novice": 48,
+     "intermediate": 78,
+     "advanced": 115,
+     "elite": 157
+    },
+    {
+     "bw": 100,
+     "beginner": 32,
+     "novice": 55,
+     "intermediate": 87,
+     "advanced": 126,
+     "elite": 170
+    },
+    {
+     "bw": 110,
+     "beginner": 37,
+     "novice": 62,
+     "intermediate": 96,
+     "advanced": 136,
+     "elite": 182
+    },
+    {
+     "bw": 120,
+     "beginner": 42,
+     "novice": 69,
+     "intermediate": 104,
+     "advanced": 146,
+     "elite": 193
+    }
+   ]
+  },
+  {
+   "key": "leg-extension",
+   "nameKo": "레그 익스텐션",
+   "note": "머신 스택 표기값 · 기기별 실부하 차이가 30% 넘기도 해요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 29,
+     "novice": 49,
+     "intermediate": 75,
+     "advanced": 106,
+     "elite": 142
+    },
+    {
+     "bw": 60,
+     "beginner": 36,
+     "novice": 57,
+     "intermediate": 85,
+     "advanced": 119,
+     "elite": 156
+    },
+    {
+     "bw": 70,
+     "beginner": 42,
+     "novice": 65,
+     "intermediate": 95,
+     "advanced": 130,
+     "elite": 169
+    },
+    {
+     "bw": 80,
+     "beginner": 48,
+     "novice": 72,
+     "intermediate": 103,
+     "advanced": 140,
+     "elite": 180
+    },
+    {
+     "bw": 90,
+     "beginner": 53,
+     "novice": 79,
+     "intermediate": 111,
+     "advanced": 149,
+     "elite": 191
+    },
+    {
+     "bw": 100,
+     "beginner": 58,
+     "novice": 85,
+     "intermediate": 119,
+     "advanced": 158,
+     "elite": 201
+    },
+    {
+     "bw": 110,
+     "beginner": 63,
+     "novice": 91,
+     "intermediate": 126,
+     "advanced": 166,
+     "elite": 209
+    },
+    {
+     "bw": 120,
+     "beginner": 68,
+     "novice": 97,
+     "intermediate": 132,
+     "advanced": 173,
+     "elite": 218
+    }
+   ]
+  },
+  {
+   "key": "lying-leg-curl",
+   "nameKo": "라잉 레그컬",
+   "note": "머신 스택 표기값 · 시티드/스탠딩 레그컬과는 다른 기준이에요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 15,
+     "novice": 27,
+     "intermediate": 43,
+     "advanced": 63,
+     "elite": 85
+    },
+    {
+     "bw": 60,
+     "beginner": 21,
+     "novice": 34,
+     "intermediate": 52,
+     "advanced": 73,
+     "elite": 96
+    },
+    {
+     "bw": 70,
+     "beginner": 25,
+     "novice": 40,
+     "intermediate": 59,
+     "advanced": 82,
+     "elite": 107
+    },
+    {
+     "bw": 80,
+     "beginner": 30,
+     "novice": 46,
+     "intermediate": 66,
+     "advanced": 90,
+     "elite": 116
+    },
+    {
+     "bw": 90,
+     "beginner": 35,
+     "novice": 51,
+     "intermediate": 73,
+     "advanced": 98,
+     "elite": 125
+    },
+    {
+     "bw": 100,
+     "beginner": 39,
+     "novice": 57,
+     "intermediate": 79,
+     "advanced": 105,
+     "elite": 133
+    },
+    {
+     "bw": 110,
+     "beginner": 43,
+     "novice": 62,
+     "intermediate": 85,
+     "advanced": 111,
+     "elite": 140
+    },
+    {
+     "bw": 120,
+     "beginner": 47,
+     "novice": 66,
+     "intermediate": 90,
+     "advanced": 117,
+     "elite": 147
+    }
+   ]
+  },
+  {
+   "key": "incline-bench-press",
+   "nameKo": "인클라인 벤치프레스",
+   "note": "바벨 총중량(바 20kg 포함)",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 22,
+     "novice": 34,
+     "intermediate": 49,
+     "advanced": 66,
+     "elite": 86
+    },
+    {
+     "bw": 60,
+     "beginner": 32,
+     "novice": 45,
+     "intermediate": 62,
+     "advanced": 82,
+     "elite": 103
+    },
+    {
+     "bw": 70,
+     "beginner": 41,
+     "novice": 56,
+     "intermediate": 75,
+     "advanced": 96,
+     "elite": 119
+    },
+    {
+     "bw": 80,
+     "beginner": 50,
+     "novice": 66,
+     "intermediate": 87,
+     "advanced": 109,
+     "elite": 134
+    },
+    {
+     "bw": 90,
+     "beginner": 58,
+     "novice": 76,
+     "intermediate": 98,
+     "advanced": 122,
+     "elite": 147
+    },
+    {
+     "bw": 100,
+     "beginner": 66,
+     "novice": 86,
+     "intermediate": 108,
+     "advanced": 134,
+     "elite": 160
+    },
+    {
+     "bw": 110,
+     "beginner": 74,
+     "novice": 94,
+     "intermediate": 118,
+     "advanced": 145,
+     "elite": 172
+    },
+    {
+     "bw": 120,
+     "beginner": 82,
+     "novice": 103,
+     "intermediate": 128,
+     "advanced": 155,
+     "elite": 184
+    }
+   ]
+  },
+  {
+   "key": "dumbbell-bench-press",
+   "nameKo": "덤벨 벤치프레스",
+   "note": "★ 한쪽 덤벨 무게 기준(양손 합 아님)",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 9,
+     "novice": 16,
+     "intermediate": 24,
+     "advanced": 35,
+     "elite": 47
+    },
+    {
+     "bw": 60,
+     "beginner": 13,
+     "novice": 20,
+     "intermediate": 30,
+     "advanced": 42,
+     "elite": 55
+    },
+    {
+     "bw": 70,
+     "beginner": 16,
+     "novice": 24,
+     "intermediate": 35,
+     "advanced": 48,
+     "elite": 62
+    },
+    {
+     "bw": 80,
+     "beginner": 19,
+     "novice": 28,
+     "intermediate": 40,
+     "advanced": 53,
+     "elite": 68
+    },
+    {
+     "bw": 90,
+     "beginner": 22,
+     "novice": 32,
+     "intermediate": 44,
+     "advanced": 58,
+     "elite": 74
+    },
+    {
+     "bw": 100,
+     "beginner": 25,
+     "novice": 36,
+     "intermediate": 48,
+     "advanced": 63,
+     "elite": 79
+    },
+    {
+     "bw": 110,
+     "beginner": 28,
+     "novice": 39,
+     "intermediate": 52,
+     "advanced": 68,
+     "elite": 84
+    },
+    {
+     "bw": 120,
+     "beginner": 31,
+     "novice": 42,
+     "intermediate": 56,
+     "advanced": 72,
+     "elite": 89
+    }
+   ]
+  },
+  {
+   "key": "close-grip-bench-press",
+   "nameKo": "클로즈그립 벤치프레스",
+   "note": "바벨 총중량(바 20kg 포함)",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 25,
+     "novice": 37,
+     "intermediate": 52,
+     "advanced": 69,
+     "elite": 88
+    },
+    {
+     "bw": 60,
+     "beginner": 35,
+     "novice": 49,
+     "intermediate": 66,
+     "advanced": 86,
+     "elite": 107
+    },
+    {
+     "bw": 70,
+     "beginner": 45,
+     "novice": 61,
+     "intermediate": 80,
+     "advanced": 101,
+     "elite": 124
+    },
+    {
+     "bw": 80,
+     "beginner": 55,
+     "novice": 72,
+     "intermediate": 93,
+     "advanced": 116,
+     "elite": 140
+    },
+    {
+     "bw": 90,
+     "beginner": 64,
+     "novice": 83,
+     "intermediate": 105,
+     "advanced": 129,
+     "elite": 155
+    },
+    {
+     "bw": 100,
+     "beginner": 73,
+     "novice": 93,
+     "intermediate": 116,
+     "advanced": 142,
+     "elite": 169
+    },
+    {
+     "bw": 110,
+     "beginner": 82,
+     "novice": 103,
+     "intermediate": 127,
+     "advanced": 154,
+     "elite": 182
+    },
+    {
+     "bw": 120,
+     "beginner": 90,
+     "novice": 112,
+     "intermediate": 137,
+     "advanced": 165,
+     "elite": 194
+    }
+   ]
+  },
+  {
+   "key": "lat-pulldown",
+   "nameKo": "랫 풀다운",
+   "note": "머신 스택 표기값 · 도르래 배율 차이로 기기별 편차가 있어요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 29,
+     "novice": 43,
+     "intermediate": 60,
+     "advanced": 79,
+     "elite": 101
+    },
+    {
+     "bw": 60,
+     "beginner": 35,
+     "novice": 50,
+     "intermediate": 69,
+     "advanced": 90,
+     "elite": 113
+    },
+    {
+     "bw": 70,
+     "beginner": 42,
+     "novice": 57,
+     "intermediate": 77,
+     "advanced": 99,
+     "elite": 123
+    },
+    {
+     "bw": 80,
+     "beginner": 47,
+     "novice": 64,
+     "intermediate": 85,
+     "advanced": 108,
+     "elite": 133
+    },
+    {
+     "bw": 90,
+     "beginner": 52,
+     "novice": 70,
+     "intermediate": 92,
+     "advanced": 116,
+     "elite": 142
+    },
+    {
+     "bw": 100,
+     "beginner": 57,
+     "novice": 76,
+     "intermediate": 98,
+     "advanced": 123,
+     "elite": 150
+    },
+    {
+     "bw": 110,
+     "beginner": 62,
+     "novice": 81,
+     "intermediate": 104,
+     "advanced": 130,
+     "elite": 157
+    },
+    {
+     "bw": 120,
+     "beginner": 66,
+     "novice": 86,
+     "intermediate": 110,
+     "advanced": 136,
+     "elite": 164
+    }
+   ]
+  },
+  {
+   "key": "seated-cable-row",
+   "nameKo": "시티드 케이블 로우",
+   "note": "케이블 스택 표기값 · 핸들·배율에 따라 달라져요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 26,
+     "novice": 40,
+     "intermediate": 57,
+     "advanced": 78,
+     "elite": 101
+    },
+    {
+     "bw": 60,
+     "beginner": 33,
+     "novice": 49,
+     "intermediate": 68,
+     "advanced": 90,
+     "elite": 115
+    },
+    {
+     "bw": 70,
+     "beginner": 40,
+     "novice": 57,
+     "intermediate": 78,
+     "advanced": 102,
+     "elite": 128
+    },
+    {
+     "bw": 80,
+     "beginner": 47,
+     "novice": 65,
+     "intermediate": 87,
+     "advanced": 112,
+     "elite": 140
+    },
+    {
+     "bw": 90,
+     "beginner": 53,
+     "novice": 72,
+     "intermediate": 96,
+     "advanced": 122,
+     "elite": 150
+    },
+    {
+     "bw": 100,
+     "beginner": 59,
+     "novice": 79,
+     "intermediate": 104,
+     "advanced": 131,
+     "elite": 160
+    },
+    {
+     "bw": 110,
+     "beginner": 65,
+     "novice": 86,
+     "intermediate": 111,
+     "advanced": 139,
+     "elite": 170
+    },
+    {
+     "bw": 120,
+     "beginner": 70,
+     "novice": 92,
+     "intermediate": 118,
+     "advanced": 147,
+     "elite": 178
+    }
+   ]
+  },
+  {
+   "key": "seated-dumbbell-shoulder-press",
+   "nameKo": "시티드 덤벨 숄더프레스",
+   "note": "★ 한쪽 덤벨 무게 기준(양손 합 아님)",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 8,
+     "novice": 13,
+     "intermediate": 20,
+     "advanced": 28,
+     "elite": 36
+    },
+    {
+     "bw": 60,
+     "beginner": 12,
+     "novice": 17,
+     "intermediate": 25,
+     "advanced": 34,
+     "elite": 43
+    },
+    {
+     "bw": 70,
+     "beginner": 15,
+     "novice": 21,
+     "intermediate": 29,
+     "advanced": 39,
+     "elite": 49
+    },
+    {
+     "bw": 80,
+     "beginner": 18,
+     "novice": 25,
+     "intermediate": 34,
+     "advanced": 44,
+     "elite": 54
+    },
+    {
+     "bw": 90,
+     "beginner": 21,
+     "novice": 28,
+     "intermediate": 38,
+     "advanced": 48,
+     "elite": 59
+    },
+    {
+     "bw": 100,
+     "beginner": 24,
+     "novice": 32,
+     "intermediate": 41,
+     "advanced": 52,
+     "elite": 64
+    },
+    {
+     "bw": 110,
+     "beginner": 26,
+     "novice": 35,
+     "intermediate": 45,
+     "advanced": 56,
+     "elite": 68
+    },
+    {
+     "bw": 120,
+     "beginner": 29,
+     "novice": 38,
+     "intermediate": 48,
+     "advanced": 60,
+     "elite": 73
+    }
+   ]
+  },
+  {
+   "key": "side-lateral-raise",
+   "nameKo": "사이드 레터럴 레이즈",
+   "note": "★ 한쪽 덤벨 무게 기준 · 반동 편차가 커요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 2,
+     "novice": 6,
+     "intermediate": 11,
+     "advanced": 18,
+     "elite": 26
+    },
+    {
+     "bw": 60,
+     "beginner": 3,
+     "novice": 7,
+     "intermediate": 13,
+     "advanced": 20,
+     "elite": 29
+    },
+    {
+     "bw": 70,
+     "beginner": 4,
+     "novice": 9,
+     "intermediate": 15,
+     "advanced": 23,
+     "elite": 32
+    },
+    {
+     "bw": 80,
+     "beginner": 5,
+     "novice": 10,
+     "intermediate": 16,
+     "advanced": 25,
+     "elite": 34
+    },
+    {
+     "bw": 90,
+     "beginner": 6,
+     "novice": 11,
+     "intermediate": 18,
+     "advanced": 27,
+     "elite": 37
+    },
+    {
+     "bw": 100,
+     "beginner": 7,
+     "novice": 12,
+     "intermediate": 19,
+     "advanced": 28,
+     "elite": 39
+    },
+    {
+     "bw": 110,
+     "beginner": 8,
+     "novice": 13,
+     "intermediate": 21,
+     "advanced": 30,
+     "elite": 40
+    },
+    {
+     "bw": 120,
+     "beginner": 8,
+     "novice": 14,
+     "intermediate": 22,
+     "advanced": 32,
+     "elite": 42
+    }
+   ]
+  },
+  {
+   "key": "barbell-curl",
+   "nameKo": "바벨 컬",
+   "note": "바벨 총중량(바 20kg 포함) · EZ바 구분 없음",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 11,
+     "novice": 19,
+     "intermediate": 30,
+     "advanced": 43,
+     "elite": 58
+    },
+    {
+     "bw": 60,
+     "beginner": 15,
+     "novice": 24,
+     "intermediate": 36,
+     "advanced": 50,
+     "elite": 66
+    },
+    {
+     "bw": 70,
+     "beginner": 18,
+     "novice": 28,
+     "intermediate": 41,
+     "advanced": 57,
+     "elite": 74
+    },
+    {
+     "bw": 80,
+     "beginner": 22,
+     "novice": 33,
+     "intermediate": 46,
+     "advanced": 63,
+     "elite": 80
+    },
+    {
+     "bw": 90,
+     "beginner": 25,
+     "novice": 36,
+     "intermediate": 51,
+     "advanced": 68,
+     "elite": 87
+    },
+    {
+     "bw": 100,
+     "beginner": 28,
+     "novice": 40,
+     "intermediate": 55,
+     "advanced": 73,
+     "elite": 92
+    },
+    {
+     "bw": 110,
+     "beginner": 31,
+     "novice": 44,
+     "intermediate": 60,
+     "advanced": 78,
+     "elite": 97
+    },
+    {
+     "bw": 120,
+     "beginner": 34,
+     "novice": 47,
+     "intermediate": 63,
+     "advanced": 82,
+     "elite": 102
+    }
+   ]
+  },
+  {
+   "key": "dumbbell-curl",
+   "nameKo": "덤벨 컬",
+   "note": "★ 한쪽 덤벨 무게 기준(양손 합 아님)",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 4,
+     "novice": 9,
+     "intermediate": 15,
+     "advanced": 23,
+     "elite": 32
+    },
+    {
+     "bw": 60,
+     "beginner": 6,
+     "novice": 11,
+     "intermediate": 18,
+     "advanced": 26,
+     "elite": 36
+    },
+    {
+     "bw": 70,
+     "beginner": 7,
+     "novice": 12,
+     "intermediate": 20,
+     "advanced": 29,
+     "elite": 39
+    },
+    {
+     "bw": 80,
+     "beginner": 8,
+     "novice": 14,
+     "intermediate": 22,
+     "advanced": 32,
+     "elite": 42
+    },
+    {
+     "bw": 90,
+     "beginner": 9,
+     "novice": 16,
+     "intermediate": 24,
+     "advanced": 34,
+     "elite": 45
+    },
+    {
+     "bw": 100,
+     "beginner": 11,
+     "novice": 17,
+     "intermediate": 26,
+     "advanced": 36,
+     "elite": 48
+    },
+    {
+     "bw": 110,
+     "beginner": 12,
+     "novice": 19,
+     "intermediate": 28,
+     "advanced": 38,
+     "elite": 50
+    },
+    {
+     "bw": 120,
+     "beginner": 13,
+     "novice": 20,
+     "intermediate": 29,
+     "advanced": 40,
+     "elite": 52
+    }
+   ]
   }
  ],
  "female": [
@@ -968,6 +2329,1519 @@
      "intermediate": 119,
      "advanced": 138,
      "elite": 157
+    }
+   ]
+  },
+  {
+   "key": "front-squat",
+   "nameKo": "프론트스쿼트",
+   "note": "바벨 총중량(바 20kg 포함) · 백스쿼트보다 15~20% 낮게 나와요",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 22,
+     "novice": 33,
+     "intermediate": 47,
+     "advanced": 64,
+     "elite": 82
+    },
+    {
+     "bw": 50,
+     "beginner": 26,
+     "novice": 39,
+     "intermediate": 54,
+     "advanced": 72,
+     "elite": 91
+    },
+    {
+     "bw": 60,
+     "beginner": 31,
+     "novice": 44,
+     "intermediate": 60,
+     "advanced": 79,
+     "elite": 99
+    },
+    {
+     "bw": 70,
+     "beginner": 35,
+     "novice": 48,
+     "intermediate": 65,
+     "advanced": 85,
+     "elite": 106
+    },
+    {
+     "bw": 80,
+     "beginner": 38,
+     "novice": 53,
+     "intermediate": 70,
+     "advanced": 90,
+     "elite": 112
+    },
+    {
+     "bw": 90,
+     "beginner": 41,
+     "novice": 56,
+     "intermediate": 75,
+     "advanced": 95,
+     "elite": 118
+    },
+    {
+     "bw": 100,
+     "beginner": 44,
+     "novice": 60,
+     "intermediate": 79,
+     "advanced": 100,
+     "elite": 123
+    },
+    {
+     "bw": 110,
+     "beginner": 47,
+     "novice": 63,
+     "intermediate": 82,
+     "advanced": 104,
+     "elite": 127
+    },
+    {
+     "bw": 120,
+     "beginner": 50,
+     "novice": 66,
+     "intermediate": 86,
+     "advanced": 108,
+     "elite": 132
+    }
+   ]
+  },
+  {
+   "key": "hack-squat",
+   "nameKo": "핵스쿼트",
+   "note": "머신마다 썰매 무게·각도가 달라 편차가 커요 · 얹은 원판 합 기준",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 15,
+     "novice": 36,
+     "intermediate": 68,
+     "advanced": 111,
+     "elite": 161
+    },
+    {
+     "bw": 50,
+     "beginner": 19,
+     "novice": 43,
+     "intermediate": 78,
+     "advanced": 124,
+     "elite": 176
+    },
+    {
+     "bw": 60,
+     "beginner": 24,
+     "novice": 50,
+     "intermediate": 87,
+     "advanced": 135,
+     "elite": 190
+    },
+    {
+     "bw": 70,
+     "beginner": 28,
+     "novice": 56,
+     "intermediate": 95,
+     "advanced": 145,
+     "elite": 202
+    },
+    {
+     "bw": 80,
+     "beginner": 32,
+     "novice": 62,
+     "intermediate": 102,
+     "advanced": 154,
+     "elite": 212
+    },
+    {
+     "bw": 90,
+     "beginner": 36,
+     "novice": 67,
+     "intermediate": 109,
+     "advanced": 162,
+     "elite": 221
+    },
+    {
+     "bw": 100,
+     "beginner": 40,
+     "novice": 72,
+     "intermediate": 115,
+     "advanced": 169,
+     "elite": 230
+    },
+    {
+     "bw": 110,
+     "beginner": 43,
+     "novice": 76,
+     "intermediate": 121,
+     "advanced": 176,
+     "elite": 238
+    },
+    {
+     "bw": 120,
+     "beginner": 46,
+     "novice": 80,
+     "intermediate": 126,
+     "advanced": 182,
+     "elite": 245
+    }
+   ]
+  },
+  {
+   "key": "leg-press",
+   "nameKo": "레그프레스",
+   "note": "45도 썰매식 기준 · 머신 편차가 커요. 수평식이면 낮게 나와요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 28,
+     "novice": 58,
+     "intermediate": 102,
+     "advanced": 158,
+     "elite": 223
+    },
+    {
+     "bw": 50,
+     "beginner": 39,
+     "novice": 73,
+     "intermediate": 122,
+     "advanced": 183,
+     "elite": 252
+    },
+    {
+     "bw": 60,
+     "beginner": 49,
+     "novice": 87,
+     "intermediate": 140,
+     "advanced": 204,
+     "elite": 277
+    },
+    {
+     "bw": 70,
+     "beginner": 58,
+     "novice": 100,
+     "intermediate": 155,
+     "advanced": 223,
+     "elite": 299
+    },
+    {
+     "bw": 80,
+     "beginner": 67,
+     "novice": 111,
+     "intermediate": 170,
+     "advanced": 240,
+     "elite": 319
+    },
+    {
+     "bw": 90,
+     "beginner": 76,
+     "novice": 122,
+     "intermediate": 183,
+     "advanced": 256,
+     "elite": 337
+    },
+    {
+     "bw": 100,
+     "beginner": 83,
+     "novice": 132,
+     "intermediate": 195,
+     "advanced": 270,
+     "elite": 353
+    },
+    {
+     "bw": 110,
+     "beginner": 91,
+     "novice": 142,
+     "intermediate": 206,
+     "advanced": 284,
+     "elite": 369
+    },
+    {
+     "bw": 120,
+     "beginner": 98,
+     "novice": 150,
+     "intermediate": 217,
+     "advanced": 296,
+     "elite": 383
+    }
+   ]
+  },
+  {
+   "key": "smith-machine-squat",
+   "nameKo": "스미스머신스쿼트",
+   "note": "스미스머신 바 무게가 기기마다 달라 편차가 커요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 15,
+     "novice": 29,
+     "intermediate": 48,
+     "advanced": 73,
+     "elite": 101
+    },
+    {
+     "bw": 50,
+     "beginner": 18,
+     "novice": 34,
+     "intermediate": 55,
+     "advanced": 81,
+     "elite": 111
+    },
+    {
+     "bw": 60,
+     "beginner": 22,
+     "novice": 38,
+     "intermediate": 61,
+     "advanced": 88,
+     "elite": 119
+    },
+    {
+     "bw": 70,
+     "beginner": 25,
+     "novice": 42,
+     "intermediate": 66,
+     "advanced": 94,
+     "elite": 126
+    },
+    {
+     "bw": 80,
+     "beginner": 28,
+     "novice": 46,
+     "intermediate": 70,
+     "advanced": 99,
+     "elite": 132
+    },
+    {
+     "bw": 90,
+     "beginner": 30,
+     "novice": 49,
+     "intermediate": 74,
+     "advanced": 104,
+     "elite": 138
+    },
+    {
+     "bw": 100,
+     "beginner": 33,
+     "novice": 52,
+     "intermediate": 78,
+     "advanced": 109,
+     "elite": 143
+    },
+    {
+     "bw": 110,
+     "beginner": 35,
+     "novice": 55,
+     "intermediate": 82,
+     "advanced": 113,
+     "elite": 148
+    },
+    {
+     "bw": 120,
+     "beginner": 37,
+     "novice": 58,
+     "intermediate": 85,
+     "advanced": 117,
+     "elite": 152
+    }
+   ]
+  },
+  {
+   "key": "romanian-deadlift",
+   "nameKo": "루마니안 데드리프트",
+   "note": "바벨 총중량(바 20kg 포함) · 무릎 거의 편 힙힌지 기준",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 23,
+     "novice": 37,
+     "intermediate": 55,
+     "advanced": 77,
+     "elite": 101
+    },
+    {
+     "bw": 50,
+     "beginner": 27,
+     "novice": 42,
+     "intermediate": 61,
+     "advanced": 84,
+     "elite": 109
+    },
+    {
+     "bw": 60,
+     "beginner": 31,
+     "novice": 47,
+     "intermediate": 67,
+     "advanced": 90,
+     "elite": 116
+    },
+    {
+     "bw": 70,
+     "beginner": 34,
+     "novice": 51,
+     "intermediate": 71,
+     "advanced": 96,
+     "elite": 122
+    },
+    {
+     "bw": 80,
+     "beginner": 37,
+     "novice": 54,
+     "intermediate": 75,
+     "advanced": 100,
+     "elite": 128
+    },
+    {
+     "bw": 90,
+     "beginner": 40,
+     "novice": 57,
+     "intermediate": 79,
+     "advanced": 105,
+     "elite": 132
+    },
+    {
+     "bw": 100,
+     "beginner": 42,
+     "novice": 60,
+     "intermediate": 83,
+     "advanced": 109,
+     "elite": 137
+    },
+    {
+     "bw": 110,
+     "beginner": 44,
+     "novice": 63,
+     "intermediate": 86,
+     "advanced": 112,
+     "elite": 141
+    },
+    {
+     "bw": 120,
+     "beginner": 46,
+     "novice": 65,
+     "intermediate": 89,
+     "advanced": 116,
+     "elite": 145
+    }
+   ]
+  },
+  {
+   "key": "sumo-deadlift",
+   "nameKo": "스모 데드리프트",
+   "note": "바벨 총중량(바 20kg 포함) · 컨벤셔널과 별개 기준표예요",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 38,
+     "novice": 56,
+     "intermediate": 79,
+     "advanced": 106,
+     "elite": 136
+    },
+    {
+     "bw": 50,
+     "beginner": 43,
+     "novice": 62,
+     "intermediate": 87,
+     "advanced": 115,
+     "elite": 146
+    },
+    {
+     "bw": 60,
+     "beginner": 47,
+     "novice": 68,
+     "intermediate": 93,
+     "advanced": 122,
+     "elite": 154
+    },
+    {
+     "bw": 70,
+     "beginner": 51,
+     "novice": 73,
+     "intermediate": 99,
+     "advanced": 129,
+     "elite": 161
+    },
+    {
+     "bw": 80,
+     "beginner": 55,
+     "novice": 77,
+     "intermediate": 104,
+     "advanced": 135,
+     "elite": 168
+    },
+    {
+     "bw": 90,
+     "beginner": 58,
+     "novice": 81,
+     "intermediate": 108,
+     "advanced": 140,
+     "elite": 173
+    },
+    {
+     "bw": 100,
+     "beginner": 61,
+     "novice": 84,
+     "intermediate": 112,
+     "advanced": 144,
+     "elite": 179
+    },
+    {
+     "bw": 110,
+     "beginner": 64,
+     "novice": 88,
+     "intermediate": 116,
+     "advanced": 149,
+     "elite": 183
+    },
+    {
+     "bw": 120,
+     "beginner": 67,
+     "novice": 91,
+     "intermediate": 120,
+     "advanced": 153,
+     "elite": 188
+    }
+   ]
+  },
+  {
+   "key": "hip-thrust",
+   "nameKo": "힙 쓰러스트",
+   "note": "바벨 총중량(바 20kg 포함) · 전용머신/스미스는 다르게 나와요",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 25,
+     "novice": 49,
+     "intermediate": 83,
+     "advanced": 125,
+     "elite": 174
+    },
+    {
+     "bw": 50,
+     "beginner": 30,
+     "novice": 56,
+     "intermediate": 92,
+     "advanced": 137,
+     "elite": 187
+    },
+    {
+     "bw": 60,
+     "beginner": 35,
+     "novice": 63,
+     "intermediate": 100,
+     "advanced": 147,
+     "elite": 199
+    },
+    {
+     "bw": 70,
+     "beginner": 39,
+     "novice": 69,
+     "intermediate": 108,
+     "advanced": 155,
+     "elite": 209
+    },
+    {
+     "bw": 80,
+     "beginner": 43,
+     "novice": 74,
+     "intermediate": 114,
+     "advanced": 163,
+     "elite": 218
+    },
+    {
+     "bw": 90,
+     "beginner": 47,
+     "novice": 78,
+     "intermediate": 120,
+     "advanced": 170,
+     "elite": 226
+    },
+    {
+     "bw": 100,
+     "beginner": 50,
+     "novice": 83,
+     "intermediate": 125,
+     "advanced": 177,
+     "elite": 234
+    },
+    {
+     "bw": 110,
+     "beginner": 54,
+     "novice": 87,
+     "intermediate": 130,
+     "advanced": 182,
+     "elite": 240
+    },
+    {
+     "bw": 120,
+     "beginner": 57,
+     "novice": 91,
+     "intermediate": 135,
+     "advanced": 188,
+     "elite": 247
+    }
+   ]
+  },
+  {
+   "key": "bulgarian-split-squat",
+   "nameKo": "불가리안 스플릿 스쿼트",
+   "note": "한쪽당이 아니라 들고 있는 총 외부중량 기준",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 6,
+     "novice": 15,
+     "intermediate": 28,
+     "advanced": 45,
+     "elite": 65
+    },
+    {
+     "bw": 50,
+     "beginner": 8,
+     "novice": 18,
+     "intermediate": 32,
+     "advanced": 50,
+     "elite": 72
+    },
+    {
+     "bw": 60,
+     "beginner": 10,
+     "novice": 20,
+     "intermediate": 36,
+     "advanced": 55,
+     "elite": 77
+    },
+    {
+     "bw": 70,
+     "beginner": 12,
+     "novice": 23,
+     "intermediate": 39,
+     "advanced": 59,
+     "elite": 82
+    },
+    {
+     "bw": 80,
+     "beginner": 13,
+     "novice": 25,
+     "intermediate": 42,
+     "advanced": 63,
+     "elite": 87
+    },
+    {
+     "bw": 90,
+     "beginner": 15,
+     "novice": 27,
+     "intermediate": 45,
+     "advanced": 66,
+     "elite": 90
+    },
+    {
+     "bw": 100,
+     "beginner": 16,
+     "novice": 29,
+     "intermediate": 47,
+     "advanced": 69,
+     "elite": 94
+    },
+    {
+     "bw": 110,
+     "beginner": 18,
+     "novice": 31,
+     "intermediate": 49,
+     "advanced": 72,
+     "elite": 97
+    },
+    {
+     "bw": 120,
+     "beginner": 19,
+     "novice": 33,
+     "intermediate": 52,
+     "advanced": 74,
+     "elite": 100
+    }
+   ]
+  },
+  {
+   "key": "leg-extension",
+   "nameKo": "레그 익스텐션",
+   "note": "머신 스택 표기값 · 기기별 실부하 차이가 30% 넘기도 해요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 16,
+     "novice": 30,
+     "intermediate": 49,
+     "advanced": 73,
+     "elite": 101
+    },
+    {
+     "bw": 50,
+     "beginner": 19,
+     "novice": 34,
+     "intermediate": 55,
+     "advanced": 80,
+     "elite": 109
+    },
+    {
+     "bw": 60,
+     "beginner": 22,
+     "novice": 38,
+     "intermediate": 59,
+     "advanced": 86,
+     "elite": 115
+    },
+    {
+     "bw": 70,
+     "beginner": 24,
+     "novice": 41,
+     "intermediate": 64,
+     "advanced": 91,
+     "elite": 121
+    },
+    {
+     "bw": 80,
+     "beginner": 27,
+     "novice": 44,
+     "intermediate": 67,
+     "advanced": 95,
+     "elite": 126
+    },
+    {
+     "bw": 90,
+     "beginner": 29,
+     "novice": 47,
+     "intermediate": 71,
+     "advanced": 99,
+     "elite": 131
+    },
+    {
+     "bw": 100,
+     "beginner": 31,
+     "novice": 49,
+     "intermediate": 74,
+     "advanced": 103,
+     "elite": 135
+    },
+    {
+     "bw": 110,
+     "beginner": 33,
+     "novice": 52,
+     "intermediate": 76,
+     "advanced": 106,
+     "elite": 138
+    },
+    {
+     "bw": 120,
+     "beginner": 34,
+     "novice": 54,
+     "intermediate": 79,
+     "advanced": 109,
+     "elite": 142
+    }
+   ]
+  },
+  {
+   "key": "lying-leg-curl",
+   "nameKo": "라잉 레그컬",
+   "note": "머신 스택 표기값 · 시티드/스탠딩 레그컬과는 다른 기준이에요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 10,
+     "novice": 18,
+     "intermediate": 28,
+     "advanced": 41,
+     "elite": 56
+    },
+    {
+     "bw": 50,
+     "beginner": 13,
+     "novice": 21,
+     "intermediate": 32,
+     "advanced": 46,
+     "elite": 62
+    },
+    {
+     "bw": 60,
+     "beginner": 15,
+     "novice": 24,
+     "intermediate": 36,
+     "advanced": 51,
+     "elite": 67
+    },
+    {
+     "bw": 70,
+     "beginner": 17,
+     "novice": 27,
+     "intermediate": 40,
+     "advanced": 55,
+     "elite": 71
+    },
+    {
+     "bw": 80,
+     "beginner": 19,
+     "novice": 29,
+     "intermediate": 43,
+     "advanced": 58,
+     "elite": 75
+    },
+    {
+     "bw": 90,
+     "beginner": 21,
+     "novice": 32,
+     "intermediate": 45,
+     "advanced": 62,
+     "elite": 79
+    },
+    {
+     "bw": 100,
+     "beginner": 23,
+     "novice": 34,
+     "intermediate": 48,
+     "advanced": 65,
+     "elite": 83
+    },
+    {
+     "bw": 110,
+     "beginner": 24,
+     "novice": 36,
+     "intermediate": 50,
+     "advanced": 67,
+     "elite": 86
+    },
+    {
+     "bw": 120,
+     "beginner": 26,
+     "novice": 38,
+     "intermediate": 53,
+     "advanced": 70,
+     "elite": 89
+    }
+   ]
+  },
+  {
+   "key": "incline-bench-press",
+   "nameKo": "인클라인 벤치프레스",
+   "note": "바벨 총중량(바 20kg 포함)",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 7,
+     "novice": 15,
+     "intermediate": 26,
+     "advanced": 40,
+     "elite": 57
+    },
+    {
+     "bw": 50,
+     "beginner": 11,
+     "novice": 20,
+     "intermediate": 33,
+     "advanced": 49,
+     "elite": 67
+    },
+    {
+     "bw": 60,
+     "beginner": 14,
+     "novice": 25,
+     "intermediate": 39,
+     "advanced": 56,
+     "elite": 76
+    },
+    {
+     "bw": 70,
+     "beginner": 18,
+     "novice": 29,
+     "intermediate": 45,
+     "advanced": 63,
+     "elite": 84
+    },
+    {
+     "bw": 80,
+     "beginner": 21,
+     "novice": 34,
+     "intermediate": 50,
+     "advanced": 69,
+     "elite": 91
+    },
+    {
+     "bw": 90,
+     "beginner": 24,
+     "novice": 38,
+     "intermediate": 55,
+     "advanced": 75,
+     "elite": 97
+    },
+    {
+     "bw": 100,
+     "beginner": 28,
+     "novice": 42,
+     "intermediate": 59,
+     "advanced": 80,
+     "elite": 104
+    },
+    {
+     "bw": 110,
+     "beginner": 30,
+     "novice": 45,
+     "intermediate": 64,
+     "advanced": 85,
+     "elite": 109
+    },
+    {
+     "bw": 120,
+     "beginner": 33,
+     "novice": 49,
+     "intermediate": 68,
+     "advanced": 90,
+     "elite": 114
+    }
+   ]
+  },
+  {
+   "key": "dumbbell-bench-press",
+   "nameKo": "덤벨 벤치프레스",
+   "note": "★ 한쪽 덤벨 무게 기준(양손 합 아님)",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 4,
+     "novice": 8,
+     "intermediate": 14,
+     "advanced": 21,
+     "elite": 30
+    },
+    {
+     "bw": 50,
+     "beginner": 5,
+     "novice": 10,
+     "intermediate": 16,
+     "advanced": 25,
+     "elite": 34
+    },
+    {
+     "bw": 60,
+     "beginner": 7,
+     "novice": 12,
+     "intermediate": 19,
+     "advanced": 28,
+     "elite": 38
+    },
+    {
+     "bw": 70,
+     "beginner": 8,
+     "novice": 14,
+     "intermediate": 21,
+     "advanced": 30,
+     "elite": 41
+    },
+    {
+     "bw": 80,
+     "beginner": 9,
+     "novice": 15,
+     "intermediate": 23,
+     "advanced": 33,
+     "elite": 44
+    },
+    {
+     "bw": 90,
+     "beginner": 10,
+     "novice": 17,
+     "intermediate": 25,
+     "advanced": 35,
+     "elite": 46
+    },
+    {
+     "bw": 100,
+     "beginner": 12,
+     "novice": 18,
+     "intermediate": 27,
+     "advanced": 37,
+     "elite": 48
+    },
+    {
+     "bw": 110,
+     "beginner": 13,
+     "novice": 20,
+     "intermediate": 28,
+     "advanced": 39,
+     "elite": 51
+    },
+    {
+     "bw": 120,
+     "beginner": 14,
+     "novice": 21,
+     "intermediate": 30,
+     "advanced": 41,
+     "elite": 53
+    }
+   ]
+  },
+  {
+   "key": "close-grip-bench-press",
+   "nameKo": "클로즈그립 벤치프레스",
+   "note": "바벨 총중량(바 20kg 포함)",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 11,
+     "novice": 20,
+     "intermediate": 31,
+     "advanced": 46,
+     "elite": 62
+    },
+    {
+     "bw": 50,
+     "beginner": 16,
+     "novice": 26,
+     "intermediate": 39,
+     "advanced": 55,
+     "elite": 72
+    },
+    {
+     "bw": 60,
+     "beginner": 20,
+     "novice": 31,
+     "intermediate": 46,
+     "advanced": 63,
+     "elite": 82
+    },
+    {
+     "bw": 70,
+     "beginner": 24,
+     "novice": 37,
+     "intermediate": 52,
+     "advanced": 70,
+     "elite": 90
+    },
+    {
+     "bw": 80,
+     "beginner": 28,
+     "novice": 41,
+     "intermediate": 58,
+     "advanced": 77,
+     "elite": 97
+    },
+    {
+     "bw": 90,
+     "beginner": 32,
+     "novice": 46,
+     "intermediate": 63,
+     "advanced": 83,
+     "elite": 104
+    },
+    {
+     "bw": 100,
+     "beginner": 36,
+     "novice": 50,
+     "intermediate": 68,
+     "advanced": 88,
+     "elite": 110
+    },
+    {
+     "bw": 110,
+     "beginner": 39,
+     "novice": 54,
+     "intermediate": 73,
+     "advanced": 94,
+     "elite": 116
+    },
+    {
+     "bw": 120,
+     "beginner": 42,
+     "novice": 58,
+     "intermediate": 77,
+     "advanced": 99,
+     "elite": 122
+    }
+   ]
+  },
+  {
+   "key": "lat-pulldown",
+   "nameKo": "랫 풀다운",
+   "note": "머신 스택 표기값 · 도르래 배율 차이로 기기별 편차가 있어요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 17,
+     "novice": 26,
+     "intermediate": 38,
+     "advanced": 51,
+     "elite": 66
+    },
+    {
+     "bw": 50,
+     "beginner": 20,
+     "novice": 30,
+     "intermediate": 42,
+     "advanced": 56,
+     "elite": 72
+    },
+    {
+     "bw": 60,
+     "beginner": 23,
+     "novice": 33,
+     "intermediate": 46,
+     "advanced": 60,
+     "elite": 76
+    },
+    {
+     "bw": 70,
+     "beginner": 25,
+     "novice": 36,
+     "intermediate": 49,
+     "advanced": 64,
+     "elite": 81
+    },
+    {
+     "bw": 80,
+     "beginner": 27,
+     "novice": 38,
+     "intermediate": 52,
+     "advanced": 68,
+     "elite": 85
+    },
+    {
+     "bw": 90,
+     "beginner": 29,
+     "novice": 41,
+     "intermediate": 55,
+     "advanced": 71,
+     "elite": 88
+    },
+    {
+     "bw": 100,
+     "beginner": 31,
+     "novice": 43,
+     "intermediate": 57,
+     "advanced": 74,
+     "elite": 91
+    },
+    {
+     "bw": 110,
+     "beginner": 33,
+     "novice": 45,
+     "intermediate": 59,
+     "advanced": 76,
+     "elite": 94
+    },
+    {
+     "bw": 120,
+     "beginner": 34,
+     "novice": 47,
+     "intermediate": 62,
+     "advanced": 79,
+     "elite": 97
+    }
+   ]
+  },
+  {
+   "key": "seated-cable-row",
+   "nameKo": "시티드 케이블 로우",
+   "note": "케이블 스택 표기값 · 핸들·배율에 따라 달라져요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 14,
+     "novice": 23,
+     "intermediate": 35,
+     "advanced": 50,
+     "elite": 66
+    },
+    {
+     "bw": 50,
+     "beginner": 18,
+     "novice": 28,
+     "intermediate": 41,
+     "advanced": 56,
+     "elite": 73
+    },
+    {
+     "bw": 60,
+     "beginner": 21,
+     "novice": 32,
+     "intermediate": 45,
+     "advanced": 62,
+     "elite": 79
+    },
+    {
+     "bw": 70,
+     "beginner": 24,
+     "novice": 35,
+     "intermediate": 50,
+     "advanced": 66,
+     "elite": 85
+    },
+    {
+     "bw": 80,
+     "beginner": 26,
+     "novice": 38,
+     "intermediate": 53,
+     "advanced": 71,
+     "elite": 89
+    },
+    {
+     "bw": 90,
+     "beginner": 29,
+     "novice": 41,
+     "intermediate": 57,
+     "advanced": 75,
+     "elite": 94
+    },
+    {
+     "bw": 100,
+     "beginner": 31,
+     "novice": 44,
+     "intermediate": 60,
+     "advanced": 78,
+     "elite": 98
+    },
+    {
+     "bw": 110,
+     "beginner": 33,
+     "novice": 47,
+     "intermediate": 63,
+     "advanced": 82,
+     "elite": 102
+    },
+    {
+     "bw": 120,
+     "beginner": 35,
+     "novice": 49,
+     "intermediate": 66,
+     "advanced": 85,
+     "elite": 105
+    }
+   ]
+  },
+  {
+   "key": "seated-dumbbell-shoulder-press",
+   "nameKo": "시티드 덤벨 숄더프레스",
+   "note": "★ 한쪽 덤벨 무게 기준(양손 합 아님)",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 5,
+     "novice": 8,
+     "intermediate": 12,
+     "advanced": 17,
+     "elite": 22
+    },
+    {
+     "bw": 50,
+     "beginner": 6,
+     "novice": 10,
+     "intermediate": 14,
+     "advanced": 19,
+     "elite": 25
+    },
+    {
+     "bw": 60,
+     "beginner": 7,
+     "novice": 11,
+     "intermediate": 16,
+     "advanced": 22,
+     "elite": 28
+    },
+    {
+     "bw": 70,
+     "beginner": 9,
+     "novice": 13,
+     "intermediate": 18,
+     "advanced": 24,
+     "elite": 30
+    },
+    {
+     "bw": 80,
+     "beginner": 10,
+     "novice": 14,
+     "intermediate": 19,
+     "advanced": 26,
+     "elite": 32
+    },
+    {
+     "bw": 90,
+     "beginner": 11,
+     "novice": 15,
+     "intermediate": 21,
+     "advanced": 27,
+     "elite": 34
+    },
+    {
+     "bw": 100,
+     "beginner": 12,
+     "novice": 16,
+     "intermediate": 22,
+     "advanced": 29,
+     "elite": 36
+    },
+    {
+     "bw": 110,
+     "beginner": 13,
+     "novice": 17,
+     "intermediate": 23,
+     "advanced": 30,
+     "elite": 37
+    },
+    {
+     "bw": 120,
+     "beginner": 14,
+     "novice": 19,
+     "intermediate": 25,
+     "advanced": 32,
+     "elite": 39
+    }
+   ]
+  },
+  {
+   "key": "side-lateral-raise",
+   "nameKo": "사이드 레터럴 레이즈",
+   "note": "★ 한쪽 덤벨 무게 기준 · 반동 편차가 커요",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 2,
+     "novice": 4,
+     "intermediate": 7,
+     "advanced": 11,
+     "elite": 15
+    },
+    {
+     "bw": 50,
+     "beginner": 3,
+     "novice": 5,
+     "intermediate": 8,
+     "advanced": 12,
+     "elite": 16
+    },
+    {
+     "bw": 60,
+     "beginner": 3,
+     "novice": 6,
+     "intermediate": 9,
+     "advanced": 13,
+     "elite": 17
+    },
+    {
+     "bw": 70,
+     "beginner": 3,
+     "novice": 6,
+     "intermediate": 9,
+     "advanced": 14,
+     "elite": 18
+    },
+    {
+     "bw": 80,
+     "beginner": 4,
+     "novice": 6,
+     "intermediate": 10,
+     "advanced": 14,
+     "elite": 19
+    },
+    {
+     "bw": 90,
+     "beginner": 4,
+     "novice": 7,
+     "intermediate": 10,
+     "advanced": 15,
+     "elite": 20
+    },
+    {
+     "bw": 100,
+     "beginner": 4,
+     "novice": 7,
+     "intermediate": 11,
+     "advanced": 15,
+     "elite": 20
+    },
+    {
+     "bw": 110,
+     "beginner": 5,
+     "novice": 8,
+     "intermediate": 11,
+     "advanced": 16,
+     "elite": 21
+    },
+    {
+     "bw": 120,
+     "beginner": 5,
+     "novice": 8,
+     "intermediate": 12,
+     "advanced": 16,
+     "elite": 21
+    }
+   ]
+  },
+  {
+   "key": "barbell-curl",
+   "nameKo": "바벨 컬",
+   "note": "바벨 총중량(바 20kg 포함) · EZ바 구분 없음",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 4,
+     "novice": 10,
+     "intermediate": 17,
+     "advanced": 27,
+     "elite": 38
+    },
+    {
+     "bw": 50,
+     "beginner": 6,
+     "novice": 12,
+     "intermediate": 20,
+     "advanced": 31,
+     "elite": 43
+    },
+    {
+     "bw": 60,
+     "beginner": 8,
+     "novice": 14,
+     "intermediate": 23,
+     "advanced": 34,
+     "elite": 47
+    },
+    {
+     "bw": 70,
+     "beginner": 9,
+     "novice": 16,
+     "intermediate": 26,
+     "advanced": 37,
+     "elite": 51
+    },
+    {
+     "bw": 80,
+     "beginner": 11,
+     "novice": 18,
+     "intermediate": 28,
+     "advanced": 40,
+     "elite": 54
+    },
+    {
+     "bw": 90,
+     "beginner": 12,
+     "novice": 20,
+     "intermediate": 30,
+     "advanced": 43,
+     "elite": 57
+    },
+    {
+     "bw": 100,
+     "beginner": 13,
+     "novice": 21,
+     "intermediate": 32,
+     "advanced": 45,
+     "elite": 59
+    },
+    {
+     "bw": 110,
+     "beginner": 14,
+     "novice": 23,
+     "intermediate": 34,
+     "advanced": 47,
+     "elite": 62
+    },
+    {
+     "bw": 120,
+     "beginner": 15,
+     "novice": 24,
+     "intermediate": 36,
+     "advanced": 49,
+     "elite": 64
+    }
+   ]
+  },
+  {
+   "key": "dumbbell-curl",
+   "nameKo": "덤벨 컬",
+   "note": "★ 한쪽 덤벨 무게 기준(양손 합 아님)",
+   "confidence": "low",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 2,
+     "novice": 5,
+     "intermediate": 9,
+     "advanced": 14,
+     "elite": 20
+    },
+    {
+     "bw": 50,
+     "beginner": 3,
+     "novice": 6,
+     "intermediate": 11,
+     "advanced": 16,
+     "elite": 22
+    },
+    {
+     "bw": 60,
+     "beginner": 4,
+     "novice": 7,
+     "intermediate": 12,
+     "advanced": 18,
+     "elite": 24
+    },
+    {
+     "bw": 70,
+     "beginner": 4,
+     "novice": 8,
+     "intermediate": 13,
+     "advanced": 19,
+     "elite": 26
+    },
+    {
+     "bw": 80,
+     "beginner": 5,
+     "novice": 9,
+     "intermediate": 14,
+     "advanced": 20,
+     "elite": 27
+    },
+    {
+     "bw": 90,
+     "beginner": 6,
+     "novice": 10,
+     "intermediate": 15,
+     "advanced": 22,
+     "elite": 29
+    },
+    {
+     "bw": 100,
+     "beginner": 6,
+     "novice": 10,
+     "intermediate": 16,
+     "advanced": 23,
+     "elite": 30
+    },
+    {
+     "bw": 110,
+     "beginner": 7,
+     "novice": 11,
+     "intermediate": 17,
+     "advanced": 24,
+     "elite": 31
+    },
+    {
+     "bw": 120,
+     "beginner": 7,
+     "novice": 12,
+     "intermediate": 18,
+     "advanced": 25,
+     "elite": 32
     }
    ]
   }

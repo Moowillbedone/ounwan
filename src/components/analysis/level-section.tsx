@@ -77,6 +77,7 @@ export function LevelSection({
     }
     const v = judgeLift(sex, liftKey, best.best1RM, bw, base.age);
     if (!v) continue;
+    v.nameKo = best.nameKo; // 표준표 표기가 아니라 앱의 종목명을 쓴다
     // 같은 표준키가 중복되면(예: 오버헤드/밀리터리) 더 높은 기록만
     const prev = verdicts.findIndex((x) => x.liftKey === liftKey);
     if (prev >= 0) {
@@ -110,14 +111,17 @@ export function LevelSection({
     );
   }
 
+  // 종합은 기구·입력 편차가 작은 종목만으로 낸다(머신·덤벨은 등급을 왜곡함)
+  const core = verdicts.filter((v) => !v.lowConfidence);
+  const basis = core.length > 0 ? core : verdicts;
   const avgPct = Math.round(
-    verdicts.reduce((n, v) => n + v.percentile, 0) / verdicts.length
+    basis.reduce((n, v) => n + v.percentile, 0) / basis.length
   );
   // 대표 레벨 = 평균 백분위가 속한 구간
   const overall =
     avgPct >= 95 ? "elite" : avgPct >= 80 ? "advanced" : avgPct >= 50 ? "intermediate" : avgPct >= 20 ? "novice" : "beginner";
-  const best = verdicts[0];
-  const worst = verdicts[verdicts.length - 1];
+  const best = basis[0] ?? verdicts[0];
+  const worst = basis[basis.length - 1] ?? verdicts[verdicts.length - 1];
 
   return (
     <section className="rounded-app border border-border bg-surface p-4 shadow-[var(--shadow-card)]">
@@ -134,7 +138,12 @@ export function LevelSection({
       <div className="mb-4 rounded-app bg-brand-soft/50 px-3 py-3">
         <div className="flex items-baseline justify-between">
           <span className="text-[11px] font-semibold text-text-2">
-            {verdicts.length}개 종목 종합
+            {basis.length}개 종목 종합
+            {core.length > 0 && verdicts.length > core.length && (
+              <span className="ml-1 font-normal text-text-3">
+                (참고 {verdicts.length - core.length}개 제외)
+              </span>
+            )}
           </span>
           <span className="text-xl font-black text-brand-strong">
             {LEVEL_KO[overall]}
@@ -218,6 +227,11 @@ function LiftRow({
         <div className="mb-1.5 flex items-baseline justify-between gap-2">
           <span className="flex items-baseline gap-1.5 min-w-0">
             <span className="truncate text-[13px] font-bold">{v.nameKo}</span>
+            {v.lowConfidence && (
+              <span className="shrink-0 rounded-full bg-surface-2 px-1.5 py-0.5 text-[9px] font-bold text-text-3">
+                참고
+              </span>
+            )}
             <span className="shrink-0 text-[11px] tabular-nums text-text-3">
               {Math.round(v.e1rm)}kg
             </span>
@@ -301,6 +315,14 @@ function LiftRow({
             <>
               <br />
               <span className="text-text-3">※ {v.note}</span>
+            </>
+          )}
+          {v.lowConfidence && (
+            <>
+              <br />
+              <span className="text-text-3">
+                기구·입력 방식에 따라 편차가 커서 <b>종합 등급 계산에서는 뺐어요</b>.
+              </span>
             </>
           )}
         </div>

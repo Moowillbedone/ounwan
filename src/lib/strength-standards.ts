@@ -46,6 +46,8 @@ export interface LiftStd {
   key: string;
   nameKo: string;
   note?: string;
+  /** low = 기구·입력 방식 편차가 커서 '참고'로만 보여주고 종합 등급에서 제외 */
+  confidence?: "low";
   rows: StdRow[];
 }
 export interface StandardsFile {
@@ -68,6 +70,7 @@ export const STANDARDS_META = DATA.meta;
 
 /** 앱의 종목 id → 표준표 키. 표준이 없는 종목은 비교하지 않는다. */
 export const LIFT_KEYS: Record<string, string> = {
+  // 빅리프트
   "bench-press": "bench-press",
   "back-squat": "back-squat",
   deadlift: "deadlift",
@@ -78,6 +81,29 @@ export const LIFT_KEYS: Record<string, string> = {
   "pull-up": "pull-up",
   "chin-up": "pull-up",
   "wide-grip-pull-up": "pull-up",
+  // 하체
+  "front-squat": "front-squat",
+  "hack-squat": "hack-squat",
+  "leg-press": "leg-press",
+  "smith-machine-squat": "smith-machine-squat",
+  "romanian-deadlift": "romanian-deadlift",
+  "stiff-leg-deadlift": "romanian-deadlift",
+  "sumo-deadlift": "sumo-deadlift",
+  "hip-thrust": "hip-thrust",
+  "bulgarian-split-squat": "bulgarian-split-squat",
+  "leg-extension": "leg-extension",
+  "lying-leg-curl": "lying-leg-curl",
+  // 가슴·등
+  "incline-bench-press": "incline-bench-press",
+  "dumbbell-bench-press": "dumbbell-bench-press",
+  "close-grip-bench-press": "close-grip-bench-press",
+  "lat-pulldown": "lat-pulldown",
+  "seated-cable-row": "seated-cable-row",
+  // 어깨·팔
+  "seated-dumbbell-shoulder-press": "seated-dumbbell-shoulder-press",
+  "side-lateral-raise": "side-lateral-raise",
+  "barbell-curl": "barbell-curl",
+  "dumbbell-curl": "dumbbell-curl",
 };
 
 function lerp(a: number, b: number, t: number) {
@@ -141,6 +167,8 @@ export interface LevelVerdict {
   percentile: number;
   next: { level: LevelKey; need: number } | null;
   note?: string;
+  /** true면 기구·입력 편차가 커서 종합 등급 계산에서 뺀다 */
+  lowConfidence: boolean;
   ageAdjusted: boolean;
 }
 
@@ -194,6 +222,7 @@ export function judgeLift(
     percentile: Math.max(0, Math.min(99, percentile)),
     next: nextKey ? { level: nextKey, need: levels[nextKey] } : null,
     note: std.lift.note,
+    lowConfidence: std.lift.confidence === "low",
     ageAdjusted: Math.abs(f - 1) > 0.001,
   };
 }
