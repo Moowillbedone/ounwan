@@ -128,6 +128,16 @@ export function fmtDuration(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+/** 운동 소요시간처럼 긴 시간을 사람이 읽는 형태로 (예: 1시간 10분) */
+export function fmtElapsedKo(seconds: number): string {
+  const totalMin = Math.round(seconds / 60);
+  if (totalMin < 1) return "1분 미만";
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m}분`;
+  return m > 0 ? `${h}시간 ${m}분` : `${h}시간`;
+}
+
 /** 상대 날짜 라벨 */
 export function relativeDayLabel(key: string): string {
   const t = todayKey();

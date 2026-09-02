@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   Check,
   ChevronRight,
+  Timer,
   Plus,
   Scale,
   Dumbbell,
@@ -25,7 +26,15 @@ import {
 } from "@/lib/hooks";
 import { newEmptySession } from "@/lib/repo";
 import { BODY_PART_META } from "@/lib/constants";
-import { fmtNum, fmtWeight, relativeDayLabel, dateKeyToDate, uid, todayKey } from "@/lib/utils";
+import {
+  fmtNum,
+  fmtWeight,
+  fmtElapsedKo,
+  relativeDayLabel,
+  dateKeyToDate,
+  uid,
+  todayKey,
+} from "@/lib/utils";
 import {
   useClipboard,
   setClipboard,
@@ -69,10 +78,60 @@ export function DayDetailSheet({
         .sort((a, b) => a.sessionIndexOfDay - b.sessionIndexOfDay),
     [sessions, dateKey]
   );
+
+  // 그날의 합계 — 잔디·통계와 동일하게 '운동 종료까지 누른 세션'만 집계한다.
+  // 하루 다중 세션이면 시간·볼륨을 모두 합산.
+  const dayStats = useMemo(() => {
+    let durationSec = 0;
+    let volume = 0;
+    let doneCount = 0;
+    for (const s of daySessions) {
+      if (!s.endedAt) continue;
+      doneCount++;
+      volume += s.totalVolume;
+      if (s.startedAt) {
+        const d =
+          (new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime()) / 1000;
+        if (d > 0) durationSec += d;
+      }
+    }
+    return { durationSec, volume, doneCount };
+  }, [daySessions]);
+
   const bw = useMemo(
     () => (metrics ?? []).find((m) => m.date === dateKey)?.weight ?? null,
     [metrics, dateKey]
   );
+  // 있는 항목만 칩으로 (운동 시간 · 총 볼륨 · 체중)
+  const dayChips = useMemo(() => {
+    const out: {
+      icon: React.ReactNode;
+      label: string;
+      value: string;
+      sub?: string;
+    }[] = [];
+    if (dayStats.durationSec > 0)
+      out.push({
+        icon: <Timer size={13} />,
+        label: "운동 시간",
+        value: fmtElapsedKo(dayStats.durationSec),
+        sub: dayStats.doneCount > 1 ? `${dayStats.doneCount}회 합계` : undefined,
+      });
+    if (dayStats.doneCount > 0)
+      out.push({
+        icon: <Dumbbell size={13} />,
+        label: "총 볼륨",
+        value: fmtNum(dayStats.volume),
+        sub: unit === "lb" ? "lb·회" : "kg·회",
+      });
+    if (bw != null)
+      out.push({
+        icon: <Scale size={13} />,
+        label: "체중",
+        value: fmtWeight(bw, unit),
+      });
+    return out;
+  }, [dayStats, bw, unit]);
 
   if (!dateKey) return null;
   const d = dateKeyToDate(dateKey);
@@ -214,10 +273,11 @@ export function DayDetailSheet({
         </div>
       }
     >
-      {bw != null && (
-        <div className="mb-3 flex items-center gap-2 text-sm text-text-2">
-          <Scale size={16} className="text-text-3" />
-          체중 <b className="text-text">{fmtWeight(bw, unit)}</b>
+      {dayChips.length > 0 && (
+        <div className="mb-3 flex gap-2">
+          {dayChips.map((c) => (
+            <DayStat key={c.label} {...c} grow={dayChips.length > 1} />
+          ))}
         </div>
       )}
 
@@ -292,6 +352,38 @@ export function DayDetailSheet({
       </div>
     </Sheet>
     </>
+  );
+}
+
+/** 날짜 시트 상단 요약 칩 (운동 시간 · 총 볼륨 · 체중) */
+function DayStat({
+  icon,
+  label,
+  value,
+  sub,
+  grow,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub?: string;
+  grow?: boolean;
+}) {
+  return (
+    <div
+      className={`min-w-0 rounded-app bg-surface-2 px-3 py-2 ${
+        grow ? "flex-1" : ""
+      }`}
+    >
+      <div className="flex items-center gap-1 text-[10px] font-semibold text-text-3">
+        {icon}
+        <span className="truncate">{label}</span>
+      </div>
+      <div className="mt-0.5 flex items-baseline gap-0.5">
+        <span className="truncate text-sm font-black text-text">{value}</span>
+        {sub && <span className="shrink-0 text-[10px] text-text-3">{sub}</span>}
+      </div>
+    </div>
   );
 }
 
