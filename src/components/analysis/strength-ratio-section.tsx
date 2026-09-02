@@ -1,6 +1,7 @@
 "use client";
 
-import { Activity } from "lucide-react";
+import { useState } from "react";
+import { Activity, Info } from "lucide-react";
 import type { AnalysisBase } from "@/lib/analysis";
 import { STRENGTH_RATIOS, type StrengthRatioGuide } from "@/lib/training-guidelines";
 import { LIFT_KEYS } from "@/lib/strength-standards";
@@ -18,6 +19,7 @@ interface RatioRow {
 
 /** 종목 간 근력비로 '무엇이 약한지' 짚기 */
 export function StrengthRatioSection({ base }: { base: AnalysisBase }) {
+  const [openKey, setOpenKey] = useState<string | null>(null);
   // 표준 lift key → 내 최고 e1RM
   const byLift = new Map<string, { e1rm: number; nameKo: string }>();
   for (const [exId, liftKey] of Object.entries(LIFT_KEYS)) {
@@ -66,8 +68,15 @@ export function StrengthRatioSection({ base }: { base: AnalysisBase }) {
       <div className="space-y-2">
         {rows.map(({ g, value, low, high, inRange, a, b }) => (
           <div key={g.key} className="rounded-app bg-surface-2 px-3 py-2.5">
+            <button
+              onClick={() => setOpenKey(openKey === g.key ? null : g.key)}
+              className="w-full text-left"
+            >
             <div className="flex items-baseline justify-between gap-2">
-              <span className="min-w-0 truncate text-[12px] font-bold">{g.label}</span>
+              <span className="flex min-w-0 items-center gap-1 text-[12px] font-bold">
+                <span className="truncate">{g.label}</span>
+                <Info size={11} className="shrink-0 text-text-3" />
+              </span>
               <span className="shrink-0 text-[12px] font-black tabular-nums">
                 {value.toFixed(2)}
                 <span
@@ -87,6 +96,12 @@ export function StrengthRatioSection({ base }: { base: AnalysisBase }) {
             {(low || high) && (
               <p className="mt-1 text-[11px] leading-snug text-text-2">
                 {low ? g.weakIfLow : g.weakIfHigh}
+              </p>
+            )}
+            </button>
+            {openKey === g.key && (
+              <p className="mt-2 border-t border-border pt-2 text-[10px] leading-relaxed text-text-3">
+                <b className="text-text-2">근거</b> · {g.source}
               </p>
             )}
           </div>

@@ -43,7 +43,7 @@ export const WEEKLY_SET_GUIDE: SetGuideline[] = [
 ];
 
 export const SET_GUIDE_SOURCE =
-  "Schoenfeld 2017 · Pelland 2025 용량-반응 메타분석 (주당 직접 세트 기준)";
+  "하한은 Schoenfeld 2017 용량-반응 메타분석, 상한은 Pelland 2025의 효율 구간에서 잡은 설계 기준이에요(연구가 권고한 상한이 아니라 '이 이상은 효율이 떨어진다'는 의미).";
 
 export const SET_COUNT_CAVEAT =
   "이 앱은 종목의 주 부위만 세요(간접 자극은 미포함). 어깨·팔·코어가 낮게 보이는 건 대체로 정상이에요.";
@@ -119,7 +119,7 @@ export const STRENGTH_RATIOS: StrengthRatioGuide[] = [
     weakIfLow: "미는 힘에 비해 당기는 힘이 뒤처져요. 등 운동의 무게를 올릴 여지가 커요.",
     weakIfHigh: "",
     source:
-      "Baker & Newton(2004): 균형 잡힌 선수의 당기기:밀기 1RM 비율 ≈ 98%(SD 9%)",
+      "StrengthLevel 기준표에서 계산한 로우/벤치 비율(체중·레벨 전반 0.86~0.93). 흔히 인용되는 Baker & Newton(2004) 98%는 바벨로우가 아니라 '체중 포함 웨이티드 풀업' 기준이라 그대로 쓰지 않았어요.",
   },
   {
     key: "deadSquat",
@@ -132,7 +132,7 @@ export const STRENGTH_RATIOS: StrengthRatioGuide[] = [
     warnAbove: 1.45,
     weakIfLow: "스쿼트 대비 데드리프트가 낮아요. 힌지 패턴(후면사슬)이 약점일 수 있어요.",
     weakIfHigh: "데드리프트에 비해 스쿼트가 낮아요. 무릎 지배 하체 운동을 보강해보세요.",
-    source: "OpenPowerlifting 대회 데이터(남 ≈1.18 / 여 ≈1.22) + StrengthLevel 기준표 계산",
+    source: "파워리프팅 대회 데이터 분석(남 ≈1.18 / 여 ≈1.22) + StrengthLevel 기준표 계산",
   },
   {
     key: "ohpBench",
@@ -156,7 +156,7 @@ export const STRENGTH_RATIOS: StrengthRatioGuide[] = [
     warnAbove: 0.95,
     weakIfLow: "",
     weakIfHigh: "상체에 비해 하체 근력이 낮아요. 스쿼트 계열의 강도를 올릴 여지가 커요.",
-    source: "일반 트레이니 분포 ≈0.73(StrengthLevel), 파워리프터는 ≈0.63",
+    source: "일반 트레이니 분포 ≈0.73(StrengthLevel). 파워리프터는 더 낮아요(남 ≈0.69 / 여 ≈0.59) — 스쿼트를 전문적으로 훈련하기 때문이에요.",
   },
 ];
 
