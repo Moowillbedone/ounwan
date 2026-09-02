@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
+  Check,
   ChevronRight,
   Plus,
   Scale,
@@ -331,6 +332,16 @@ export function SessionSummaryCard({
       <div className="flex items-start gap-2">
         <button onClick={onOpen} className="flex flex-1 min-w-0 items-center gap-1.5 text-left">
           <span className="flex flex-wrap items-center gap-1.5 min-w-0">
+            {/* 캘린더 도장과 같은 기준: 운동 종료까지 누른 세션만 '완료' */}
+            {session.endedAt ? (
+              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold text-white">
+                <Check size={11} strokeWidth={3} /> 완료
+              </span>
+            ) : session.startedAt ? (
+              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-dashed border-brand/60 px-1.5 py-0.5 text-[10px] font-bold text-brand-strong">
+                진행 중
+              </span>
+            ) : null}
             {session.title && <span className="font-bold truncate">{session.title}</span>}
             {session.bodyParts.map((bp) => (
               <Chip key={bp} color={BODY_PART_META[bp].color}>

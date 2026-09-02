@@ -146,10 +146,12 @@ export default function StatsPage() {
   const oneRMPoints = useMemo(
     () =>
       (history ?? []).map((h) => ({
-        label: `${dateKeyToDate(h.date).getMonth() + 1}.${dateKeyToDate(h.date).getDate()}`,
+        label: shortDate(h.date),
         value: h.best1RM,
+        dateLabel: longDate(h.date),
+        sub: `최고 ${fmtWeight(h.topSetWeight, unit)} × ${h.topSetReps}회`,
       })),
-    [history]
+    [history, unit]
   );
   const pr = useMemo(() => {
     if (!history || history.length === 0) return null;
@@ -170,8 +172,9 @@ export default function StatsPage() {
       (metrics ?? [])
         .filter((m) => m.weight != null)
         .map((m) => ({
-          label: `${dateKeyToDate(m.date).getMonth() + 1}.${dateKeyToDate(m.date).getDate()}`,
+          label: shortDate(m.date),
           value: toDisplayWeight(m.weight!, unit),
+          dateLabel: longDate(m.date),
         })),
     [metrics, unit]
   );
@@ -442,4 +445,15 @@ function BodyweightSheet({
       )}
     </Sheet>
   );
+}
+
+// 그래프 축/리드아웃용 날짜 포맷
+const WD = ["일", "월", "화", "수", "목", "금", "토"];
+function shortDate(key: string) {
+  const d = dateKeyToDate(key);
+  return `${d.getMonth() + 1}.${d.getDate()}`;
+}
+function longDate(key: string) {
+  const d = dateKeyToDate(key);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WD[d.getDay()]})`;
 }

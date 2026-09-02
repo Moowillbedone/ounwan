@@ -183,19 +183,32 @@ export default function HomePage() {
             const labeledSession = daySessions?.find((s) => s.label);
             const dayLabel = labeledSession?.label ?? null;
             const dayLabelColor = labeledSession?.labelColor || DEFAULT_LABEL_COLOR;
+            // 운동 완료(운동 종료까지 누른 날) = 도장. 시작만 하고 안 끝낸 날은 점선.
+            const doneDay = heatData.has(key);
+            const inProgress =
+              !doneDay && !!daySessions?.some((s) => s.startedAt && !s.endedAt);
             return (
               <button
                 key={key}
                 onClick={() => setSelectedDay(key)}
                 className="flex flex-col items-center gap-1 py-1 rounded-xl active:bg-surface-2 transition"
+                aria-label={`${day.getMonth() + 1}월 ${day.getDate()}일${
+                  doneDay ? " 운동 완료" : inProgress ? " 운동 진행 중" : ""
+                }`}
               >
                 <span
-                  className={`grid h-8 w-8 place-items-center rounded-full text-[13px] font-semibold ${
-                    isToday
-                      ? "bg-brand text-white"
+                  className={`grid h-8 w-8 place-items-center rounded-full text-[13px] transition ${
+                    doneDay
+                      ? "bg-brand text-white font-black shadow-[0_2px_6px_rgba(22,196,127,0.45)]"
+                      : inProgress
+                      ? "border-2 border-dashed border-brand/60 font-bold text-brand-strong"
                       : inMonth
-                      ? "text-text"
-                      : "text-text-3/50"
+                      ? "font-semibold text-text"
+                      : "font-semibold text-text-3/50"
+                  } ${
+                    isToday
+                      ? "ring-2 ring-brand ring-offset-2 ring-offset-surface"
+                      : ""
                   }`}
                 >
                   {day.getDate()}
@@ -208,7 +221,11 @@ export default function HomePage() {
                     {dayLabel}
                   </span>
                 ) : (
-                  <span className="flex h-1.5 items-center gap-0.5">
+                  <span
+                    className={`flex h-1.5 items-center gap-0.5 ${
+                      doneDay ? "" : "opacity-45"
+                    }`}
+                  >
                     {parts.slice(0, 3).map((bp) => (
                       <span
                         key={bp}
@@ -224,6 +241,20 @@ export default function HomePage() {
               </button>
             );
           })}
+        </div>
+
+        {/* 범례 — 도장(완료)과 오늘 표시의 의미 */}
+        <div className="mt-2 flex items-center justify-center gap-3 text-[10px] text-text-3">
+          <span className="flex items-center gap-1">
+            <span className="h-3 w-3 rounded-full bg-brand" /> 운동 완료
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-3 w-3 rounded-full border-2 border-dashed border-brand/60" />{" "}
+            진행 중
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="h-3 w-3 rounded-full ring-2 ring-brand ring-inset" /> 오늘
+          </span>
         </div>
       </section>
 
