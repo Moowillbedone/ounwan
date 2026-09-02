@@ -139,6 +139,10 @@ export interface Profile extends SyncMeta {
   weekStartsMonday: boolean;
   restAlert?: boolean; // 휴식 종료 알림(소리·진동) — 미지정=켜짐
   restSound?: RestSound; // 휴식 종료 알림음 — 미지정=chime(기본)
+  // 분석 탭 근력 기준 비교용 신체 정보(선택 입력)
+  sex?: "male" | "female" | null;
+  birthYear?: number | null;
+  heightCm?: number | null;
   hiddenStats?: string[]; // 통계 '운동별 성장'에서 사용자가 숨긴 exerciseId 목록
   exerciseNotes?: Record<string, string>; // 종목별 공유 메모(exerciseId→메모) — 날짜 무관 연동
   onboardedAt?: string | null;

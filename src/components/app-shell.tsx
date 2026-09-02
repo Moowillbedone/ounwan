@@ -3,7 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Dumbbell, BarChart3, Settings, Plus } from "lucide-react";
+import {
+  CalendarDays,
+  Sparkles,
+  BarChart3,
+  Settings,
+  Plus,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { ToastProvider, cn, Spinner } from "./ui";
 import { OnboardingGate } from "./onboarding";
@@ -13,7 +19,7 @@ import { APP_NAME } from "@/lib/constants";
 
 const TABS = [
   { href: "/", label: "캘린더", icon: CalendarDays },
-  { href: "/routines", label: "루틴", icon: Dumbbell },
+  { href: "/analysis", label: "분석", icon: Sparkles },
   { href: "/stats", label: "통계", icon: BarChart3 },
   { href: "/settings", label: "설정", icon: Settings },
 ] as const;

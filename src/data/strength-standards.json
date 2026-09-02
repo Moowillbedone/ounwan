@@ -1,0 +1,971 @@
+{
+ "meta": {
+  "source": "StrengthLevel 근력 표준(성별·체중별 1RM 백분위)",
+  "sourceUrl": "https://strengthlevel.com/strength-standards",
+  "levelMeaning": "백분위의 모집단은 '일반 성인'이 아니라 '기록을 올리는 리프터'예요. 중급 = 같은 성별·체중 리프터의 중앙값(상위 50%)이고, 대략 2년 이상 꾸준히 훈련한 수준에 해당해요.",
+  "caveats": "표준 체계마다 값이 달라(ExRx·Symmetric Strength 등) 같은 기록도 한 등급 차이가 날 수 있어요. 스쿼트는 평행 이하 깊이, 로우는 반동 없는 수행을 가정합니다. 참고선일 뿐 절대 기준이 아니에요.",
+  "ageBasis": "파워리프팅 마스터스 연령계수(23~40세는 보정 없음, 41세 이상은 McCulloch 계수). 기준을 계수로 나눠 나이에 맞게 낮춰 비교해요.",
+  "updated": "2026-09",
+  "heightNote": "키는 비교에 쓰지 않아요. Wilks·DOTS·McCulloch 등 주류 근력 표준은 모두 성별·체중·나이만 쓰고, 연구에서도 제지방량을 통제하면 키의 영향이 사라져요(Folland 2008). 종목에 따라 유리·불리가 반대로 갈리기도 해서 넣으면 오히려 왜곡돼요."
+ },
+ "ageFactors": [
+  {
+   "age": 20,
+   "factor": 1.03
+  },
+  {
+   "age": 21,
+   "factor": 1.02
+  },
+  {
+   "age": 22,
+   "factor": 1.01
+  },
+  {
+   "age": 23,
+   "factor": 1.0
+  },
+  {
+   "age": 30,
+   "factor": 1.0
+  },
+  {
+   "age": 35,
+   "factor": 1.0
+  },
+  {
+   "age": 40,
+   "factor": 1.0
+  },
+  {
+   "age": 45,
+   "factor": 1.055
+  },
+  {
+   "age": 50,
+   "factor": 1.13
+  },
+  {
+   "age": 55,
+   "factor": 1.225
+  },
+  {
+   "age": 60,
+   "factor": 1.34
+  },
+  {
+   "age": 65,
+   "factor": 1.48
+  },
+  {
+   "age": 70,
+   "factor": 1.645
+  },
+  {
+   "age": 75,
+   "factor": 1.835
+  },
+  {
+   "age": 80,
+   "factor": 2.05
+  }
+ ],
+ "male": [
+  {
+   "key": "bench-press",
+   "nameKo": "벤치프레스",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 27,
+     "novice": 41,
+     "intermediate": 58,
+     "advanced": 78,
+     "elite": 101
+    },
+    {
+     "bw": 60,
+     "beginner": 37,
+     "novice": 53,
+     "intermediate": 72,
+     "advanced": 95,
+     "elite": 119
+    },
+    {
+     "bw": 70,
+     "beginner": 47,
+     "novice": 64,
+     "intermediate": 85,
+     "advanced": 110,
+     "elite": 136
+    },
+    {
+     "bw": 80,
+     "beginner": 56,
+     "novice": 75,
+     "intermediate": 98,
+     "advanced": 124,
+     "elite": 151
+    },
+    {
+     "bw": 90,
+     "beginner": 65,
+     "novice": 85,
+     "intermediate": 109,
+     "advanced": 137,
+     "elite": 165
+    },
+    {
+     "bw": 100,
+     "beginner": 73,
+     "novice": 95,
+     "intermediate": 120,
+     "advanced": 149,
+     "elite": 179
+    },
+    {
+     "bw": 110,
+     "beginner": 81,
+     "novice": 104,
+     "intermediate": 131,
+     "advanced": 160,
+     "elite": 191
+    },
+    {
+     "bw": 120,
+     "beginner": 89,
+     "novice": 113,
+     "intermediate": 140,
+     "advanced": 171,
+     "elite": 203
+    }
+   ]
+  },
+  {
+   "key": "back-squat",
+   "nameKo": "백스쿼트",
+   "note": "평행 이하 깊이 기준",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 36,
+     "novice": 55,
+     "intermediate": 78,
+     "advanced": 106,
+     "elite": 137
+    },
+    {
+     "bw": 60,
+     "beginner": 49,
+     "novice": 71,
+     "intermediate": 98,
+     "advanced": 129,
+     "elite": 162
+    },
+    {
+     "bw": 70,
+     "beginner": 62,
+     "novice": 86,
+     "intermediate": 116,
+     "advanced": 149,
+     "elite": 185
+    },
+    {
+     "bw": 80,
+     "beginner": 75,
+     "novice": 101,
+     "intermediate": 132,
+     "advanced": 168,
+     "elite": 206
+    },
+    {
+     "bw": 90,
+     "beginner": 87,
+     "novice": 115,
+     "intermediate": 148,
+     "advanced": 186,
+     "elite": 226
+    },
+    {
+     "bw": 100,
+     "beginner": 98,
+     "novice": 128,
+     "intermediate": 163,
+     "advanced": 203,
+     "elite": 244
+    },
+    {
+     "bw": 110,
+     "beginner": 109,
+     "novice": 140,
+     "intermediate": 177,
+     "advanced": 218,
+     "elite": 261
+    },
+    {
+     "bw": 120,
+     "beginner": 120,
+     "novice": 152,
+     "intermediate": 191,
+     "advanced": 233,
+     "elite": 278
+    }
+   ]
+  },
+  {
+   "key": "deadlift",
+   "nameKo": "데드리프트",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 46,
+     "novice": 68,
+     "intermediate": 96,
+     "advanced": 129,
+     "elite": 164
+    },
+    {
+     "bw": 60,
+     "beginner": 61,
+     "novice": 86,
+     "intermediate": 117,
+     "advanced": 153,
+     "elite": 191
+    },
+    {
+     "bw": 70,
+     "beginner": 75,
+     "novice": 103,
+     "intermediate": 137,
+     "advanced": 175,
+     "elite": 216
+    },
+    {
+     "bw": 80,
+     "beginner": 89,
+     "novice": 119,
+     "intermediate": 155,
+     "advanced": 196,
+     "elite": 239
+    },
+    {
+     "bw": 90,
+     "beginner": 102,
+     "novice": 134,
+     "intermediate": 172,
+     "advanced": 215,
+     "elite": 260
+    },
+    {
+     "bw": 100,
+     "beginner": 114,
+     "novice": 148,
+     "intermediate": 188,
+     "advanced": 232,
+     "elite": 279
+    },
+    {
+     "bw": 110,
+     "beginner": 126,
+     "novice": 161,
+     "intermediate": 203,
+     "advanced": 249,
+     "elite": 298
+    },
+    {
+     "bw": 120,
+     "beginner": 137,
+     "novice": 174,
+     "intermediate": 217,
+     "advanced": 265,
+     "elite": 315
+    }
+   ]
+  },
+  {
+   "key": "overhead-press",
+   "nameKo": "오버헤드프레스",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 15,
+     "novice": 24,
+     "intermediate": 36,
+     "advanced": 51,
+     "elite": 67
+    },
+    {
+     "bw": 60,
+     "beginner": 21,
+     "novice": 32,
+     "intermediate": 45,
+     "advanced": 62,
+     "elite": 79
+    },
+    {
+     "bw": 70,
+     "beginner": 27,
+     "novice": 39,
+     "intermediate": 54,
+     "advanced": 72,
+     "elite": 90
+    },
+    {
+     "bw": 80,
+     "beginner": 33,
+     "novice": 46,
+     "intermediate": 62,
+     "advanced": 81,
+     "elite": 101
+    },
+    {
+     "bw": 90,
+     "beginner": 38,
+     "novice": 53,
+     "intermediate": 70,
+     "advanced": 90,
+     "elite": 111
+    },
+    {
+     "bw": 100,
+     "beginner": 44,
+     "novice": 59,
+     "intermediate": 77,
+     "advanced": 98,
+     "elite": 120
+    },
+    {
+     "bw": 110,
+     "beginner": 49,
+     "novice": 65,
+     "intermediate": 84,
+     "advanced": 105,
+     "elite": 128
+    },
+    {
+     "bw": 120,
+     "beginner": 54,
+     "novice": 71,
+     "intermediate": 90,
+     "advanced": 113,
+     "elite": 136
+    }
+   ]
+  },
+  {
+   "key": "barbell-row",
+   "nameKo": "바벨로우",
+   "note": "반동 없는 수행 기준 · 표본이 작아 참고치",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 23,
+     "novice": 36,
+     "intermediate": 52,
+     "advanced": 72,
+     "elite": 94
+    },
+    {
+     "bw": 60,
+     "beginner": 31,
+     "novice": 46,
+     "intermediate": 65,
+     "advanced": 87,
+     "elite": 111
+    },
+    {
+     "bw": 70,
+     "beginner": 40,
+     "novice": 56,
+     "intermediate": 77,
+     "advanced": 101,
+     "elite": 127
+    },
+    {
+     "bw": 80,
+     "beginner": 48,
+     "novice": 66,
+     "intermediate": 88,
+     "advanced": 114,
+     "elite": 141
+    },
+    {
+     "bw": 90,
+     "beginner": 56,
+     "novice": 75,
+     "intermediate": 99,
+     "advanced": 125,
+     "elite": 154
+    },
+    {
+     "bw": 100,
+     "beginner": 63,
+     "novice": 84,
+     "intermediate": 108,
+     "advanced": 136,
+     "elite": 166
+    },
+    {
+     "bw": 110,
+     "beginner": 70,
+     "novice": 92,
+     "intermediate": 118,
+     "advanced": 147,
+     "elite": 178
+    },
+    {
+     "bw": 120,
+     "beginner": 77,
+     "novice": 100,
+     "intermediate": 127,
+     "advanced": 157,
+     "elite": 188
+    }
+   ]
+  },
+  {
+   "key": "pull-up",
+   "nameKo": "풀업",
+   "note": "총 중량(체중+추가중량) 기준이에요",
+   "rows": [
+    {
+     "bw": 50,
+     "beginner": 45,
+     "novice": 57,
+     "intermediate": 72,
+     "advanced": 89,
+     "elite": 106
+    },
+    {
+     "bw": 60,
+     "beginner": 56,
+     "novice": 71,
+     "intermediate": 87,
+     "advanced": 105,
+     "elite": 124
+    },
+    {
+     "bw": 70,
+     "beginner": 68,
+     "novice": 83,
+     "intermediate": 101,
+     "advanced": 120,
+     "elite": 141
+    },
+    {
+     "bw": 80,
+     "beginner": 78,
+     "novice": 94,
+     "intermediate": 113,
+     "advanced": 134,
+     "elite": 155
+    },
+    {
+     "bw": 90,
+     "beginner": 88,
+     "novice": 105,
+     "intermediate": 125,
+     "advanced": 147,
+     "elite": 169
+    },
+    {
+     "bw": 100,
+     "beginner": 97,
+     "novice": 115,
+     "intermediate": 136,
+     "advanced": 159,
+     "elite": 182
+    },
+    {
+     "bw": 110,
+     "beginner": 106,
+     "novice": 125,
+     "intermediate": 147,
+     "advanced": 170,
+     "elite": 194
+    },
+    {
+     "bw": 120,
+     "beginner": 114,
+     "novice": 134,
+     "intermediate": 156,
+     "advanced": 181,
+     "elite": 205
+    }
+   ]
+  }
+ ],
+ "female": [
+  {
+   "key": "bench-press",
+   "nameKo": "벤치프레스",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 10,
+     "novice": 19,
+     "intermediate": 33,
+     "advanced": 49,
+     "elite": 68
+    },
+    {
+     "bw": 50,
+     "beginner": 14,
+     "novice": 25,
+     "intermediate": 40,
+     "advanced": 58,
+     "elite": 79
+    },
+    {
+     "bw": 60,
+     "beginner": 19,
+     "novice": 31,
+     "intermediate": 47,
+     "advanced": 66,
+     "elite": 88
+    },
+    {
+     "bw": 70,
+     "beginner": 22,
+     "novice": 36,
+     "intermediate": 53,
+     "advanced": 74,
+     "elite": 96
+    },
+    {
+     "bw": 80,
+     "beginner": 26,
+     "novice": 40,
+     "intermediate": 59,
+     "advanced": 80,
+     "elite": 104
+    },
+    {
+     "bw": 90,
+     "beginner": 30,
+     "novice": 45,
+     "intermediate": 64,
+     "advanced": 86,
+     "elite": 111
+    },
+    {
+     "bw": 100,
+     "beginner": 33,
+     "novice": 49,
+     "intermediate": 69,
+     "advanced": 92,
+     "elite": 117
+    },
+    {
+     "bw": 110,
+     "beginner": 36,
+     "novice": 53,
+     "intermediate": 73,
+     "advanced": 97,
+     "elite": 123
+    },
+    {
+     "bw": 120,
+     "beginner": 39,
+     "novice": 56,
+     "intermediate": 77,
+     "advanced": 102,
+     "elite": 128
+    }
+   ]
+  },
+  {
+   "key": "back-squat",
+   "nameKo": "백스쿼트",
+   "note": "평행 이하 깊이 기준",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 19,
+     "novice": 34,
+     "intermediate": 53,
+     "advanced": 76,
+     "elite": 102
+    },
+    {
+     "bw": 50,
+     "beginner": 26,
+     "novice": 42,
+     "intermediate": 63,
+     "advanced": 88,
+     "elite": 116
+    },
+    {
+     "bw": 60,
+     "beginner": 32,
+     "novice": 49,
+     "intermediate": 72,
+     "advanced": 99,
+     "elite": 129
+    },
+    {
+     "bw": 70,
+     "beginner": 37,
+     "novice": 56,
+     "intermediate": 80,
+     "advanced": 109,
+     "elite": 140
+    },
+    {
+     "bw": 80,
+     "beginner": 42,
+     "novice": 62,
+     "intermediate": 88,
+     "advanced": 117,
+     "elite": 149
+    },
+    {
+     "bw": 90,
+     "beginner": 47,
+     "novice": 68,
+     "intermediate": 94,
+     "advanced": 125,
+     "elite": 158
+    },
+    {
+     "bw": 100,
+     "beginner": 52,
+     "novice": 74,
+     "intermediate": 101,
+     "advanced": 132,
+     "elite": 166
+    },
+    {
+     "bw": 110,
+     "beginner": 56,
+     "novice": 79,
+     "intermediate": 107,
+     "advanced": 139,
+     "elite": 174
+    },
+    {
+     "bw": 120,
+     "beginner": 60,
+     "novice": 83,
+     "intermediate": 112,
+     "advanced": 145,
+     "elite": 181
+    }
+   ]
+  },
+  {
+   "key": "deadlift",
+   "nameKo": "데드리프트",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 26,
+     "novice": 43,
+     "intermediate": 65,
+     "advanced": 92,
+     "elite": 121
+    },
+    {
+     "bw": 50,
+     "beginner": 34,
+     "novice": 52,
+     "intermediate": 76,
+     "advanced": 105,
+     "elite": 136
+    },
+    {
+     "bw": 60,
+     "beginner": 40,
+     "novice": 60,
+     "intermediate": 86,
+     "advanced": 116,
+     "elite": 149
+    },
+    {
+     "bw": 70,
+     "beginner": 46,
+     "novice": 68,
+     "intermediate": 95,
+     "advanced": 126,
+     "elite": 160
+    },
+    {
+     "bw": 80,
+     "beginner": 52,
+     "novice": 74,
+     "intermediate": 102,
+     "advanced": 135,
+     "elite": 170
+    },
+    {
+     "bw": 90,
+     "beginner": 57,
+     "novice": 80,
+     "intermediate": 109,
+     "advanced": 143,
+     "elite": 180
+    },
+    {
+     "bw": 100,
+     "beginner": 61,
+     "novice": 86,
+     "intermediate": 116,
+     "advanced": 151,
+     "elite": 188
+    },
+    {
+     "bw": 110,
+     "beginner": 66,
+     "novice": 91,
+     "intermediate": 122,
+     "advanced": 158,
+     "elite": 196
+    },
+    {
+     "bw": 120,
+     "beginner": 70,
+     "novice": 96,
+     "intermediate": 128,
+     "advanced": 164,
+     "elite": 203
+    }
+   ]
+  },
+  {
+   "key": "overhead-press",
+   "nameKo": "오버헤드프레스",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 7,
+     "novice": 13,
+     "intermediate": 22,
+     "advanced": 33,
+     "elite": 45
+    },
+    {
+     "bw": 50,
+     "beginner": 10,
+     "novice": 17,
+     "intermediate": 27,
+     "advanced": 38,
+     "elite": 51
+    },
+    {
+     "bw": 60,
+     "beginner": 12,
+     "novice": 20,
+     "intermediate": 31,
+     "advanced": 43,
+     "elite": 57
+    },
+    {
+     "bw": 70,
+     "beginner": 15,
+     "novice": 23,
+     "intermediate": 34,
+     "advanced": 47,
+     "elite": 62
+    },
+    {
+     "bw": 80,
+     "beginner": 17,
+     "novice": 26,
+     "intermediate": 37,
+     "advanced": 51,
+     "elite": 66
+    },
+    {
+     "bw": 90,
+     "beginner": 19,
+     "novice": 28,
+     "intermediate": 40,
+     "advanced": 54,
+     "elite": 70
+    },
+    {
+     "bw": 100,
+     "beginner": 21,
+     "novice": 31,
+     "intermediate": 43,
+     "advanced": 58,
+     "elite": 74
+    },
+    {
+     "bw": 110,
+     "beginner": 23,
+     "novice": 33,
+     "intermediate": 46,
+     "advanced": 61,
+     "elite": 77
+    },
+    {
+     "bw": 120,
+     "beginner": 24,
+     "novice": 35,
+     "intermediate": 48,
+     "advanced": 64,
+     "elite": 80
+    }
+   ]
+  },
+  {
+   "key": "barbell-row",
+   "nameKo": "바벨로우",
+   "note": "반동 없는 수행 기준 · 표본이 작아 참고치",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 12,
+     "novice": 21,
+     "intermediate": 33,
+     "advanced": 48,
+     "elite": 65
+    },
+    {
+     "bw": 50,
+     "beginner": 15,
+     "novice": 25,
+     "intermediate": 38,
+     "advanced": 54,
+     "elite": 72
+    },
+    {
+     "bw": 60,
+     "beginner": 18,
+     "novice": 29,
+     "intermediate": 43,
+     "advanced": 59,
+     "elite": 78
+    },
+    {
+     "bw": 70,
+     "beginner": 20,
+     "novice": 32,
+     "intermediate": 46,
+     "advanced": 64,
+     "elite": 83
+    },
+    {
+     "bw": 80,
+     "beginner": 23,
+     "novice": 35,
+     "intermediate": 50,
+     "advanced": 68,
+     "elite": 87
+    },
+    {
+     "bw": 90,
+     "beginner": 25,
+     "novice": 37,
+     "intermediate": 53,
+     "advanced": 71,
+     "elite": 91
+    },
+    {
+     "bw": 100,
+     "beginner": 27,
+     "novice": 40,
+     "intermediate": 56,
+     "advanced": 74,
+     "elite": 95
+    },
+    {
+     "bw": 110,
+     "beginner": 29,
+     "novice": 42,
+     "intermediate": 58,
+     "advanced": 78,
+     "elite": 99
+    },
+    {
+     "bw": 120,
+     "beginner": 30,
+     "novice": 44,
+     "intermediate": 61,
+     "advanced": 80,
+     "elite": 102
+    }
+   ]
+  },
+  {
+   "key": "pull-up",
+   "nameKo": "풀업",
+   "note": "총 중량(체중+추가중량) 기준이에요",
+   "rows": [
+    {
+     "bw": 40,
+     "beginner": 26,
+     "novice": 35,
+     "intermediate": 46,
+     "advanced": 57,
+     "elite": 70
+    },
+    {
+     "bw": 50,
+     "beginner": 36,
+     "novice": 46,
+     "intermediate": 58,
+     "advanced": 71,
+     "elite": 85
+    },
+    {
+     "bw": 60,
+     "beginner": 44,
+     "novice": 56,
+     "intermediate": 69,
+     "advanced": 83,
+     "elite": 98
+    },
+    {
+     "bw": 70,
+     "beginner": 52,
+     "novice": 65,
+     "intermediate": 79,
+     "advanced": 94,
+     "elite": 110
+    },
+    {
+     "bw": 80,
+     "beginner": 60,
+     "novice": 73,
+     "intermediate": 88,
+     "advanced": 104,
+     "elite": 121
+    },
+    {
+     "bw": 90,
+     "beginner": 67,
+     "novice": 81,
+     "intermediate": 97,
+     "advanced": 114,
+     "elite": 131
+    },
+    {
+     "bw": 100,
+     "beginner": 74,
+     "novice": 88,
+     "intermediate": 105,
+     "advanced": 122,
+     "elite": 140
+    },
+    {
+     "bw": 110,
+     "beginner": 80,
+     "novice": 95,
+     "intermediate": 112,
+     "advanced": 130,
+     "elite": 149
+    },
+    {
+     "bw": 120,
+     "beginner": 86,
+     "novice": 102,
+     "intermediate": 119,
+     "advanced": 138,
+     "elite": 157
+    }
+   ]
+  }
+ ]
+}

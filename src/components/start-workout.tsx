@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Dumbbell, Play, ListPlus } from "lucide-react";
+import { Dumbbell, Play, ListPlus, Settings2 } from "lucide-react";
 import { Sheet, Button } from "./ui";
 import { useRoutines, useExerciseMap } from "@/lib/hooks";
 import { RoutineEditor } from "./routine-editor";
@@ -53,8 +53,16 @@ export function StartWorkoutSheet({
         </button>
 
         {/* 내 루틴 */}
-        <div className="mt-5 mb-2 text-xs font-bold text-text-3">
-          내 루틴으로 시작
+        <div className="mt-5 mb-2 flex items-center justify-between">
+          <span className="text-xs font-bold text-text-3">내 루틴으로 시작</span>
+          {routines && routines.length > 0 && (
+            <button
+              onClick={() => go("/routines")}
+              className="flex items-center gap-1 text-xs font-semibold text-text-3 active:text-brand"
+            >
+              <Settings2 size={13} /> 루틴 관리
+            </button>
+          )}
         </div>
         {routines && routines.length > 0 ? (
           <div className="space-y-2">

@@ -138,6 +138,32 @@ export function fmtElapsedKo(seconds: number): string {
   return m > 0 ? `${h}시간 ${m}분` : `${h}시간`;
 }
 
+/** 한글 받침 유무 — 조사 선택용 */
+export function hasFinalConsonant(word: string): boolean {
+  const ch = word.trim().slice(-1);
+  const code = ch.charCodeAt(0);
+  if (Number.isNaN(code)) return false;
+  if (code < 0xac00 || code > 0xd7a3) return false; // 한글 음절이 아니면 받침 없음 취급
+  return (code - 0xac00) % 28 !== 0;
+}
+
+/** 단어에 맞는 조사를 붙인다. josa("풀업","이에요") → "풀업이에요" */
+export function josa(word: string, pair: "은는" | "이가" | "을를" | "이에요" | "와과"): string {
+  const f = hasFinalConsonant(word);
+  switch (pair) {
+    case "은는":
+      return word + (f ? "은" : "는");
+    case "이가":
+      return word + (f ? "이" : "가");
+    case "을를":
+      return word + (f ? "을" : "를");
+    case "와과":
+      return word + (f ? "과" : "와");
+    case "이에요":
+      return word + (f ? "이에요" : "예요");
+  }
+}
+
 /** 상대 날짜 라벨 */
 export function relativeDayLabel(key: string): string {
   const t = todayKey();

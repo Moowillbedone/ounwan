@@ -129,6 +129,52 @@ export default function SettingsPage() {
         )}
       </Section>
 
+      {/* 신체 정보 — 분석 탭의 근력 기준 비교에 사용 */}
+      <Section title="신체 정보">
+        <p className="px-4 pb-1 pt-3 text-[11px] leading-snug text-text-3">
+          분석 탭에서 <b className="text-text-2">같은 성별·나이·체중대의 기준</b>과
+          비교할 때만 쓰여요. 입력하지 않아도 앱은 그대로 동작해요.
+        </p>
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-sm font-semibold">성별</span>
+          <Segmented<string>
+            value={profile?.sex ?? "none"}
+            options={[
+              { value: "male", label: "남성" },
+              { value: "female", label: "여성" },
+              { value: "none", label: "미입력" },
+            ]}
+            onChange={(v) =>
+              updateProfile.mutate({
+                sex: v === "none" ? null : (v as "male" | "female"),
+              })
+            }
+          />
+        </div>
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-sm font-semibold">출생연도</span>
+          <NumField
+            value={profile?.birthYear ?? null}
+            placeholder="1989"
+            suffix="년"
+            min={1920}
+            max={2020}
+            onCommit={(v) => updateProfile.mutate({ birthYear: v })}
+          />
+        </div>
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-sm font-semibold">키</span>
+          <NumField
+            value={profile?.heightCm ?? null}
+            placeholder="175"
+            suffix="cm"
+            min={120}
+            max={230}
+            onCommit={(v) => updateProfile.mutate({ heightCm: v })}
+          />
+        </div>
+      </Section>
+
       {/* 환경설정 */}
       <Section title="환경설정">
         <div className="flex items-center justify-between px-4 py-3">
@@ -249,6 +295,63 @@ export default function SettingsPage() {
         <LoginForm onDone={() => {}} />
       </Sheet>
     </div>
+  );
+}
+
+/** 숫자 입력(빈 값 허용) — blur/Enter에 커밋 */
+function NumField({
+  value,
+  placeholder,
+  suffix,
+  min,
+  max,
+  onCommit,
+}: {
+  value: number | null;
+  placeholder: string;
+  suffix: string;
+  min: number;
+  max: number;
+  onCommit: (v: number | null) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (value != null ? String(value) : "");
+  // 유효 범위에 들어오는 순간 바로 저장한다(blur만 믿으면 입력이 유실될 수 있음)
+  const onChange = (raw: string) => {
+    setDraft(raw);
+    const t = raw.trim();
+    if (t === "") {
+      if (value != null) onCommit(null);
+      return;
+    }
+    const n = Number(t);
+    if (Number.isFinite(n) && n >= min && n <= max) onCommit(Math.round(n));
+  };
+  const commit = () => {
+    if (draft === null) return;
+    const t = draft.trim();
+    if (t === "") onCommit(null);
+    else {
+      const n = Number(t);
+      if (Number.isFinite(n) && n >= min && n <= max) onCommit(Math.round(n));
+    }
+    setDraft(null);
+  };
+  return (
+    <span className="flex items-center gap-1">
+      <input
+        inputMode="numeric"
+        value={shown}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+        className="h-9 w-20 rounded-lg bg-surface-2 px-2 text-right text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-brand/40"
+      />
+      <span className="w-5 text-xs text-text-3">{suffix}</span>
+    </span>
   );
 }
 
