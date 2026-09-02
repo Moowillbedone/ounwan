@@ -7,6 +7,7 @@ import { todayKey } from "@/lib/utils";
 import { buildBase } from "@/lib/analysis";
 import { EmptyState } from "@/components/ui";
 import { LevelSection } from "@/components/analysis/level-section";
+import { CoverageNote } from "@/components/analysis/coverage-note";
 import { ActionSection } from "@/components/analysis/action-section";
 import { StrengthRatioSection } from "@/components/analysis/strength-ratio-section";
 import { BalanceSection } from "@/components/analysis/balance-section";
@@ -64,6 +65,7 @@ export default function AnalysisPage() {
           )}
 
           <LevelSection base={base} profile={profile} />
+          <CoverageNote base={base} />
           <ActionSection base={base} profile={profile} />
           <StrengthRatioSection base={base} />
           <BalanceSection base={base} />

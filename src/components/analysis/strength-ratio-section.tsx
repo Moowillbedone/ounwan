@@ -109,7 +109,7 @@ export function StrengthRatioSection({ base }: { base: AnalysisBase }) {
       </div>
 
       <p className="mt-3 text-[10px] leading-snug text-text-3">
-        추정 1RM은 10회 이하 완료 세트로만 계산해요(그 이상은 오차가 커져요). 추정
+        추정 1RM은 12회 이하 완료 세트로만 계산해요(그 이상은 오차가 커져요). 추정
         오차가 ±5% 정도라, 경계에 걸친 값은 참고만 하세요.
       </p>
     </section>

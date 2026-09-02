@@ -67,6 +67,19 @@ export interface LiftBest {
   dayCount: number;
 }
 
+/** 최고기록 집계에서 빠진 이유 — 화면에서 사용자에게 그대로 설명한다 */
+export type ExcludeReason =
+  | "tracking" // 중량×횟수로 기록하지 않는 종목(시간·횟수만 등)
+  | "no-bodyweight" // 맨몸 종목인데 체중을 몰라 환산 불가
+  | "reps" // 완료 세트가 전부 13회 이상이라 1RM 추정 불가
+  | "no-weight"; // 무게가 0인 기록만 있음
+
+export interface ExcludedLift {
+  exerciseId: string;
+  nameKo: string;
+  reason: ExcludeReason;
+}
+
 export interface AnalysisInput {
   sessions: WorkoutSession[];
   exMap: Map<string, Exercise>;
@@ -85,6 +98,8 @@ export interface AnalysisBase {
   pattern: { push: number; pull: number; legs: number; core: number }; // 세트 수
   upperLowerSets: { upper: number; lower: number };
   bests: Map<string, LiftBest>; // exerciseId → 최고 기록(전 기간)
+  /** 기록은 있지만 최고기록 집계에서 빠진 종목 + 사유 */
+  excluded: ExcludedLift[];
   frequency: { perWeek: number; avgDurationMin: number | null; totalSessions: number };
   bodyweight: number | null;
   /** 체중을 마지막으로 기록한 날짜(오래되면 비교가 흔들린다) */
@@ -178,18 +193,36 @@ export function buildBase({
   /* 종목별 최고 기록 (전 기간, 완료 세트만) */
   const bests = new Map<string, LiftBest>();
   const bestDays = new Map<string, Set<string>>();
+  const excludeMap = new Map<string, ExcludeReason>();
+  const markExcluded = (id: string, reason: ExcludeReason) => {
+    if (!bests.has(id) && !excludeMap.has(id)) excludeMap.set(id, reason);
+  };
   for (const s of doneSessions) {
     for (const ex of s.exercises) {
-      if (ex.trackingMode && ex.trackingMode !== "weight_reps") continue;
+      if (ex.trackingMode && ex.trackingMode !== "weight_reps") {
+        markExcluded(ex.exerciseId, "tracking");
+        continue;
+      }
       // 맨몸 종목은 '체중 + 추가중량'이 실제로 든 무게. 체중을 모르면 비교 불가라 건너뛴다.
       const isBw = BODYWEIGHT_LIFTS.has(ex.exerciseId);
-      if (isBw && bodyweight == null) continue;
+      if (isBw && bodyweight == null) {
+        markExcluded(ex.exerciseId, "no-bodyweight");
+        continue;
+      }
       const addBw = isBw ? bodyweight ?? 0 : 0;
-      // reps ≤ 10만 사용 — 그 이상은 1RM 추정 오차가 급격히 커진다(LeSuer 1997 등)
+      // reps ≤ 12만 사용. 그 이상은 1RM 추정 오차가 급격히 커진다.
+      // 상한을 통계 탭(estimate1RM의 자체 상한 12)과 맞춰 탭 간 수치가 어긋나지 않게 한다.
       const done = ex.sets.filter(
-        (x) => x.isCompleted && x.weight + addBw > 0 && x.reps > 0 && x.reps <= 10
+        (x) => x.isCompleted && x.weight + addBw > 0 && x.reps > 0 && x.reps <= 12
       );
-      if (done.length === 0) continue;
+      if (done.length === 0) {
+        const anyDone = ex.sets.some((x) => x.isCompleted);
+        if (anyDone) {
+          const hasWeight = ex.sets.some((x) => x.isCompleted && x.weight + addBw > 0);
+          markExcluded(ex.exerciseId, hasWeight ? "reps" : "no-weight");
+        }
+        continue;
+      }
       let best = 0;
       let topW = 0;
       let topR = 0;
@@ -259,6 +292,13 @@ export function buildBase({
     pattern,
     upperLowerSets: { upper, lower },
     bests,
+    excluded: [...excludeMap.entries()]
+      .filter(([id]) => !bests.has(id))
+      .map(([exerciseId, reason]) => ({
+        exerciseId,
+        nameKo: exMap.get(exerciseId)?.nameKo ?? "운동",
+        reason,
+      })),
     frequency: {
       perWeek: Math.round((recentDays / weeks) * 10) / 10,
       avgDurationMin: durCount > 0 ? Math.round(durSum / durCount) : null,
