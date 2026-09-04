@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Activity, Info } from "lucide-react";
-import type { AnalysisBase } from "@/lib/analysis";
+import { groupByStandard, type AnalysisBase } from "@/lib/analysis";
 import { STRENGTH_RATIOS, type StrengthRatioGuide } from "@/lib/training-guidelines";
-import { LIFT_KEYS } from "@/lib/strength-standards";
+import type { Profile } from "@/lib/types";
 import { cn } from "@/components/ui";
 
 interface RatioRow {
@@ -18,16 +18,19 @@ interface RatioRow {
 }
 
 /** 종목 간 근력비로 '무엇이 약한지' 짚기 */
-export function StrengthRatioSection({ base }: { base: AnalysisBase }) {
+export function StrengthRatioSection({
+  base,
+  profile,
+}: {
+  base: AnalysisBase;
+  profile: Profile | undefined;
+}) {
   const [openKey, setOpenKey] = useState<string | null>(null);
-  // 표준 lift key → 내 최고 e1RM
+  // 표준 lift key → 내 최고 e1RM (별칭·사용자가 연결한 커스텀 종목은 한 묶음)
   const byLift = new Map<string, { e1rm: number; nameKo: string }>();
-  for (const [exId, liftKey] of Object.entries(LIFT_KEYS)) {
-    const b = base.bests.get(exId);
-    if (!b || b.best1RM <= 0 || b.dayCount < 2) continue; // 하루치로는 비교하지 않음
-    const prev = byLift.get(liftKey);
-    if (!prev || b.best1RM > prev.e1rm)
-      byLift.set(liftKey, { e1rm: b.best1RM, nameKo: b.nameKo });
+  for (const g of groupByStandard(base.bests, profile?.exerciseStandards).values()) {
+    if (g.days.size < 2) continue; // 하루치로는 비교하지 않음
+    byLift.set(g.liftKey, { e1rm: g.best.best1RM, nameKo: g.best.nameKo });
   }
 
   const rows: RatioRow[] = [];

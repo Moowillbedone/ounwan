@@ -65,9 +65,9 @@ export default function AnalysisPage() {
           )}
 
           <LevelSection base={base} profile={profile} />
-          <CoverageNote base={base} />
+          <CoverageNote base={base} profile={profile} />
           <ActionSection base={base} profile={profile} />
-          <StrengthRatioSection base={base} />
+          <StrengthRatioSection base={base} profile={profile} />
           <BalanceSection base={base} />
           <HabitSection base={base} />
         </div>

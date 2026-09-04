@@ -6,6 +6,7 @@ import type {
   WorkoutSession,
 } from "./types";
 import { estimate1RM, exerciseVolume, isSessionDone, dateKeyToDate } from "./utils";
+import { liftKeyFor } from "./strength-standards";
 
 /* ------------------------------------------------------------------ *
  * 분석 엔진 — '운동 종료까지 누른 세션'만 사용한다(캘린더 도장·통계와 동일 기준).
@@ -65,6 +66,8 @@ export interface LiftBest {
   date: string;
   /** 이 종목을 기록한 서로 다른 날짜 수 — 1일치로는 등급을 매기지 않는다 */
   dayCount: number;
+  /** 기록한 날짜들 — 같은 기준표를 쓰는 종목끼리 합칠 때 필요(dayCount만으론 합산 불가) */
+  days: string[];
 }
 
 /** 최고기록 집계에서 빠진 이유 — 화면에서 사용자에게 그대로 설명한다 */
@@ -249,9 +252,11 @@ export function buildBase({
           topReps: topR,
           date: s.date,
           dayCount: 1,
+          days: [...days],
         });
       } else {
         prev.dayCount = days.size;
+        prev.days = [...days];
         if (best > prev.best1RM) {
           prev.best1RM = best;
           prev.topWeight = topW;
@@ -309,6 +314,48 @@ export function buildBase({
     bodyweightAgeDays: latestBw?.date ? daysBetween(latestBw.date, today) : null,
     age: age != null && age > 5 && age < 110 ? age : null,
   };
+}
+
+/** 같은 기준표에 묶인 종목 묶음 */
+export interface StandardGroup {
+  liftKey: string;
+  /** 묶인 종목 중 최고 기록 — 등급 판정에 쓰는 대표값 */
+  best: LiftBest;
+  /** 묶인 종목 전체가 기록된 날짜 합집합 */
+  days: Set<string>;
+  members: LiftBest[];
+}
+
+/**
+ * 종목별 최고기록을 '기준표 키' 단위로 묶는다.
+ * 오버헤드/밀리터리프레스처럼 같은 기준을 쓰는 별칭이나, 사용자가 직접 연결한
+ * 커스텀 종목이 각자 다른 날에 기록되면 종목별로는 '하루치'라 영영 판정이 안 됐다.
+ * 날짜를 합집합으로 모아 그 문제를 없앤다.
+ */
+export function groupByStandard(
+  bests: Map<string, LiftBest>,
+  overrides?: Record<string, string>
+): Map<string, StandardGroup> {
+  const groups = new Map<string, StandardGroup>();
+  for (const [exerciseId, b] of bests) {
+    if (b.best1RM <= 0) continue;
+    const liftKey = liftKeyFor(exerciseId, overrides);
+    if (!liftKey) continue;
+    const g = groups.get(liftKey);
+    if (!g) {
+      groups.set(liftKey, {
+        liftKey,
+        best: b,
+        days: new Set(b.days),
+        members: [b],
+      });
+    } else {
+      for (const d of b.days) g.days.add(d);
+      g.members.push(b);
+      if (b.best1RM > g.best.best1RM) g.best = b;
+    }
+  }
+  return groups;
 }
 
 /** 최근 N주 대비 이전 N주의 추정 1RM 변화율(정체 판정용) */

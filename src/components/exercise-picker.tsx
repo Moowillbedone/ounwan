@@ -1,10 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Plus, Check } from "lucide-react";
+import { Search, Plus, Check, Link2 } from "lucide-react";
 import { Sheet, Button, cn } from "./ui";
-import { useExercises, useCreateExercise } from "@/lib/hooks";
+import {
+  useExercises,
+  useCreateExercise,
+  useProfile,
+  useUpdateProfile,
+} from "@/lib/hooks";
 import { BODY_PARTS, BODY_PART_META, EQUIPMENTS } from "@/lib/constants";
+import { STANDARD_OPTIONS, standardNameKo } from "@/lib/strength-standards";
 import type { BodyPart, Exercise } from "@/lib/types";
 
 export function ExercisePicker({
@@ -194,9 +200,15 @@ function CreateExerciseSheet({
   onCreated: (id: string) => void;
 }) {
   const createEx = useCreateExercise();
+  const { data: profile } = useProfile();
+  const updateProfile = useUpdateProfile();
   const [name, setName] = useState(defaultName);
   const [part, setPart] = useState<BodyPart>("가슴");
   const [equip, setEquip] = useState<Exercise["equipment"]>("바벨");
+  // 직접 만든 종목은 기준표(LIFT_KEYS)에 없어 수준 비교에서 빠진다 →
+  // 만들 때 바로 연결해두면 첫 기록부터 비교된다.
+  const [stdKey, setStdKey] = useState<string | null>(null);
+  const [stdOpen, setStdOpen] = useState(false);
 
   const submit = async () => {
     if (!name.trim()) return;
@@ -212,8 +224,14 @@ function CreateExerciseSheet({
       defaultRestSeconds: part === "유산소" ? 0 : 90,
       unilateral: false,
     });
+    if (stdKey) {
+      updateProfile.mutate({
+        exerciseStandards: { ...(profile?.exerciseStandards ?? {}), [ex.id]: stdKey },
+      });
+    }
     onCreated(ex.id);
     setName("");
+    setStdKey(null);
   };
 
   return (
@@ -265,6 +283,70 @@ function CreateExerciseSheet({
           </button>
         ))}
       </div>
+
+      <label className="mt-4 mb-1.5 block text-sm font-semibold text-text-2">
+        근력 기준표 연결 <span className="text-xs font-normal text-text-3">(선택)</span>
+      </label>
+      <button
+        onClick={() => setStdOpen((v) => !v)}
+        className={cn(
+          "flex w-full items-center justify-between rounded-app border px-3 py-2.5 text-left transition",
+          stdKey ? "border-brand bg-brand-soft/40" : "border-border"
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold">
+          <Link2 size={15} className={stdKey ? "text-brand" : "text-text-3"} />
+          <span className="truncate">
+            {stdKey ? standardNameKo(stdKey) : "연결 안 함"}
+          </span>
+        </span>
+        <span className="shrink-0 text-xs text-text-3">
+          {stdOpen ? "닫기" : "고르기"}
+        </span>
+      </button>
+      <p className="mt-1 text-[11px] leading-snug text-text-3">
+        동작이 사실상 같은 기준 종목에 연결하면 분석 탭 <b>수준 비교</b>에 잡혀요.
+      </p>
+      {stdOpen && (
+        <div className="mt-2 max-h-56 space-y-1 overflow-y-auto rounded-app border border-border p-1.5">
+          <button
+            onClick={() => {
+              setStdKey(null);
+              setStdOpen(false);
+            }}
+            className={cn(
+              "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-sm",
+              stdKey === null ? "bg-brand-soft/50 font-semibold" : "text-text-2"
+            )}
+          >
+            연결 안 함
+            {stdKey === null && <Check size={15} className="text-brand" />}
+          </button>
+          {STANDARD_OPTIONS.map((o) => (
+            <button
+              key={o.key}
+              onClick={() => {
+                setStdKey(o.key);
+                setStdOpen(false);
+              }}
+              className={cn(
+                "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm",
+                stdKey === o.key ? "bg-brand-soft/50 font-semibold" : "text-text-2"
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate">{o.nameKo}</span>
+                {o.lowConfidence && (
+                  <span className="shrink-0 rounded-full bg-surface-2 px-1.5 py-0.5 text-[9px] font-bold text-text-3">
+                    참고
+                  </span>
+                )}
+              </span>
+              {stdKey === o.key && <Check size={15} className="shrink-0 text-brand" />}
+            </button>
+          ))}
+        </div>
+      )}
     </Sheet>
   );
 }

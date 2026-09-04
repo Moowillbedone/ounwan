@@ -1,13 +1,13 @@
 "use client";
 
 import { Target } from "lucide-react";
-import type { AnalysisBase } from "@/lib/analysis";
+import { groupByStandard, type AnalysisBase } from "@/lib/analysis";
 import {
   WEEKLY_SET_GUIDE,
   STRENGTH_RATIOS,
   VOLUME_RATIOS,
 } from "@/lib/training-guidelines";
-import { LIFT_KEYS, judgeLift, LEVEL_KO, type Sex } from "@/lib/strength-standards";
+import { judgeLift, LEVEL_KO, type Sex } from "@/lib/strength-standards";
 import type { Profile } from "@/lib/types";
 import { josa } from "@/lib/utils";
 
@@ -36,10 +36,9 @@ export function ActionSection({
 
   /* 1) 근력비가 주의 구간인 종목 */
   const byLift = new Map<string, number>();
-  for (const [exId, liftKey] of Object.entries(LIFT_KEYS)) {
-    const b = base.bests.get(exId);
-    if (!b || b.best1RM <= 0 || b.dayCount < 2) continue;
-    byLift.set(liftKey, Math.max(byLift.get(liftKey) ?? 0, b.best1RM));
+  for (const g of groupByStandard(base.bests, profile?.exerciseStandards).values()) {
+    if (g.days.size < 2) continue;
+    byLift.set(g.liftKey, g.best.best1RM);
   }
   for (const g of STRENGTH_RATIOS) {
     const a = byLift.get(g.numerator);

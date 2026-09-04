@@ -106,6 +106,36 @@ export const LIFT_KEYS: Record<string, string> = {
   "dumbbell-curl": "dumbbell-curl",
 };
 
+/** 기준표를 가진 종목 목록(연결 UI의 선택지). 남/여 표의 키 구성은 동일하다. */
+export const STANDARD_OPTIONS: {
+  key: string;
+  nameKo: string;
+  lowConfidence: boolean;
+}[] = DATA.male.map((l) => ({
+  key: l.key,
+  nameKo: l.nameKo,
+  lowConfidence: l.confidence === "low",
+}));
+
+export function standardNameKo(key: string): string {
+  return STANDARD_OPTIONS.find((o) => o.key === key)?.nameKo ?? key;
+}
+
+/**
+ * 이 종목이 어떤 기준표로 비교되는지.
+ * 사용자가 직접 연결한 값(Profile.exerciseStandards)이 최우선이고,
+ * 없으면 빌트인 매핑(LIFT_KEYS)을 쓴다. 둘 다 없으면 비교 불가(null).
+ * 커스텀 종목은 id가 uuid라 LIFT_KEYS에 절대 안 걸리므로 이 오버라이드가 유일한 경로다.
+ */
+export function liftKeyFor(
+  exerciseId: string,
+  overrides?: Record<string, string>
+): string | null {
+  const manual = overrides?.[exerciseId];
+  if (manual && STANDARD_OPTIONS.some((o) => o.key === manual)) return manual;
+  return LIFT_KEYS[exerciseId] ?? null;
+}
+
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }

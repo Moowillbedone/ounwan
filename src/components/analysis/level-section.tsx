@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { Trophy, Info, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import type { AnalysisBase } from "@/lib/analysis";
+import { groupByStandard, type AnalysisBase } from "@/lib/analysis";
 import {
   judgeLift,
-  LIFT_KEYS,
   LEVELS,
   LEVEL_KO,
   STANDARDS_META,
@@ -65,24 +64,19 @@ export function LevelSection({
     );
   }
 
-  // 표준이 있는 종목만 판정. 단 하루치 기록으로는 등급을 매기지 않는다.
+  // 기준표가 연결된 종목만 판정. 단 하루치 기록으로는 등급을 매기지 않는다.
+  // 같은 기준표를 쓰는 종목(별칭·사용자가 연결한 커스텀)은 하나로 묶고 날짜도 합친다.
   const verdicts: LevelVerdict[] = [];
   const pending: string[] = [];
-  for (const [exId, liftKey] of Object.entries(LIFT_KEYS)) {
-    const best = base.bests.get(exId);
-    if (!best || best.best1RM <= 0) continue;
-    if (best.dayCount < 2) {
-      if (!pending.includes(best.nameKo)) pending.push(best.nameKo);
+  for (const g of groupByStandard(base.bests, profile?.exerciseStandards).values()) {
+    if (g.days.size < 2) {
+      if (!pending.includes(g.best.nameKo)) pending.push(g.best.nameKo);
       continue;
     }
-    const v = judgeLift(sex, liftKey, best.best1RM, bw, base.age);
+    const v = judgeLift(sex, g.liftKey, g.best.best1RM, bw, base.age);
     if (!v) continue;
-    v.nameKo = best.nameKo; // 표준표 표기가 아니라 앱의 종목명을 쓴다
-    // 같은 표준키가 중복되면(예: 오버헤드/밀리터리) 더 높은 기록만
-    const prev = verdicts.findIndex((x) => x.liftKey === liftKey);
-    if (prev >= 0) {
-      if (v.e1rm > verdicts[prev].e1rm) verdicts[prev] = v;
-    } else verdicts.push(v);
+    v.nameKo = g.best.nameKo; // 표준표 표기가 아니라 앱의 종목명을 쓴다
+    verdicts.push(v);
   }
   verdicts.sort((a, b) => b.percentile - a.percentile);
   const verdictsAgeAdjusted = verdicts.some((v) => v.ageAdjusted);
@@ -102,8 +96,10 @@ export function LevelSection({
             </>
           ) : (
             <>
-              기준표가 있는 종목(벤치프레스·백스쿼트·데드리프트·오버헤드프레스·바벨로우·풀업)을
-              서로 다른 2일 이상 기록하면 또래 기준과 비교해드려요.
+              기준표가 있는 종목(벤치프레스·백스쿼트·데드리프트·오버헤드프레스·바벨로우·풀업
+              등)을 서로 다른 2일 이상 기록하면 또래 기준과 비교해드려요. 직접 만든
+              종목은 아래 <b className="text-text-2">‘비교에 쓰인 종목’</b>에서 기준표에
+              연결하면 바로 잡혀요.
             </>
           )}
         </p>

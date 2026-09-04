@@ -144,6 +144,13 @@ export interface Profile extends SyncMeta {
   birthYear?: number | null;
   heightCm?: number | null;
   hiddenStats?: string[]; // 통계 '운동별 성장'에서 사용자가 숨긴 exerciseId 목록
+  /**
+   * 근력 기준표 수동 연결(exerciseId → 기준표 키).
+   * 커스텀 종목이나 별칭 종목처럼 빌트인 매핑(LIFT_KEYS)에 없는 종목을
+   * 사용자가 직접 기준 종목에 붙일 때 쓴다. 빌트인 시드(ensureSeeded)가
+   * 덮어쓰지 못하도록 Exercise가 아니라 프로필에 둔다.
+   */
+  exerciseStandards?: Record<string, string>;
   exerciseNotes?: Record<string, string>; // 종목별 공유 메모(exerciseId→메모) — 날짜 무관 연동
   onboardedAt?: string | null;
 }
