@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { App } from "@capacitor/app";
 import { Download, X } from "lucide-react";
 import { isNativeApp } from "@/lib/native";
 import { checkForUpdate, installUpdate, type UpdateInfo } from "@/lib/updater";
 import { useToast } from "./ui";
 
 const CHECK_KEY = "ounwan-update-check";
-const CHECK_EVERY_MS = 6 * 60 * 60 * 1000; // 6시간에 한 번만 확인(GitHub API 호출 절약)
+const CHECK_EVERY_MS = 30 * 60 * 1000; // 30분에 한 번만 확인(GitHub API 호출 절약)
 
 /** 앱(APK)에 새 버전이 있으면 화면 위쪽에 알려주고, 누르면 앱 안에서 받아 설치 화면을 연다 */
 export function UpdateBanner() {
@@ -16,16 +17,34 @@ export function UpdateBanner() {
   const [pct, setPct] = useState<number | null>(null);
   const [hidden, setHidden] = useState(false);
 
+  // 앱을 켤 때 + 백그라운드에서 돌아올 때 확인(앱은 보통 꺼지지 않고 백그라운드에 남아 있음)
   useEffect(() => {
     if (!isNativeApp()) return;
-    try {
-      const last = Number(localStorage.getItem(CHECK_KEY) || 0);
-      if (Date.now() - last < CHECK_EVERY_MS) return;
-      localStorage.setItem(CHECK_KEY, String(Date.now()));
-    } catch {
-      /* noop */
-    }
-    void checkForUpdate().then((r) => r?.available && setInfo(r));
+    const check = () => {
+      try {
+        const last = Number(localStorage.getItem(CHECK_KEY) || 0);
+        if (Date.now() - last < CHECK_EVERY_MS) return;
+      } catch {
+        /* noop */
+      }
+      void checkForUpdate().then((r) => {
+        if (!r) return; // 네트워크 실패면 다음 기회에 다시 확인
+        try {
+          localStorage.setItem(CHECK_KEY, String(Date.now()));
+        } catch {
+          /* noop */
+        }
+        if (r.available) {
+          setInfo(r);
+          setHidden(false);
+        }
+      });
+    };
+    check();
+    const sub = App.addListener("resume", check);
+    return () => {
+      void sub.then((h) => h.remove());
+    };
   }, []);
 
   if (!info || hidden) return null;
