@@ -90,7 +90,7 @@ export function disconnectHealth() {
   setLinked(false);
 }
 
-type Sample = { value: number; startDate: string; endDate: string };
+type Sample = { value: number; startDate: string; endDate: string; sourceId?: string };
 
 async function read(dataType: (typeof READ)[number], start: Date, end: Date): Promise<Sample[]> {
   const { samples } = await timeout(
@@ -109,22 +109,46 @@ async function read(dataType: (typeof READ)[number], start: Date, end: Date): Pr
   return samples as Sample[];
 }
 
-/** 설정 화면 미리보기: 최근 체중·오늘 걸음 수(데이터가 실제로 들어오는지 확인용) */
-export async function healthPreview(): Promise<{
+export interface HealthPreview {
   weight: { kg: number; date: string } | null;
   stepsToday: number;
-}> {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 30);
-  const [w, steps] = await Promise.all([
-    read("weight", start, end).catch(() => [] as Sample[]),
-    stepsByDay(1).catch(() => [] as { date: string; steps: number }[]),
+  // 진단용 — 데이터가 안 보일 때 원인(동기화 지연·출처·오류)을 가리기 위해
+  steps7d: number;
+  stepRecords7d: number;
+  lastStepAt: string | null; // 가장 최근 걸음 기록 시각(ISO)
+  sources: string[]; // 걸음 기록을 쓴 앱 패키지
+  errors: string[];
+}
+
+/** 설정 화면 미리보기 + 진단: 최근 체중, 오늘·7일 걸음, 기록 수·출처, 오류 */
+export async function healthPreview(): Promise<HealthPreview> {
+  const now = new Date();
+  const monthAgo = new Date();
+  monthAgo.setDate(monthAgo.getDate() - 30);
+  const weekStart = new Date();
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - 6);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const errors: string[] = [];
+  const msg = (what: string, e: unknown) => `${what}: ${String((e as Error)?.message ?? e)}`;
+
+  const [w, st] = await Promise.all([
+    read("weight", monthAgo, now).catch((e) => (errors.push(msg("체중", e)), [] as Sample[])),
+    read("steps", weekStart, now).catch((e) => (errors.push(msg("걸음", e)), [] as Sample[])),
   ]);
   const last = w[w.length - 1];
+  const lastStep = st[st.length - 1];
   return {
     weight: last ? { kg: Math.round(last.value * 10) / 10, date: toDateKey(new Date(last.startDate)) } : null,
-    stepsToday: steps[0]?.steps ?? 0,
+    stepsToday: Math.round(
+      st.filter((x) => new Date(x.startDate) >= todayStart).reduce((n, x) => n + x.value, 0)
+    ),
+    steps7d: Math.round(st.reduce((n, x) => n + x.value, 0)),
+    stepRecords7d: st.length,
+    lastStepAt: lastStep ? lastStep.endDate || lastStep.startDate : null,
+    sources: [...new Set(st.map((x) => x.sourceId).filter(Boolean) as string[])],
+    errors,
   };
 }
 
