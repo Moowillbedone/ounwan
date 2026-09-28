@@ -21,6 +21,8 @@
 - 매직링크(비밀번호 없는 로그인)를 사용합니다
 - **Authentication → URL Configuration → Site URL** 에 배포 도메인 등록
   - 예: `https://ounwan.vercel.app` (로컬 개발은 `http://localhost:3000` 도 추가)
+- 안드로이드 앱(APK)에서 로그인하려면 **Authentication → URL Configuration → Redirect URLs** 에
+  `com.ounwan.app://login-callback` 추가 (메일 링크가 브라우저 대신 앱으로 돌아오게 함)
 
 ## 4. API 키 가져오기
 
