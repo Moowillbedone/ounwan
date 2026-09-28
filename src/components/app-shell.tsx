@@ -125,9 +125,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <RestTimer immersive={immersive} />
             {/* 달리기 기록 중이면 다른 화면에서도 현재 상태를 보여주고 탭하면 복귀 */}
             {!pathname.startsWith("/run") && <RunPill />}
-            <NativeBridge />
           </>
         )}
+        {/* 앱 전용 연결부 — 로그인 화면에서도 떠 있어야 메일 링크(로그인 콜백)를 받을 수 있다 */}
+        <NativeBridge />
       </div>
       <DesktopHint appName={APP_NAME} />
     </ToastProvider>
