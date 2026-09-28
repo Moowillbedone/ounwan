@@ -9,7 +9,7 @@ import { importWeights, refreshLinked } from "@/lib/health";
 import { isNativeApp, WidgetBridge, SystemBars, NATIVE_AUTH_REDIRECT } from "@/lib/native";
 import { useTheme } from "@/lib/theme";
 import { getSupabase } from "@/lib/supabase";
-import { authErrorKo } from "@/lib/auth";
+import { authErrorKo, LOGIN_PENDING_KEY } from "@/lib/auth";
 import { computeStreak, dayGrassLevel, isSessionDone, toDateKey } from "@/lib/utils";
 import { useToast } from "./ui";
 import { closeTopOverlay } from "@/lib/back-stack";
@@ -142,6 +142,17 @@ export function NativeBridge() {
       if (url.startsWith(NATIVE_AUTH_REDIRECT)) {
         const sb = getSupabase();
         if (!sb) return;
+        // 이 앱에서 1시간 안에 로그인 링크를 요청한 경우에만 처리(요청 안 한 콜백 = 위조 가능성)
+        let pendingAt = 0;
+        try {
+          pendingAt = Number(localStorage.getItem(LOGIN_PENDING_KEY) || 0);
+        } catch {
+          /* noop */
+        }
+        if (!pendingAt || Date.now() - pendingAt > 60 * 60 * 1000) {
+          toast("요청하지 않은 로그인 링크라 무시했어요. 앱에서 다시 로그인해 주세요.", "error");
+          return;
+        }
         const u = new URL(url.replace(NATIVE_AUTH_REDIRECT, "https://callback.local/"));
         const params = new URLSearchParams(u.hash.replace(/^#/, ""));
         u.searchParams.forEach((v, k) => params.set(k, v));
@@ -150,22 +161,27 @@ export function NativeBridge() {
           toast(authErrorKo(err.replace(/\+/g, " ")), "error");
           return;
         }
-        const access_token = params.get("access_token");
-        const refresh_token = params.get("refresh_token");
+        // PKCE: 1회용 code만 받는다(토큰을 URL로 직접 받는 방식은 앱에서 쓰지 않음)
         const code = params.get("code");
-        const { error } = access_token && refresh_token
-          ? await sb.auth.setSession({ access_token, refresh_token })
-          : code
+        const { error } = code
           ? await sb.auth.exchangeCodeForSession(code)
-          : { error: new Error("로그인 정보가 없어요") };
+          : { error: new Error("로그인 링크가 올바르지 않아요. 앱에서 다시 요청해 주세요.") };
+        if (!error) {
+          try {
+            localStorage.removeItem(LOGIN_PENDING_KEY);
+          } catch {
+            /* noop */
+          }
+        }
         toast(error ? authErrorKo(error.message) : "로그인 완료!", error ? "error" : "info");
         if (!error) router.push("/");
         return;
       }
 
       if (url.startsWith(OPEN_PREFIX)) {
+        // 앱 안 화면으로만 이동(//다른사이트, 쿼리 등은 거부) — 다른 앱이 보내는 링크도 여기로 온다
         const path = url.slice(OPEN_PREFIX.length) || "/";
-        router.push(path.startsWith("/") ? path : `/${path}`);
+        if (/^\/[a-z-]*$/.test(path)) router.push(path);
       }
     };
 

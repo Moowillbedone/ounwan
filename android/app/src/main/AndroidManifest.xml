@@ -50,6 +50,12 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- 백그라운드 위치 서비스는 앱 내부 전용(플러그인 기본값 exported=true를 덮어씀) -->
+        <service
+            android:name="com.equimaps.capacitor_background_geolocation.BackgroundGeolocationService"
+            android:exported="false"
+            tools:replace="android:exported" />
+
         <!-- 홈 화면 위젯 -->
         <receiver
             android:name=".OunwanWidgetProvider"
