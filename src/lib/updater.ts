@@ -54,6 +54,9 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
   }
 }
 
+/** 이 저장소의 릴리스 APK 주소만 허용(화면 코드가 변조돼도 다른 파일을 받게 할 수 없게) */
+export const RELEASE_DOWNLOAD_PREFIX = "https://github.com/Moowillbedone/ounwan/releases/download/";
+
 /**
  * 받기 → 설치 화면. '이 출처 허용'이 꺼져 있으면 설정 화면으로 보내고 false.
  * 업데이트 기능이 없는 구버전 앱이면 릴리스 페이지를 연다.
@@ -62,6 +65,7 @@ export async function installUpdate(
   url: string,
   onProgress: (pct: number) => void
 ): Promise<"started" | "needs-permission" | "opened-page"> {
+  if (!url.startsWith(RELEASE_DOWNLOAD_PREFIX)) throw new Error("허용되지 않은 업데이트 주소예요");
   try {
     const { allowed } = await AppUpdater.canInstall();
     if (!allowed) {

@@ -28,6 +28,9 @@ import {
   type SyncState,
 } from "./sync";
 
+/** 로그인 링크를 요청한 시각(앱에서 콜백 유효성 확인용) */
+export const LOGIN_PENDING_KEY = "ounwan-login-pending";
+
 /** Supabase 인증 에러(영문)를 사용자용 한국어 안내로 */
 export function authErrorKo(message: string): string {
   const m = message.toLowerCase();
@@ -154,6 +157,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithEmail = useCallback(async (email: string) => {
     const sb = getSupabase();
     if (!sb) return { error: "동기화 서버가 설정되지 않았습니다." };
+    // 앱: 직접 로그인 링크를 요청한 경우에만 콜백을 받는다(외부에서 위조한 링크 차단용 표시)
+    try {
+      localStorage.setItem(LOGIN_PENDING_KEY, String(Date.now()));
+    } catch {
+      /* noop */
+    }
     const { error } = await sb.auth.signInWithOtp({
       email,
       // 안드로이드 앱에서는 메일 링크가 브라우저가 아닌 앱으로 돌아오도록 전용 주소 사용
