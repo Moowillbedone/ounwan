@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 오운완 아이콘(public/icon.svg)의 막대·체크를 적응형 아이콘 전경으로 옮긴 벡터 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <group android:scaleX="0.9" android:scaleY="0.9" android:pivotX="256" android:pivotY="256" android:translateY="40">
+        <path android:fillColor="#c6f7e2" android:pathData="M102,300 H138 A14,14 0 0 1 152,314 V350 A14,14 0 0 1 138,364 H102 A14,14 0 0 1 88,350 V314 A14,14 0 0 1 102,300 Z"/>
+        <path android:fillColor="#8fedc4" android:pathData="M190,236 H226 A14,14 0 0 1 240,250 V350 A14,14 0 0 1 226,364 H190 A14,14 0 0 1 176,350 V250 A14,14 0 0 1 190,236 Z"/>
+        <path android:fillColor="#5fe3ac" android:pathData="M278,172 H314 A14,14 0 0 1 328,186 V350 A14,14 0 0 1 314,364 H278 A14,14 0 0 1 264,350 V186 A14,14 0 0 1 278,172 Z"/>
+        <path android:fillColor="#eafff5" android:pathData="M366,120 H402 A14,14 0 0 1 416,134 V350 A14,14 0 0 1 402,364 H366 A14,14 0 0 1 352,350 V134 A14,14 0 0 1 366,120 Z"/>
+        <path android:strokeColor="#eafff5" android:strokeWidth="26" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M150,150 l40,40 l90,-110"/>
+    </group>
+</vector>

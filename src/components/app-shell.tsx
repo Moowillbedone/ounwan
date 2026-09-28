@@ -15,6 +15,8 @@ import { ToastProvider, cn, Spinner } from "./ui";
 import { OnboardingGate } from "./onboarding";
 import { StartWorkoutSheet } from "./start-workout";
 import { RestTimer } from "./rest-timer";
+import { RunPill } from "./run-pill";
+import { NativeBridge } from "./native-bridge";
 import { APP_NAME } from "@/lib/constants";
 
 const TABS = [
@@ -97,7 +99,7 @@ function TabBtn({
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { ready, configured, user, guestChosen } = useAuth();
   const pathname = usePathname();
-  const immersive = pathname.startsWith("/log");
+  const immersive = pathname.startsWith("/log") || pathname.startsWith("/run");
   const [startOpen, setStartOpen] = useState(false);
 
   if (!ready) return <Splash />;
@@ -121,6 +123,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <StartWorkoutSheet open={startOpen} onClose={() => setStartOpen(false)} />
             {/* 휴식 타이머는 전역 — 화면을 옮겨도 유지 */}
             <RestTimer immersive={immersive} />
+            {/* 달리기 기록 중이면 다른 화면에서도 현재 상태를 보여주고 탭하면 복귀 */}
+            {!pathname.startsWith("/run") && <RunPill />}
+            <NativeBridge />
           </>
         )}
       </div>

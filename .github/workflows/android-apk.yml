@@ -1,0 +1,102 @@
+# 오운완 안드로이드 앱(APK) 빌드 → GitHub 릴리스 'apk-latest'에 올림.
+# 폰에서 받기: https://github.com/Moowillbedone/ounwan/releases/download/apk-latest/ounwan.apk
+# 화면·기능(웹)은 라이브 주소에서 불러오므로 웹만 바뀐 경우엔 APK를 새로 만들 필요가 없다.
+# 네이티브 부분(android/, capacitor 설정, 플러그인)이 바뀔 때만 자동으로 다시 빌드한다.
+name: Android APK
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths:
+      - "android/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/android-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 의존성 설치
+        run: npm ci
+
+      # webDir(out)은 앱이 라이브 주소를 못 불러올 때 대비용 정적 빌드본
+      - name: 웹 정적 빌드
+        run: npm run build
+
+      - name: Capacitor 동기화
+        run: npx cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # 고정 서명 키(업데이트 설치용)는 GitHub Secrets에만 둔다. 없으면 임시 키로 서명.
+      - name: 서명 키 준비
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/ounwan.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/ounwan.jks" >> "$GITHUB_ENV"
+            echo "SIGNING_NOTE=고정 키로 서명됨 — 기존 앱 위에 덮어 설치하면 기록이 유지됩니다." >> "$GITHUB_ENV"
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 시크릿이 없어 임시 키로 서명합니다."
+            echo "SIGNING_NOTE=⚠️ 임시 키로 서명됨 — 다음 버전은 기존 앱을 지우고 설치해야 할 수 있어요(로그인 동기화 기록은 안전)." >> "$GITHUB_ENV"
+          fi
+
+      - name: APK 빌드
+        working-directory: android
+        env:
+          APP_VERSION_CODE: ${{ github.run_number }}
+          APP_VERSION_NAME: 1.${{ github.run_number }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: 서명 키 정리
+        if: always()
+        run: rm -f "$RUNNER_TEMP/ounwan.jks"
+
+      - name: APK 이름 정리
+        run: cp android/app/build/outputs/apk/release/app-release.apk ounwan.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ounwan-apk
+          path: ounwan.apk
+
+      # 같은 태그로 매번 교체 → 다운로드 주소가 항상 같다
+      - name: 릴리스 'apk-latest' 갱신
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk-latest --yes --cleanup-tag || true
+          gh release create apk-latest ounwan.apk \
+            --target "${{ github.sha }}" \
+            --title "오운완 안드로이드 앱 v1.${{ github.run_number }}" \
+            --notes "빌드: ${{ github.ref_name }} @ ${GITHUB_SHA::7}
+
+          폰에서 ounwan.apk를 받아 설치하세요.
+          ${SIGNING_NOTE}" \
+            --latest
