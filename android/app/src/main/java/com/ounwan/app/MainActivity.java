@@ -40,6 +40,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WidgetBridgePlugin.class);
         registerPlugin(SystemBarsPlugin.class);
         registerPlugin(AppUpdaterPlugin.class);
+        registerPlugin(HealthStepsPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Android 13+: 러닝 기록 중 알림(백그라운드 GPS 유지용)을 띄우려면 알림 권한 필요
