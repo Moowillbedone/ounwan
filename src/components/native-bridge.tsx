@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { App } from "@capacitor/app";
 import { useProfile, useSessions } from "@/lib/hooks";
-import { isNativeApp, WidgetBridge, NATIVE_AUTH_REDIRECT } from "@/lib/native";
+import { isNativeApp, WidgetBridge, SystemBars, NATIVE_AUTH_REDIRECT } from "@/lib/native";
+import { useTheme } from "@/lib/theme";
 import { getSupabase } from "@/lib/supabase";
 import { computeStreak, dayGrassLevel, isSessionDone, toDateKey } from "@/lib/utils";
 import { useToast } from "./ui";
@@ -14,6 +15,7 @@ const WIDGET_DAYS = 120; // 위젯 잔디가 그릴 수 있는 최대 기간(약
 
 /**
  * 안드로이드 앱(APK)에서만 동작하는 연결부. 브라우저/PWA에서는 아무것도 하지 않는다.
+ * 0) 상태바 색을 앱 테마에 맞춘다.
  * 1) 기록이 바뀔 때마다 홈 화면 위젯에 요약(연속기록·잔디)을 보낸다.
  * 2) 위젯 버튼·로그인 메일 링크로 앱이 열리면 해당 화면 이동/로그인 처리.
  */
@@ -22,6 +24,13 @@ export function NativeBridge() {
   const toast = useToast();
   const { data: sessions } = useSessions();
   const { data: profile } = useProfile();
+  const { resolved } = useTheme();
+
+  // 0) 상태바·하단 버튼 영역 색을 앱 테마(라이트/다크)에 맞춤. 구버전 APK엔 플러그인이 없으니 실패 무시.
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    void SystemBars.set({ dark: resolved === "dark" }).catch(() => {});
+  }, [resolved]);
 
   // 1) 위젯 요약 전송 — 잔디 단계·연속기록은 홈 화면과 같은 함수로 계산
   useEffect(() => {

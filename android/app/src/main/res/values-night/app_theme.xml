@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 다크 모드: 웹 다크 --bg, 상태바 아이콘은 밝게 -->
+<resources>
+    <color name="app_bg">#0A0E13</color>
+    <bool name="light_system_bars">false</bool>
+</resources>

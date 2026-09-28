@@ -15,6 +15,9 @@ const config: CapacitorConfig = {
   android: {
     // 백그라운드 위치 업데이트가 5분 후 멈추는 문제 방지(background-geolocation 플러그인 요구사항)
     useLegacyBridge: true,
+    // 안드로이드 15+는 화면을 상태바·하단 버튼 뒤까지 강제로 그린다 → 웹 화면을 그 영역만큼 비켜 배치
+    // (웹뷰는 상단 safe-area 값을 주지 않아서 CSS만으로는 제목이 시계 줄에 겹침)
+    adjustMarginsForEdgeToEdge: "force",
   },
 };
 
