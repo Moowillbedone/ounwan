@@ -22,7 +22,8 @@ import {
   connectHealth,
   disconnectHealth,
   importWeights,
-  isHealthLinked,
+  refreshLinked,
+  healthPreview,
   type HealthStatus,
 } from "@/lib/health";
 import { qk } from "@/lib/hooks";
@@ -444,15 +445,31 @@ function HealthRow({ native }: { native: boolean }) {
   const [status, setStatus] = useState<HealthStatus | null>(null);
   const [linked, setLinked] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<Awaited<ReturnType<typeof healthPreview>> | null>(null);
+
+  // 연결 상태는 Health Connect에 실제로 허용된 권한 기준으로 확인
+  const refresh = async () => {
+    const st = await healthStatus();
+    setStatus(st);
+    if (st !== "available") return;
+    const ok = await refreshLinked();
+    setLinked(ok);
+    if (ok) setPreview(await healthPreview().catch(() => null));
+  };
   useEffect(() => {
-    setLinked(isHealthLinked());
-    void healthStatus().then(setStatus);
-  }, []);
+    if (native) void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [native]);
 
   const pull = async () => {
-    const n = await importWeights();
-    await qc.invalidateQueries({ queryKey: qk.bodyMetrics });
-    toast(n > 0 ? `체중 ${n}일치를 가져왔어요` : "새로 가져올 체중이 없어요");
+    try {
+      const n = await importWeights();
+      await qc.invalidateQueries({ queryKey: qk.bodyMetrics });
+      setPreview(await healthPreview().catch(() => null));
+      toast(n > 0 ? `체중 ${n}일치를 가져왔어요` : "새로 가져올 체중이 없어요(이미 있거나 기록 없음)");
+    } catch (e) {
+      toast(`가져오지 못했어요: ${String((e as Error)?.message ?? e)}`, "error");
+    }
   };
   const connect = async () => {
     setBusy(true);
@@ -461,8 +478,8 @@ function HealthRow({ native }: { native: boolean }) {
       setLinked(ok);
       if (ok) await pull();
       else toast("권한이 허용되지 않았어요. Health Connect에서 오운완 권한을 켜 주세요.");
-    } catch {
-      toast("Health Connect를 열지 못했어요", "error");
+    } catch (e) {
+      toast(`Health Connect 오류: ${String((e as Error)?.message ?? e)}`, "error");
     } finally {
       setBusy(false);
     }
@@ -470,6 +487,8 @@ function HealthRow({ native }: { native: boolean }) {
 
   const desc = !native
     ? "안드로이드 앱(APK)에서만 쓸 수 있어요."
+    : status === null
+    ? "Health Connect 상태 확인 중…"
     : status === "unsupported"
     ? "이 앱 버전에서는 아직 쓸 수 없어요. 앱을 최신 버전으로 업데이트해 주세요."
     : status === "not-installed"
@@ -510,6 +529,21 @@ function HealthRow({ native }: { native: boolean }) {
         )}
       </div>
       <p className="mt-1.5 text-[11px] leading-snug text-text-3">{desc}</p>
+      {linked && preview && (
+        <p className="mt-1.5 rounded-lg bg-surface-2 px-2.5 py-2 text-[12px] text-text-2">
+          최근 체중{" "}
+          <b className="text-text">
+            {preview.weight ? `${preview.weight.kg}kg (${preview.weight.date.slice(5).replace("-", "/")})` : "없음"}
+          </b>{" "}
+          · 오늘 걸음 <b className="text-text">{preview.stepsToday.toLocaleString()}</b>보
+          {!preview.weight && preview.stepsToday === 0 && (
+            <span className="mt-1 block text-[11px] text-text-3">
+              들어온 데이터가 없어요. 삼성 헬스 → 설정 → Health Connect에서 &lsquo;삼성 헬스가 쓸 수 있는
+              데이터&rsquo;(걸음 수·체중·심박)가 켜져 있는지 확인해 주세요.
+            </span>
+          )}
+        </p>
+      )}
       {native && status === "available" && (
         <p className="mt-1 text-[11px] leading-snug text-text-3">
           삼성 헬스 앱 → 설정 → <b className="text-text-2">Health Connect</b>에서 데이터 공유를 켜야
