@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { SetType, TrackingMode } from "./types";
+import type { DayLabel, SetType, TrackingMode } from "./types";
 
 // 운동 복사/붙여넣기용 클립보드 (localStorage 기반, 탭/새로고침에도 유지)
 export interface ClipSet {
@@ -27,6 +27,16 @@ export interface WorkoutClip {
   label?: string | null;
   labelColor?: string | null;
   exercises: ClipExercise[];
+  /** 하루 전체 복사일 때: 그날의 운동들(각각 한 세션) + 하루 대표 라벨 */
+  day?: {
+    sessions: Omit<WorkoutClip, "day">[];
+    dayLabel?: DayLabel | null;
+  };
+}
+
+/** 붙여넣을 세션 목록 — 단일 복사면 1개, 하루 전체 복사면 그날의 모든 운동 */
+export function clipSessions(clip: WorkoutClip): Omit<WorkoutClip, "day">[] {
+  return clip.day ? clip.day.sessions : [clip];
 }
 
 const KEY = "ounwan-clip";

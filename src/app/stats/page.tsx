@@ -29,6 +29,7 @@ import {
   paceSecPerKm,
 } from "@/lib/utils";
 import { fmtKm, fmtPace } from "@/lib/run-tracker";
+import { runsOf } from "@/lib/running";
 import type { BodyPart, Exercise, Unit } from "@/lib/types";
 
 export default function StatsPage() {
@@ -230,6 +231,19 @@ export default function StatsPage() {
     return { week, month, total, bestPace, longest, points };
   }, [sessions]);
 
+  // 이번 달 러닝(러닝·트레드밀만) 횟수와 평균 페이스(시간을 입력한 기록만)
+  const runMonth = useMemo(() => {
+    const now = new Date();
+    const runs = runsOf(sessions ?? [], exMap).filter((r) => {
+      const d = dateKeyToDate(r.date);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    });
+    const timed = runs.filter((r) => r.sec > 0);
+    const m = timed.reduce((n, r) => n + r.meters, 0);
+    const sec = timed.reduce((n, r) => n + r.sec, 0);
+    return { count: runs.length, avgPace: paceSecPerKm(m, sec) };
+  }, [sessions, exMap]);
+
   const hasData = (sessions ?? []).length > 0;
 
   return (
@@ -328,7 +342,12 @@ export default function StatsPage() {
           <div className="mt-2 grid grid-cols-2 gap-2 text-center">
             <PrStat label="최장 거리" value={`${fmtKm(distance.longest)}km`} />
             <PrStat label="최고 페이스" value={distance.bestPace != null ? fmtPace(distance.bestPace) : "—"} />
+            <PrStat label="이번 달 러닝" value={`${runMonth.count}회`} />
+            <PrStat label="이번 달 평균 페이스" value={runMonth.avgPace != null ? fmtPace(runMonth.avgPace) : "—"} />
           </div>
+          <p className="mt-2 text-[11px] text-text-3">
+            주간 거리 추이·부상 위험 체크·예상 기록은 <b className="text-text-2">분석</b> 탭에서 볼 수 있어요.
+          </p>
         </section>
       )}
 
