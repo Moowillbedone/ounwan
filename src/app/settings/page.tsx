@@ -13,7 +13,19 @@ import {
   User,
   Bell,
   Smartphone,
+  HeartPulse,
 } from "lucide-react";
+import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  healthStatus,
+  connectHealth,
+  disconnectHealth,
+  importWeights,
+  isHealthLinked,
+  type HealthStatus,
+} from "@/lib/health";
+import { qk } from "@/lib/hooks";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
 import { App } from "@capacitor/app";
@@ -336,6 +348,11 @@ export default function SettingsPage() {
         {native && <AppVersionRow />}
       </Section>
 
+      {/* 삼성 헬스·워치 (Health Connect) */}
+      <Section title="삼성 헬스 · 워치 연동">
+        <HealthRow native={native} />
+      </Section>
+
       {/* 데이터 */}
       <Section title="데이터">
         <button
@@ -417,6 +434,92 @@ function NumField({
       />
       <span className="w-5 text-xs text-text-3">{suffix}</span>
     </span>
+  );
+}
+
+/** Health Connect 연결 — 체중 자동 가져오기, 걸음 수·러닝 심박 표시 */
+function HealthRow({ native }: { native: boolean }) {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [status, setStatus] = useState<HealthStatus | null>(null);
+  const [linked, setLinked] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    setLinked(isHealthLinked());
+    void healthStatus().then(setStatus);
+  }, []);
+
+  const pull = async () => {
+    const n = await importWeights();
+    await qc.invalidateQueries({ queryKey: qk.bodyMetrics });
+    toast(n > 0 ? `체중 ${n}일치를 가져왔어요` : "새로 가져올 체중이 없어요");
+  };
+  const connect = async () => {
+    setBusy(true);
+    try {
+      const ok = await connectHealth();
+      setLinked(ok);
+      if (ok) await pull();
+      else toast("권한이 허용되지 않았어요. Health Connect에서 오운완 권한을 켜 주세요.");
+    } catch {
+      toast("Health Connect를 열지 못했어요", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const desc = !native
+    ? "안드로이드 앱(APK)에서만 쓸 수 있어요."
+    : status === "unsupported"
+    ? "이 앱 버전에서는 아직 쓸 수 없어요. 앱을 최신 버전으로 업데이트해 주세요."
+    : status === "not-installed"
+    ? "Health Connect를 설치하거나 업데이트해야 해요(Play 스토어 'Health Connect')."
+    : linked
+    ? "연결됨 · 앱을 열 때마다 비어 있는 날의 체중을 채우고, 통계에 걸음 수·러닝에 심박을 보여줘요."
+    : "갤럭시 워치·스마트 체중계 기록(체중·걸음 수·심박)을 가져와요.";
+
+  return (
+    <div className="px-4 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2 text-sm font-semibold">
+          <HeartPulse size={16} className="text-danger" /> Health Connect
+        </span>
+        {native && status === "available" && (
+          linked ? (
+            <div className="flex gap-1.5">
+              <Button size="sm" variant="secondary" onClick={() => void pull()}>
+                지금 가져오기
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  disconnectHealth();
+                  setLinked(false);
+                  toast("연결을 해제했어요");
+                }}
+              >
+                해제
+              </Button>
+            </div>
+          ) : (
+            <Button size="sm" onClick={connect} disabled={busy}>
+              {busy ? "연결 중…" : "연결"}
+            </Button>
+          )
+        )}
+      </div>
+      <p className="mt-1.5 text-[11px] leading-snug text-text-3">{desc}</p>
+      {native && status === "available" && (
+        <p className="mt-1 text-[11px] leading-snug text-text-3">
+          삼성 헬스 앱 → 설정 → <b className="text-text-2">Health Connect</b>에서 데이터 공유를 켜야
+          워치·체중계 기록이 들어와요.{" "}
+          <Link href="/health-privacy" className="font-semibold text-brand underline">
+            데이터 사용 안내
+          </Link>
+        </p>
+      )}
+    </div>
   );
 }
 

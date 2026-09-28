@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { App } from "@capacitor/app";
-import { useProfile, useSessions } from "@/lib/hooks";
+import { useQueryClient } from "@tanstack/react-query";
+import { useProfile, useSessions, qk } from "@/lib/hooks";
+import { importWeights, isHealthLinked } from "@/lib/health";
 import { isNativeApp, WidgetBridge, SystemBars, NATIVE_AUTH_REDIRECT } from "@/lib/native";
 import { useTheme } from "@/lib/theme";
 import { getSupabase } from "@/lib/supabase";
@@ -24,6 +26,7 @@ const WIDGET_DAYS = 120; // 위젯 잔디가 그릴 수 있는 최대 기간(약
  * 2) 위젯 버튼·로그인 메일 링크로 앱이 열리면 해당 화면 이동/로그인 처리.
  * 3) 뒤로가기 버튼: 열린 시트부터 닫기.
  * 4) 휴식 종료 알림(백그라운드일 때만)  5) 오늘 운동 리마인더 예약
+ * 6) Health Connect 체중 자동 가져오기
  */
 export function NativeBridge() {
   const router = useRouter();
@@ -32,6 +35,24 @@ export function NativeBridge() {
   const { data: profile } = useProfile();
   const { resolved } = useTheme();
   const [resumeTick, setResumeTick] = useState(0);
+  const qc = useQueryClient();
+
+  // 6) Health Connect: 앱을 열거나 돌아올 때(1시간에 한 번) 비어 있는 날의 체중 채우기
+  useEffect(() => {
+    if (!isNativeApp() || !isHealthLinked()) return;
+    const KEY = "ounwan-health-pull";
+    try {
+      if (Date.now() - Number(localStorage.getItem(KEY) || 0) < 60 * 60 * 1000) return;
+      localStorage.setItem(KEY, String(Date.now()));
+    } catch {
+      /* noop */
+    }
+    void importWeights()
+      .then((n) => {
+        if (n > 0) void qc.invalidateQueries({ queryKey: qk.bodyMetrics });
+      })
+      .catch(() => {});
+  }, [resumeTick, qc]);
 
   // 4) 휴식 종료 알림: 앱이 백그라운드로 가면 종료 시각에 예약, 돌아오면 취소
   //    (앱 안에서는 기존 소리·진동이 울리므로 이중 알림 방지)
