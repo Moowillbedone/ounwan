@@ -538,7 +538,12 @@ function HealthRow({ native }: { native: boolean }) {
           · 오늘 걸음 <b className="text-text">{preview.stepsToday.toLocaleString()}</b>보
           {/* 진단 — 데이터가 안 보일 때 원인 파악용 */}
           <div className="mt-1.5 border-t border-border pt-1.5 text-[11px] leading-snug text-text-3">
-            최근 7일 걸음 기록 {preview.stepRecords7d}건 · 합계 {preview.steps7d.toLocaleString()}보
+            걸음 합계 방식:{" "}
+            {preview.stepsMethod === "aggregate"
+              ? "중복 제거(삼성 헬스와 같은 기준)"
+              : "단순 합산 — 폰·워치 중복이 섞일 수 있어요(앱을 업데이트하면 해결)"}
+            <br />
+            최근 7일 원본 기록 {preview.stepRecords7d}건(중복 포함 {preview.steps7d.toLocaleString()}보)
             <br />
             마지막 걸음 기록:{" "}
             {preview.lastStepAt

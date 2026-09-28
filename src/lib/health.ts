@@ -1,5 +1,6 @@
 "use client";
 
+import { registerPlugin } from "@capacitor/core";
 import { isNativeApp } from "./native";
 import { toDateKey } from "./utils";
 import * as repo from "./repo";
@@ -12,6 +13,36 @@ import * as repo from "./repo";
 // 권한은 기기 단위라서 '연결됨' 표시는 기기별(localStorage)로 둔다.
 
 const KEY = "ounwan-health";
+
+/**
+ * 걸음 합계(자체 네이티브 플러그인 HealthStepsPlugin.java).
+ * 기록을 그냥 더하면 폰·워치가 같은 시간에 쓴 걸음이 중복돼 삼성 헬스보다 많게 나온다 →
+ * Health Connect aggregate로 겹치는 구간을 걸러낸 합계를 쓴다. (모듈 최상위에서 등록 — async로 반환 금지)
+ */
+const HealthSteps = registerPlugin<{
+  aggregate(o: { startDate: string; endDate: string }): Promise<{ steps: number }>;
+}>("HealthSteps");
+
+/** 걸음 합계 방식: 'aggregate'(중복 제거) / 'raw'(구버전 앱 — 단순 합산) */
+export let stepsMethod: "aggregate" | "raw" = "aggregate";
+
+async function stepsBetween(start: Date, end: Date): Promise<number> {
+  try {
+    const r = await timeout(
+      HealthSteps.aggregate({ startDate: start.toISOString(), endDate: end.toISOString() }),
+      15000,
+      "걸음 합계"
+    );
+    stepsMethod = "aggregate";
+    return Math.round(r.steps);
+  } catch (e) {
+    // 이 기능이 없는 구버전 앱이면 기록 단순 합산으로 대신(중복이 섞일 수 있음)
+    if (!/not implemented|UNIMPLEMENTED/i.test(String((e as Error)?.message ?? e))) throw e;
+    stepsMethod = "raw";
+    const samples = await read("steps", start, end);
+    return Math.round(samples.reduce((n, x) => n + x.value, 0));
+  }
+}
 const READ = ["weight", "steps", "heartRate"] as const;
 
 type HealthPlugin = typeof import("@capgo/capacitor-health").Health;
@@ -117,6 +148,7 @@ export interface HealthPreview {
   stepRecords7d: number;
   lastStepAt: string | null; // 가장 최근 걸음 기록 시각(ISO)
   sources: string[]; // 걸음 기록을 쓴 앱 패키지
+  stepsMethod: "aggregate" | "raw"; // 걸음 합계 방식(중복 제거 여부)
   errors: string[];
 }
 
@@ -141,9 +173,11 @@ export async function healthPreview(): Promise<HealthPreview> {
   const lastStep = st[st.length - 1];
   return {
     weight: last ? { kg: Math.round(last.value * 10) / 10, date: toDateKey(new Date(last.startDate)) } : null,
-    stepsToday: Math.round(
-      st.filter((x) => new Date(x.startDate) >= todayStart).reduce((n, x) => n + x.value, 0)
-    ),
+    stepsToday: await stepsBetween(todayStart, now).catch((e) => {
+      errors.push(msg("걸음 합계", e));
+      return 0;
+    }),
+    stepsMethod,
     steps7d: Math.round(st.reduce((n, x) => n + x.value, 0)),
     stepRecords7d: st.length,
     lastStepAt: lastStep ? lastStep.endDate || lastStep.startDate : null,
@@ -175,21 +209,17 @@ export async function importWeights(): Promise<number> {
 
 /** 최근 7일 날짜별 걸음 수(오늘 포함) */
 export async function stepsByDay(days = 7): Promise<{ date: string; steps: number }[]> {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() - (days - 1));
-  const samples = await read("steps", start, new Date());
-  const map = new Map<string, number>();
-  for (let i = 0; i < days; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    map.set(toDateKey(d), 0);
+  const out: { date: string; steps: number }[] = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - i);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    out.push({ date: toDateKey(start), steps: await stepsBetween(start, end > now ? now : end) });
   }
-  for (const s of samples) {
-    const k = toDateKey(new Date(s.startDate));
-    if (map.has(k)) map.set(k, (map.get(k) ?? 0) + s.value);
-  }
-  return [...map.entries()].map(([date, steps]) => ({ date, steps: Math.round(steps) }));
+  return out;
 }
 
 /** 시간 구간의 평균·최고 심박(워치가 없으면 null) */
