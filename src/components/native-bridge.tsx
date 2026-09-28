@@ -9,6 +9,7 @@ import { useTheme } from "@/lib/theme";
 import { getSupabase } from "@/lib/supabase";
 import { computeStreak, dayGrassLevel, isSessionDone, toDateKey } from "@/lib/utils";
 import { useToast } from "./ui";
+import { closeTopOverlay } from "@/lib/back-stack";
 
 const OPEN_PREFIX = "com.ounwan.app://open";
 const WIDGET_DAYS = 120; // 위젯 잔디가 그릴 수 있는 최대 기간(약 17주)
@@ -18,6 +19,7 @@ const WIDGET_DAYS = 120; // 위젯 잔디가 그릴 수 있는 최대 기간(약
  * 0) 상태바 색을 앱 테마에 맞춘다.
  * 1) 기록이 바뀔 때마다 홈 화면 위젯에 요약(연속기록·잔디)을 보낸다.
  * 2) 위젯 버튼·로그인 메일 링크로 앱이 열리면 해당 화면 이동/로그인 처리.
+ * 3) 뒤로가기 버튼: 열린 시트부터 닫기.
  */
 export function NativeBridge() {
   const router = useRouter();
@@ -54,6 +56,20 @@ export function NativeBridge() {
     const payload = { v: 1, streak, weekStartsOn, days, updatedAt: Date.now() };
     void WidgetBridge.update({ data: JSON.stringify(payload) }).catch(() => {});
   }, [sessions, profile?.weekStartsMonday]);
+
+  // 3) 안드로이드 뒤로가기: 열린 시트·메뉴 먼저 닫기 → 이전 화면 → 첫 화면이면 앱을 백그라운드로
+  //    (종료 대신 백그라운드로 보내야 러닝 기록·휴식 타이머가 끊기지 않음)
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    const sub = App.addListener("backButton", ({ canGoBack }) => {
+      if (closeTopOverlay()) return;
+      if (canGoBack) window.history.back();
+      else void App.minimizeApp();
+    });
+    return () => {
+      void sub.then((h) => h.remove());
+    };
+  }, []);
 
   // 2) 앱을 연 URL 처리(위젯 버튼 / 로그인 콜백)
   useEffect(() => {

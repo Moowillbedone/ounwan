@@ -8,6 +8,7 @@ import {
   useEffect,
 } from "react";
 import { X } from "lucide-react";
+import { useBackClose } from "@/lib/back-stack";
 
 export function cn(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");
@@ -100,6 +101,8 @@ export function Sheet({
   children: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  // 안드로이드 뒤로가기 → 화면 이동 대신 시트부터 닫기
+  useBackClose(open, onClose);
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
