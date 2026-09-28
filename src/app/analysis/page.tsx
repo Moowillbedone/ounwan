@@ -12,6 +12,7 @@ import { ActionSection } from "@/components/analysis/action-section";
 import { StrengthRatioSection } from "@/components/analysis/strength-ratio-section";
 import { BalanceSection } from "@/components/analysis/balance-section";
 import { HabitSection } from "@/components/analysis/habit-section";
+import { RunningSection } from "@/components/analysis/running-section";
 
 export default function AnalysisPage() {
   const { data: sessions } = useSessions();
@@ -70,6 +71,12 @@ export default function AnalysisPage() {
           <StrengthRatioSection base={base} profile={profile} />
           <BalanceSection base={base} />
           <HabitSection base={base} />
+          <RunningSection
+            sessions={sessions ?? []}
+            exMap={exMap}
+            profile={profile}
+            today={today}
+          />
         </div>
       )}
     </div>

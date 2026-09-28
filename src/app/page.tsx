@@ -178,9 +178,12 @@ export default function HomePage() {
               ? [...new Set(daySessions.flatMap((s) => s.bodyParts))]
               : [];
             const hasBw = bwByDate.has(key);
+            // 하루 대표 라벨이 있으면 우선, 없으면 라벨 붙은 첫 운동의 라벨
+            const dayLbl = profile?.dayLabels?.[key];
             const labeledSession = daySessions?.find((s) => s.label);
-            const dayLabel = labeledSession?.label ?? null;
-            const dayLabelColor = labeledSession?.labelColor || DEFAULT_LABEL_COLOR;
+            const dayLabel = dayLbl?.label || labeledSession?.label || null;
+            const dayLabelColor =
+              (dayLbl?.label ? dayLbl.color : labeledSession?.labelColor) || DEFAULT_LABEL_COLOR;
             // 운동 완료(운동 종료까지 누른 날) = 도장. 시작만 하고 안 끝낸 날은 점선.
             const doneDay = heatData.has(key);
             const inProgress =

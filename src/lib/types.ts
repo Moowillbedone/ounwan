@@ -165,7 +165,17 @@ export interface Profile extends SyncMeta {
    */
   exerciseStandards?: Record<string, string>;
   exerciseNotes?: Record<string, string>; // 종목별 공유 메모(exerciseId→메모) — 날짜 무관 연동
+  /**
+   * 하루 대표 라벨(날짜 "YYYY-MM-DD" → 라벨·색). 하루에 운동이 여러 개일 때
+   * 캘린더에 개별 운동 라벨 대신 이 라벨을 보여준다. 프로필 문서로 기기 간 동기화.
+   */
+  dayLabels?: Record<string, DayLabel>;
   onboardedAt?: string | null;
+}
+
+export interface DayLabel {
+  label: string;
+  color?: string | null;
 }
 
 /** 운동별 히스토리 조회용 파생 타입 */
