@@ -81,9 +81,24 @@ export function mergeSteps(samples: Sample[], start: Date, end: Date): number {
   return Math.round(total);
 }
 
+const SAMSUNG_HEALTH = "com.sec.android.app.shealth";
+
+/**
+ * 하루 걸음 계산.
+ * - 삼성 헬스는 폰+워치를 이미 합친 걸음을 '그날 0시~24시 하루짜리 기록'으로 보낸다.
+ *   삼성 기록이 있으면 그것만 쓴다(안드로이드 자체 폰 걸음 등 다른 출처는 삼성 값에 이미 포함 → 중복).
+ * - 삼성이 없으면 여러 출처를 시간대 병합(mergeSteps).
+ * - 창은 항상 '하루 전체'(0시~다음날 0시): 하루짜리 기록을 '지금 시각까지'로 잘라 비례 계산하면
+ *   오후 2시에 하루 걸음의 14/24만 세는 과소 문제가 생긴다(R42).
+ */
+export function daySteps(samples: Sample[], dayStart: Date, dayEnd: Date): number {
+  const samsung = samples.filter((x) => x.sourceId === SAMSUNG_HEALTH);
+  return mergeSteps(samsung.length ? samsung : samples, dayStart, dayEnd);
+}
+
 async function stepsBetween(start: Date, end: Date): Promise<number> {
   const samples = await read("steps", start, end);
-  return mergeSteps(samples, start, end);
+  return daySteps(samples, start, end);
 }
 
 /** 진단용: Health Connect 공식 합계(aggregate) — 구버전 앱이면 null */
@@ -233,22 +248,24 @@ export async function healthPreview(): Promise<HealthPreview> {
   weekStart.setDate(weekStart.getDate() - 6);
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
   const errors: string[] = [];
   const msg = (what: string, e: unknown) => `${what}: ${String((e as Error)?.message ?? e)}`;
 
   const [w, st] = await Promise.all([
     read("weight", monthAgo, now).catch((e) => (errors.push(msg("체중", e)), [] as Sample[])),
-    read("steps", weekStart, now).catch((e) => (errors.push(msg("걸음", e)), [] as Sample[])),
+    read("steps", weekStart, tomorrowStart).catch((e) => (errors.push(msg("걸음", e)), [] as Sample[])),
   ]);
   const last = w[w.length - 1];
   const lastStep = st[st.length - 1];
   const todaySamples = st.filter((x) => Date.parse(x.endDate || x.startDate) > todayStart.getTime());
   return {
     weight: last ? { kg: Math.round(last.value * 10) / 10, date: toDateKey(new Date(last.startDate)) } : null,
-    stepsToday: mergeSteps(todaySamples, todayStart, now),
+    stepsToday: daySteps(todaySamples, todayStart, tomorrowStart),
     stepsMethod,
     stepsTodayRaw: Math.round(todaySamples.reduce((n, x) => n + x.value, 0)),
-    stepsTodayAggregate: await stepsAggregate(todayStart, now),
+    stepsTodayAggregate: await stepsAggregate(todayStart, tomorrowStart),
     streamsToday: countStreams(todaySamples),
     steps7d: Math.round(st.reduce((n, x) => n + x.value, 0)),
     stepRecords7d: st.length,
@@ -282,14 +299,13 @@ export async function importWeights(): Promise<number> {
 /** 최근 7일 날짜별 걸음 수(오늘 포함) */
 export async function stepsByDay(days = 7): Promise<{ date: string; steps: number }[]> {
   const out: { date: string; steps: number }[] = [];
-  const now = new Date();
   for (let i = days - 1; i >= 0; i--) {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     start.setDate(start.getDate() - i);
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
-    out.push({ date: toDateKey(start), steps: await stepsBetween(start, end > now ? now : end) });
+    out.push({ date: toDateKey(start), steps: await stepsBetween(start, end) });
   }
   return out;
 }
