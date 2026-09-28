@@ -1,6 +1,7 @@
 // 오운완 서비스워커 — 오프라인 앱 셸 (정적 익스포트 + 해시 자산 → 안전한 캐시)
-const CACHE = "ounwan-v1";
-const APP_SHELL = ["/", "/routines", "/stats", "/settings", "/log", "/icon.svg"];
+const CACHE = "ounwan-v2";
+// /run: 야외에서 신호가 약해도 러닝 화면이 열리도록 미리 캐시
+const APP_SHELL = ["/", "/routines", "/stats", "/settings", "/log", "/run", "/analysis", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

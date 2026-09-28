@@ -187,16 +187,43 @@ export function isSessionDone(s: { endedAt?: string | null }): boolean {
   return !!s.endedAt;
 }
 
+type DistanceSource = {
+  exercises: { trackingMode?: string; sets: { isCompleted: boolean; distanceM?: number | null; durationSec?: number | null }[] }[];
+  run?: { distanceM: number; movingSec: number } | null;
+};
+
+/**
+ * 세션의 거리 기록 합계(m)와 그 시간(초).
+ * '거리' 방식 운동의 완료 세트를 합산. (거리 방식 도입 전 GPS 러닝은 run 필드로 대체)
+ */
+export function sessionDistance(s: DistanceSource): { meters: number; sec: number } {
+  let meters = 0;
+  let sec = 0;
+  for (const ex of s.exercises) {
+    if (ex.trackingMode !== "distance") continue;
+    for (const st of ex.sets) {
+      if (!st.isCompleted) continue;
+      meters += st.distanceM ?? 0;
+      sec += st.durationSec ?? 0;
+    }
+  }
+  if (meters === 0 && s.run) return { meters: s.run.distanceM, sec: s.run.movingSec };
+  return { meters, sec };
+}
+
+/** 페이스(초/km). 거리·시간 중 하나라도 없으면 null */
+export function paceSecPerKm(meters: number, sec: number): number | null {
+  return meters > 0 && sec > 0 ? sec / (meters / 1000) : null;
+}
+
 /**
  * 그날 완료 세션들로 잔디 단계(1~4)를 정한다. 홈 잔디와 홈 화면 위젯이 같이 쓴다.
- * 근력: 완료 세트 수 기준. 러닝: 거리 기준(3/5/10km). 둘 중 높은 단계.
+ * 근력: 완료 세트 수 기준. 거리(러닝 등): 3/5/10km 기준. 둘 중 높은 단계.
  */
-export function dayGrassLevel(
-  done: { totalSets: number; run?: { distanceM: number } | null }[]
-): number {
+export function dayGrassLevel(done: (DistanceSource & { totalSets: number })[]): number {
   const sets = done.reduce((n, s) => n + s.totalSets, 0);
   const setLevel = sets < 8 ? 1 : sets < 14 ? 2 : sets < 20 ? 3 : 4;
-  const km = done.reduce((n, s) => n + (s.run?.distanceM ?? 0), 0) / 1000;
+  const km = done.reduce((n, s) => n + sessionDistance(s).meters, 0) / 1000;
   const runLevel = km <= 0 ? 0 : km < 3 ? 1 : km < 5 ? 2 : km < 10 ? 3 : 4;
   return Math.max(setLevel, runLevel);
 }

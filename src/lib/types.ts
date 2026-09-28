@@ -30,8 +30,8 @@ export type ExerciseCategory =
 
 export type SetType = "working" | "warmup" | "drop" | "failure";
 
-/** 기록 방식: 중량+횟수(기본) / 횟수만(맨몸) / 시간만(유산소·스트레칭) */
-export type TrackingMode = "weight_reps" | "reps" | "time";
+/** 기록 방식: 중량+횟수(기본) / 횟수만(맨몸) / 시간만(스트레칭 등) / 거리+시간(달리기·걷기·사이클 등) */
+export type TrackingMode = "weight_reps" | "reps" | "time" | "distance";
 
 export type Unit = "kg" | "lb";
 export type ThemePref = "system" | "light" | "dark";
@@ -83,7 +83,8 @@ export interface WorkoutSet {
   setType: SetType;
   weight: number; // 저장은 항상 kg 기준
   reps: number;
-  durationSec?: number | null; // 시간 기록 방식일 때 사용
+  durationSec?: number | null; // 시간·거리 기록 방식일 때 사용
+  distanceM?: number | null; // 거리 기록 방식일 때 사용(m 단위 저장, 화면은 km)
   rpe?: number | null;
   isCompleted: boolean;
   completedAt?: string | null; // 세트 체크 시각(타임라인/실운동시간)

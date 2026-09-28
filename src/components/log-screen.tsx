@@ -27,6 +27,7 @@ import { useSaveSession, useProfile, useUpdateProfile, useExerciseMap } from "@/
 import { armFeedback } from "@/lib/feedback";
 import * as repo from "@/lib/repo";
 import { useBackClose } from "@/lib/back-stack";
+import { fmtKm } from "@/lib/run-tracker";
 import {
   uid,
   nowISO,
@@ -57,6 +58,7 @@ const MODE_LABEL: Record<TrackingMode, string> = {
   weight_reps: "중량 + 횟수",
   reps: "횟수만",
   time: "시간만",
+  distance: "거리 + 시간",
 };
 
 const SET_TYPES: {
@@ -72,7 +74,19 @@ const SET_TYPES: {
   { value: "failure", label: "실패셋 (F)", desc: "더 못 들 때까지 수행한 세트", badge: "F", color: "var(--danger)" },
 ];
 
-function defaultModeFor(category?: string): TrackingMode {
+// 처음 기록할 때 '거리 + 시간'으로 시작하는 종목(이전 기록이 있으면 그 방식을 따름)
+const DISTANCE_SLUGS = new Set([
+  "outdoor-running",
+  "treadmill-running",
+  "walking",
+  "hiking",
+  "cycling",
+  "swimming",
+  "rowing-machine",
+]);
+
+function defaultModeFor(category?: string, slug?: string): TrackingMode {
+  if (slug && DISTANCE_SLUGS.has(slug)) return "distance";
   if (category === "cardio" || category === "stretching") return "time";
   if (category === "bodyweight") return "reps";
   return "weight_reps";
@@ -197,7 +211,7 @@ export function LogScreen() {
                 i,
                 lp?.exercise,
                 ref.targetSets,
-                defaultModeFor(meta?.category)
+                defaultModeFor(meta?.category, meta?.slug)
               )
             );
           }
@@ -257,7 +271,7 @@ export function LogScreen() {
           base + i,
           lastPerf.current[eid]?.exercise,
           undefined,
-          defaultModeFor(exMap.get(eid)?.category)
+          defaultModeFor(exMap.get(eid)?.category, exMap.get(eid)?.slug)
         )
       );
       return { ...s, exercises: [...s.exercises, ...added] };
@@ -380,6 +394,7 @@ export function LogScreen() {
                 weight: st.weight,
                 reps: st.reps,
                 durationSec: st.durationSec ?? null,
+                distanceM: st.distanceM ?? null,
                 restSeconds: st.restSeconds ?? null,
                 isCompleted: false,
               })),
@@ -424,6 +439,7 @@ export function LogScreen() {
             weight: st.weight,
             reps: st.reps,
             durationSec: st.durationSec ?? null,
+            distanceM: st.distanceM ?? null,
             restSeconds: st.restSeconds ?? null,
             isCompleted: false,
           })),
@@ -461,7 +477,10 @@ export function LogScreen() {
               setType: "working",
               weight: last?.weight ?? 0,
               reps: last?.reps ?? 0,
-              durationSec: last?.durationSec ?? (e.trackingMode === "time" ? 0 : null),
+              durationSec:
+                last?.durationSec ??
+                (e.trackingMode === "time" || e.trackingMode === "distance" ? 0 : null),
+              distanceM: last?.distanceM ?? null,
               restSeconds: last?.restSeconds ?? null,
               isCompleted: false,
             },
@@ -802,6 +821,7 @@ function buildExercise(
       weight: s.weight,
       reps: s.reps,
       durationSec: s.durationSec ?? null,
+      distanceM: s.distanceM ?? null,
       restSeconds: s.restSeconds ?? null,
       isCompleted: false,
     }));
@@ -812,7 +832,7 @@ function buildExercise(
       setType: "working" as const,
       weight: 0,
       reps: 0,
-      durationSec: mode === "time" ? 0 : null,
+      durationSec: mode === "time" || mode === "distance" ? 0 : null,
       isCompleted: false,
     }));
   }
@@ -837,6 +857,8 @@ function prevSummaryText(
   if (working.length === 0) return null;
   const parts = working.slice(0, 4).map((s) => {
     if (mode === "time") return fmtDuration(s.durationSec ?? 0);
+    if (mode === "distance")
+      return `${fmtKm(s.distanceM ?? 0)}km${s.durationSec ? ` ${fmtDuration(s.durationSec)}` : ""}`;
     if (mode === "reps") return `${s.reps}회`;
     return `${fmtWeight(s.weight, unit).replace(unit, "")}×${s.reps}`;
   });
@@ -913,6 +935,8 @@ function ExerciseLogCard({
   const cols =
     mode === "weight_reps"
       ? "grid-cols-[26px_1fr_1fr_40px]"
+      : mode === "distance"
+      ? "grid-cols-[26px_1fr_1.3fr_40px]"
       : "grid-cols-[26px_1fr_40px]";
 
   return (
@@ -1069,6 +1093,12 @@ function ExerciseLogCard({
         )}
         {mode === "reps" && <span className="text-center">횟수</span>}
         {mode === "time" && <span className="text-center">시간 (분·초)</span>}
+        {mode === "distance" && (
+          <>
+            <span className="text-center">거리 (km)</span>
+            <span className="text-center">시간 (분·초)</span>
+          </>
+        )}
         <span />
       </div>
 
@@ -1441,6 +1471,16 @@ function SetRow({
       )}
       {mode === "reps" && repsField}
       {mode === "time" && timeField}
+      {mode === "distance" && (
+        <>
+          <DistanceField
+            meters={set.distanceM ?? 0}
+            placeholderMeters={prev?.distanceM ?? 0}
+            onChange={(m) => onPatch({ distanceM: m })}
+          />
+          {timeField}
+        </>
+      )}
 
       <div className="flex items-center justify-center">
         <button
@@ -1505,6 +1545,70 @@ function SetRow({
       </Button>
     </Sheet>
     </>
+  );
+}
+
+/**
+ * 거리(km) 입력. 숫자 전용 입력칸은 "5." 같은 입력 중간 상태를 지워버리므로
+ * 입력 중 글자는 그대로 두고, 올바른 숫자일 때만 m 단위로 저장한다. ±0.5km 버튼.
+ */
+function DistanceField({
+  meters,
+  placeholderMeters,
+  onChange,
+}: {
+  meters: number;
+  placeholderMeters: number;
+  onChange: (meters: number) => void;
+}) {
+  const fromMeters = (m: number) => (m > 0 ? String(Math.round(m / 10) / 100) : "");
+  const [text, setText] = useState(fromMeters(meters));
+  const [focused, setFocused] = useState(false);
+  // 밖에서 값이 바뀌면(최신 기록 불러오기·동기화) 입력 중이 아닐 때만 반영
+  useEffect(() => {
+    if (!focused) setText(fromMeters(meters));
+  }, [meters, focused]);
+  const bump = (dir: number) => {
+    const base = meters > 0 ? meters : placeholderMeters;
+    const next = Math.max(0, Math.round((base / 1000 + dir * 0.5) * 100) / 100);
+    setText(next > 0 ? String(next) : "");
+    onChange(Math.round(next * 1000));
+  };
+  return (
+    <div className="flex items-center gap-0.5">
+      <button
+        onClick={() => bump(-1)}
+        tabIndex={-1}
+        className="grid h-7 w-5 shrink-0 place-items-center rounded-md text-text-3 active:bg-surface-2"
+      >
+        <Minus size={13} />
+      </button>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        placeholder={placeholderMeters > 0 ? fromMeters(placeholderMeters) : "0"}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          setFocused(false);
+          setText(fromMeters(meters));
+        }}
+        onChange={(e) => {
+          const v = e.target.value.replace(",", ".").replace(/[^0-9.]/g, "");
+          setText(v);
+          const n = parseFloat(v);
+          onChange(isNaN(n) ? 0 : Math.round(n * 1000));
+        }}
+        className="h-9 w-full min-w-0 rounded-md bg-surface-2 text-center text-[15px] font-semibold tabular-nums outline-none focus:ring-2 focus:ring-brand/40 placeholder:text-text-3/60"
+      />
+      <button
+        onClick={() => bump(1)}
+        tabIndex={-1}
+        className="grid h-7 w-5 shrink-0 place-items-center rounded-md text-text-3 active:bg-surface-2"
+      >
+        <Plus size={13} />
+      </button>
+    </div>
   );
 }
 

@@ -21,6 +21,7 @@ import { playRestSound, armFeedback, REST_SOUNDS } from "@/lib/feedback";
 import * as repo from "@/lib/repo";
 import { APP_NAME } from "@/lib/constants";
 import type { ThemePref, Unit } from "@/lib/types";
+import { isNativeApp } from "@/lib/native";
 
 export default function SettingsPage() {
   const { mode, user, configured, sync, signOut, syncNow } = useAuth();
@@ -34,11 +35,16 @@ export default function SettingsPage() {
   const weekMon = profile?.weekStartsMonday ?? true;
 
   const exportCsv = async () => {
+    // 안드로이드 앱의 웹뷰는 파일 다운로드(blob)를 지원하지 않는다 → 브라우저로 안내
+    if (isNativeApp()) {
+      toast("앱에서는 아직 파일 저장이 안 돼요. 브라우저에서 로그인 후 내보내 주세요.");
+      return;
+    }
     const sessions = await repo.listSessions();
     const exs = await repo.listExercises();
     const nameOf = new Map(exs.map((e) => [e.id, e.nameKo]));
     const rows = [
-      ["날짜", "세션", "운동", "종목ID", "세트", "무게(kg)", "횟수", "세트유형", "완료", "종료됨"],
+      ["날짜", "세션", "운동", "종목ID", "세트", "무게(kg)", "횟수", "시간(초)", "거리(km)", "세트유형", "완료", "종료됨"],
     ];
     for (const s of sessions.slice().reverse()) {
       for (const ex of s.exercises) {
@@ -51,6 +57,8 @@ export default function SettingsPage() {
             String(i + 1),
             String(st.weight),
             String(st.reps),
+            st.durationSec ? String(st.durationSec) : "",
+            st.distanceM ? String(st.distanceM / 1000) : "",
             st.setType,
             st.isCompleted ? "O" : "",
             s.endedAt ? "O" : "",

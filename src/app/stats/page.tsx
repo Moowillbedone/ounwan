@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Flame, TrendingUp, Scale, Trophy, Plus, SlidersHorizontal, Eye, EyeOff } from "lucide-react";
+import { Flame, TrendingUp, Scale, Trophy, Plus, SlidersHorizontal, Eye, EyeOff, Footprints } from "lucide-react";
 import {
   useSessions,
   useExercises,
@@ -25,7 +25,10 @@ import {
   todayKey,
   dateKeyToDate,
   isSessionDone,
+  sessionDistance,
+  paceSecPerKm,
 } from "@/lib/utils";
+import { fmtKm, fmtPace } from "@/lib/run-tracker";
 import type { BodyPart, Exercise, Unit } from "@/lib/types";
 
 export default function StatsPage() {
@@ -108,6 +111,13 @@ export default function StatsPage() {
     }
     return s;
   }, [sessions]);
+  // 거리로 기록한 종목(러닝 등)은 아래 '러닝·유산소 거리'에서 따로 보여주므로 제외 안내에서 뺀다
+  const distanceIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const sess of sessions ?? [])
+      for (const ex of sess.exercises) if (ex.trackingMode === "distance") s.add(ex.exerciseId);
+    return s;
+  }, [sessions]);
 
   // 내용 기반 deps(참조 아님) — 프로필 리페치로 배열 참조가 바뀌어도 값이 같으면 재계산 안 함
   const hiddenKey = (profile?.hiddenStats ?? []).join(",");
@@ -126,7 +136,9 @@ export default function StatsPage() {
     () => eligible.filter((e) => !hiddenIds.has(e.id)),
     [eligible, hiddenIds]
   );
-  const nonMeasurableCount = trained.length - eligible.length;
+  const nonMeasurableCount = trained.filter(
+    (e) => !measurableIds.has(e.id) && !distanceIds.has(e.id)
+  ).length;
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedEx, setSelectedEx] = useState<string | null>(null);
@@ -179,6 +191,45 @@ export default function StatsPage() {
     [metrics, unit]
   );
 
+  // 거리(러닝·걷기·사이클 등) — '거리 + 시간' 방식 완료 세트와 GPS 러닝을 날짜별로 합산
+  const distance = useMemo(() => {
+    const done = (sessions ?? []).filter(isSessionDone);
+    const byDate = new Map<string, number>();
+    let bestPace: number | null = null;
+    let longest = 0;
+    for (const s of done) {
+      const d = sessionDistance(s);
+      if (d.meters <= 0) continue;
+      byDate.set(s.date, (byDate.get(s.date) ?? 0) + d.meters);
+      longest = Math.max(longest, d.meters);
+      // 최고 페이스는 1km 이상 기록만(짧은 기록의 튀는 값 제외)
+      const p = d.meters >= 1000 ? paceSecPerKm(d.meters, d.sec) : null;
+      if (p != null && (bestPace == null || p < bestPace)) bestPace = p;
+    }
+    if (byDate.size === 0) return null;
+    const now = new Date();
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    let week = 0,
+      month = 0,
+      total = 0;
+    for (const [date, m] of byDate) {
+      const d = dateKeyToDate(date);
+      total += m;
+      if (d >= weekAgo) week += m;
+      if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) month += m;
+    }
+    const points = [...byDate.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-20)
+      .map(([date, m]) => ({
+        label: shortDate(date),
+        value: Math.round(m / 10) / 100,
+        dateLabel: longDate(date),
+      }));
+    return { week, month, total, bestPace, longest, points };
+  }, [sessions]);
+
   const hasData = (sessions ?? []).length > 0;
 
   return (
@@ -209,8 +260,8 @@ export default function StatsPage() {
         </div>
         {eligible.length === 0 ? (
           <div className="py-8 text-center text-sm text-text-3">
-            {trained.length === 0
-              ? "운동을 기록하면 성장 그래프가 그려져요"
+            {trained.length === 0 || trained.every((e) => distanceIds.has(e.id))
+              ? "근력 운동을 기록하면 성장 그래프가 그려져요"
               : "중량 운동을 기록하면 추정 1RM 성장이 그려져요"}
           </div>
         ) : visibleTrained.length === 0 ? (
@@ -259,6 +310,27 @@ export default function StatsPage() {
           <HBars data={partVolume} />
         )}
       </section>
+
+      {/* 거리 기록(러닝 등) — 기록이 있을 때만 */}
+      {distance && (
+        <section className="rounded-app border border-border bg-surface p-4 shadow-[var(--shadow-card)]">
+          <div className="mb-3 font-bold flex items-center gap-1.5">
+            <Footprints size={16} className="text-text-3" /> 러닝·유산소 거리
+          </div>
+          <div className="mb-3 grid grid-cols-3 gap-2 text-center">
+            <PrStat label="최근 7일" value={`${fmtKm(distance.week)}km`} />
+            <PrStat label="이번 달" value={`${fmtKm(distance.month)}km`} highlight />
+            <PrStat label="누적" value={`${fmtKm(distance.total)}km`} />
+          </div>
+          {distance.points.length > 1 && (
+            <LineChart data={distance.points} valueSuffix="km" />
+          )}
+          <div className="mt-2 grid grid-cols-2 gap-2 text-center">
+            <PrStat label="최장 거리" value={`${fmtKm(distance.longest)}km`} />
+            <PrStat label="최고 페이스" value={distance.bestPace != null ? fmtPace(distance.bestPace) : "—"} />
+          </div>
+        </section>
+      )}
 
       {/* 체중 추이 */}
       <section className="rounded-app border border-border bg-surface p-4 shadow-[var(--shadow-card)]">
