@@ -7,6 +7,7 @@
 import { useSyncExternalStore } from "react";
 import { startGps, haversineM, type GpsFix, type GpsError } from "./gps";
 import type { RunRecord } from "./types";
+import { speak, spokenDuration } from "./voice";
 
 const KEY = "ounwan-run";
 
@@ -129,6 +130,15 @@ function onFix(fix: GpsFix) {
     lastSplitSec = crossSec;
   }
 
+  // 새로 완주한 km마다 음성 안내(구간 페이스·총 시간)
+  for (let k = s.splits.length; k < splits.length; k++) {
+    void speak(
+      `${k + 1}킬로미터. 구간 페이스 ${spokenDuration(splits[k])}. 총 시간 ${spokenDuration(
+        splits.slice(0, k + 1).reduce((n, x) => n + x, 0)
+      )}.`
+    );
+  }
+
   const route = [...s.route];
   const lastPt = route[route.length - 1];
   if (!lastPt || haversineM(lastPt[0], lastPt[1], fix.lat, fix.lng) >= ROUTE_STEP_M) {
@@ -187,6 +197,7 @@ export function startRun() {
     gpsError: null,
   });
   void ensureWatcher();
+  void speak("러닝을 시작합니다");
 }
 
 export function pauseRun() {
@@ -201,6 +212,7 @@ export function pauseRun() {
     anchor: null,
     recent: [],
   });
+  void speak("일시정지");
 }
 
 export function resumeRun() {
@@ -208,6 +220,7 @@ export function resumeRun() {
   if (!s || s.status !== "paused") return;
   set({ ...s, status: "running", interrupted: false, resumedAt: Date.now(), anchor: null });
   void ensureWatcher();
+  void speak("다시 달립니다");
 }
 
 /** 기록 종료 → 저장용 결과 반환(상태는 비움). */

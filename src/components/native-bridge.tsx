@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { App } from "@capacitor/app";
 import { useProfile, useSessions } from "@/lib/hooks";
@@ -11,6 +11,8 @@ import { authErrorKo } from "@/lib/auth";
 import { computeStreak, dayGrassLevel, isSessionDone, toDateKey } from "@/lib/utils";
 import { useToast } from "./ui";
 import { closeTopOverlay } from "@/lib/back-stack";
+import { getRest } from "@/lib/rest-timer";
+import { scheduleRestEnd, cancelRestEnd, syncDailyReminders } from "@/lib/notify";
 
 const OPEN_PREFIX = "com.ounwan.app://open";
 const WIDGET_DAYS = 120; // 위젯 잔디가 그릴 수 있는 최대 기간(약 17주)
@@ -21,6 +23,7 @@ const WIDGET_DAYS = 120; // 위젯 잔디가 그릴 수 있는 최대 기간(약
  * 1) 기록이 바뀔 때마다 홈 화면 위젯에 요약(연속기록·잔디)을 보낸다.
  * 2) 위젯 버튼·로그인 메일 링크로 앱이 열리면 해당 화면 이동/로그인 처리.
  * 3) 뒤로가기 버튼: 열린 시트부터 닫기.
+ * 4) 휴식 종료 알림(백그라운드일 때만)  5) 오늘 운동 리마인더 예약
  */
 export function NativeBridge() {
   const router = useRouter();
@@ -28,6 +31,43 @@ export function NativeBridge() {
   const { data: sessions } = useSessions();
   const { data: profile } = useProfile();
   const { resolved } = useTheme();
+  const [resumeTick, setResumeTick] = useState(0);
+
+  // 4) 휴식 종료 알림: 앱이 백그라운드로 가면 종료 시각에 예약, 돌아오면 취소
+  //    (앱 안에서는 기존 소리·진동이 울리므로 이중 알림 방지)
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    const onHide = () => {
+      const r = getRest();
+      if (r && r.alert && r.endsAt > Date.now()) void scheduleRestEnd(r.endsAt);
+    };
+    const onShow = () => {
+      void cancelRestEnd();
+      setResumeTick((n) => n + 1); // 날짜가 바뀌었을 수 있으니 리마인더 재예약
+    };
+    const pause = App.addListener("pause", onHide);
+    const resume = App.addListener("resume", onShow);
+    const onVis = () => (document.visibilityState === "hidden" ? onHide() : onShow());
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      void pause.then((h) => h.remove());
+      void resume.then((h) => h.remove());
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
+  // 5) 오늘 운동 리마인더: 기록·설정이 바뀌거나 앱으로 돌아올 때 14일치 재예약
+  useEffect(() => {
+    if (!isNativeApp() || !sessions) return;
+    const weekStartsOn: 0 | 1 = profile?.weekStartsMonday === false ? 0 : 1;
+    const doneDates = new Set(sessions.filter(isSessionDone).map((s) => s.date));
+    void syncDailyReminders({
+      enabled: profile?.reminderEnabled === true,
+      time: profile?.reminderTime ?? "20:00",
+      doneDates,
+      streak: computeStreak(doneDates, weekStartsOn).current,
+    });
+  }, [sessions, profile?.reminderEnabled, profile?.reminderTime, profile?.weekStartsMonday, resumeTick]);
 
   // 0) 상태바·하단 버튼 영역 색을 앱 테마(라이트/다크)에 맞춤. 구버전 APK엔 플러그인이 없으니 실패 무시.
   useEffect(() => {

@@ -152,6 +152,8 @@ export interface Profile extends SyncMeta {
   weekStartsMonday: boolean;
   restAlert?: boolean; // 휴식 종료 알림(소리·진동) — 미지정=켜짐
   restSound?: RestSound; // 휴식 종료 알림음 — 미지정=chime(기본)
+  reminderEnabled?: boolean; // 오늘 운동 알림(앱 전용) — 미지정=꺼짐
+  reminderTime?: string; // "HH:MM" — 미지정=20:00
   // 분석 탭 근력 기준 비교용 신체 정보(선택 입력)
   sex?: "male" | "female" | null;
   birthYear?: number | null;

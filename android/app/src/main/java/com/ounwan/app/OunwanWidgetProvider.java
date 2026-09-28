@@ -44,6 +44,7 @@ public class OunwanWidgetProvider extends AppWidgetProvider {
         AppWidgetManager m = AppWidgetManager.getInstance(ctx);
         int[] ids = m.getAppWidgetIds(new ComponentName(ctx, OunwanWidgetProvider.class));
         for (int id : ids) render(ctx, m, id);
+        OunwanStreakWidgetProvider.refreshAll(ctx); // 1x1 위젯도 같이 갱신
     }
 
     @Override
@@ -151,7 +152,7 @@ public class OunwanWidgetProvider extends AppWidgetProvider {
     }
 
     /** 앱을 열고 웹의 해당 경로로 이동(NativeBridge가 appUrlOpen으로 처리). */
-    private static PendingIntent openIntent(Context ctx, int requestCode, String path) {
+    static PendingIntent openIntent(Context ctx, int requestCode, String path) {
         Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(OPEN_URL + path), ctx, MainActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         return PendingIntent.getActivity(ctx, requestCode, i,

@@ -19,6 +19,12 @@ const config: CapacitorConfig = {
     // (웹뷰는 상단 safe-area 값을 주지 않아서 CSS만으로는 제목이 시계 줄에 겹침)
     adjustMarginsForEdgeToEdge: "force",
   },
+  plugins: {
+    LocalNotifications: {
+      smallIcon: "ic_stat_ounwan",
+      iconColor: "#0F9D63",
+    },
+  },
 };
 
 export default config;

@@ -79,6 +79,11 @@ export function stopRest() {
   emit();
 }
 
+/** 현재 휴식 상태(리액트 밖에서 읽기용 — 앱이 백그라운드로 갈 때 알림 예약) */
+export function getRest(): RestState | null {
+  return state;
+}
+
 export function useRestTimer(): RestState | null {
   return useSyncExternalStore(
     (cb) => {

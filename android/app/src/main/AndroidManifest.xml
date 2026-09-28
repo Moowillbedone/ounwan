@@ -45,6 +45,19 @@
                 android:resource="@xml/ounwan_widget_info" />
         </receiver>
 
+        <!-- 1x1 연속기록 위젯 -->
+        <receiver
+            android:name=".OunwanStreakWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_streak_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ounwan_streak_widget_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -59,4 +72,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 휴식 종료·오늘 운동 알림을 정확한 시각에(스토어 밖 개인 설치라 USE_EXACT_ALARM 사용) -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <!-- 앱 안 업데이트: 받은 APK 설치 화면 열기 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>
