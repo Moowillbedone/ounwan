@@ -23,24 +23,80 @@ const HealthSteps = registerPlugin<{
   aggregate(o: { startDate: string; endDate: string }): Promise<{ steps: number }>;
 }>("HealthSteps");
 
-/** 걸음 합계 방식: 'aggregate'(중복 제거) / 'raw'(구버전 앱 — 단순 합산) */
-export let stepsMethod: "aggregate" | "raw" = "aggregate";
+/** 걸음 합계 방식: 'merge'(시간대 병합 — 표시값) */
+export let stepsMethod: "merge" = "merge";
+
+/**
+ * 폰·워치 걸음 '시간대 병합' — 삼성 헬스와 같은 방식.
+ * - 단순 합산: 폰과 워치가 같은 시간에 센 걸음이 둘 다 들어가 많게 나온다.
+ * - Health Connect aggregate: 겹치는 시간에 우선순위 앱/기기 하나만 남겨, 폰을 두고 워치만
+ *   차고 걸은 시간 같은 걸 통째로 빼먹어 적게 나온다.
+ * 그래서 ① 서로 겹치지 않는 기록끼리 '스트림'(대략 기기 하나)으로 묶고
+ *        ② 스트림마다 1분 단위로 걸음을 나눠 담은 뒤
+ *        ③ 같은 1분에서는 가장 많이 센 스트림 값만 쓴다.
+ */
+export function mergeSteps(samples: Sample[], start: Date, end: Date): number {
+  const s0 = start.getTime();
+  const e0 = end.getTime();
+  const MIN = 60_000;
+  const n = Math.max(1, Math.ceil((e0 - s0) / MIN));
+  const recs = samples
+    .map((x) => ({ a: Date.parse(x.startDate), b: Date.parse(x.endDate), v: x.value }))
+    .filter((r) => isFinite(r.a) && r.v > 0)
+    .map((r) => ({ ...r, b: isFinite(r.b) && r.b > r.a ? r.b : r.a }))
+    .sort((p, q) => p.a - q.a || p.b - q.b);
+
+  // ① 구간 분할: 앞선 스트림의 마지막 기록이 끝난 뒤 시작하면 같은 스트림에 넣는다
+  const streams: { lastEnd: number; buckets: Float64Array }[] = [];
+  for (const r of recs) {
+    let st = streams.find((x) => x.lastEnd <= r.a);
+    if (!st) {
+      st = { lastEnd: -Infinity, buckets: new Float64Array(n) };
+      streams.push(st);
+    }
+    st.lastEnd = Math.max(st.lastEnd, r.b);
+    // ② 기록의 걸음을 겹치는 1분 칸들에 시간 비율대로 나눠 담기
+    const a = Math.max(s0, r.a);
+    const b = Math.min(e0, r.b);
+    if (r.b === r.a) {
+      const i = Math.floor((r.a - s0) / MIN);
+      if (i >= 0 && i < n) st.buckets[i] += r.v;
+      continue;
+    }
+    if (b <= a) continue;
+    const rate = r.v / (r.b - r.a);
+    for (let i = Math.floor((a - s0) / MIN); i < n && s0 + i * MIN < b; i++) {
+      const lo = Math.max(a, s0 + i * MIN);
+      const hi = Math.min(b, s0 + (i + 1) * MIN);
+      if (hi > lo) st.buckets[i] += rate * (hi - lo);
+    }
+  }
+  // ③ 1분마다 가장 큰 스트림 값
+  let total = 0;
+  for (let i = 0; i < n; i++) {
+    let m = 0;
+    for (const st of streams) if (st.buckets[i] > m) m = st.buckets[i];
+    total += m;
+  }
+  return Math.round(total);
+}
 
 async function stepsBetween(start: Date, end: Date): Promise<number> {
+  const samples = await read("steps", start, end);
+  return mergeSteps(samples, start, end);
+}
+
+/** 진단용: Health Connect 공식 합계(aggregate) — 구버전 앱이면 null */
+export async function stepsAggregate(start: Date, end: Date): Promise<number | null> {
   try {
     const r = await timeout(
       HealthSteps.aggregate({ startDate: start.toISOString(), endDate: end.toISOString() }),
       15000,
       "걸음 합계"
     );
-    stepsMethod = "aggregate";
     return Math.round(r.steps);
-  } catch (e) {
-    // 이 기능이 없는 구버전 앱이면 기록 단순 합산으로 대신(중복이 섞일 수 있음)
-    if (!/not implemented|UNIMPLEMENTED/i.test(String((e as Error)?.message ?? e))) throw e;
-    stepsMethod = "raw";
-    const samples = await read("steps", start, end);
-    return Math.round(samples.reduce((n, x) => n + x.value, 0));
+  } catch {
+    return null;
   }
 }
 const READ = ["weight", "steps", "heartRate"] as const;
@@ -148,8 +204,23 @@ export interface HealthPreview {
   stepRecords7d: number;
   lastStepAt: string | null; // 가장 최근 걸음 기록 시각(ISO)
   sources: string[]; // 걸음 기록을 쓴 앱 패키지
-  stepsMethod: "aggregate" | "raw"; // 걸음 합계 방식(중복 제거 여부)
+  stepsMethod: "merge";
+  stepsTodayRaw: number; // 진단: 오늘 기록 단순 합산(중복 포함)
+  stepsTodayAggregate: number | null; // 진단: Health Connect 공식 합계
+  streamsToday: number; // 진단: 오늘 겹치는 기록 흐름 수(≈기기 수)
   errors: string[];
+}
+
+function countStreams(samples: Sample[]): number {
+  const ends: number[] = [];
+  for (const x of [...samples].sort((p, q) => Date.parse(p.startDate) - Date.parse(q.startDate))) {
+    const a = Date.parse(x.startDate);
+    const b = Math.max(a, Date.parse(x.endDate));
+    const i = ends.findIndex((e) => e <= a);
+    if (i >= 0) ends[i] = b;
+    else ends.push(b);
+  }
+  return ends.length;
 }
 
 /** 설정 화면 미리보기 + 진단: 최근 체중, 오늘·7일 걸음, 기록 수·출처, 오류 */
@@ -171,13 +242,14 @@ export async function healthPreview(): Promise<HealthPreview> {
   ]);
   const last = w[w.length - 1];
   const lastStep = st[st.length - 1];
+  const todaySamples = st.filter((x) => Date.parse(x.endDate || x.startDate) > todayStart.getTime());
   return {
     weight: last ? { kg: Math.round(last.value * 10) / 10, date: toDateKey(new Date(last.startDate)) } : null,
-    stepsToday: await stepsBetween(todayStart, now).catch((e) => {
-      errors.push(msg("걸음 합계", e));
-      return 0;
-    }),
+    stepsToday: mergeSteps(todaySamples, todayStart, now),
     stepsMethod,
+    stepsTodayRaw: Math.round(todaySamples.reduce((n, x) => n + x.value, 0)),
+    stepsTodayAggregate: await stepsAggregate(todayStart, now),
+    streamsToday: countStreams(todaySamples),
     steps7d: Math.round(st.reduce((n, x) => n + x.value, 0)),
     stepRecords7d: st.length,
     lastStepAt: lastStep ? lastStep.endDate || lastStep.startDate : null,
