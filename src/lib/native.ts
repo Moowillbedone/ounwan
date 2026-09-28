@@ -12,5 +12,11 @@ export interface WidgetBridgePlugin {
 }
 export const WidgetBridge = registerPlugin<WidgetBridgePlugin>("WidgetBridge");
 
+/** 상태바·하단 버튼 영역 색을 앱 테마에 맞추는 자체 플러그인(SystemBarsPlugin.java) */
+export interface SystemBarsPlugin {
+  set(options: { dark: boolean }): Promise<void>;
+}
+export const SystemBars = registerPlugin<SystemBarsPlugin>("SystemBars");
+
 /** 앱이 다른 곳(위젯 버튼·로그인 메일)에서 URL로 열렸을 때 받는 매직링크 콜백 주소 */
 export const NATIVE_AUTH_REDIRECT = "com.ounwan.app://login-callback";

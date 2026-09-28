@@ -16,6 +16,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // 자체 플러그인은 super.onCreate 전에 등록해야 웹에서 보인다
         registerPlugin(WidgetBridgePlugin.class);
+        registerPlugin(SystemBarsPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Android 13+: 러닝 기록 중 알림(백그라운드 GPS 유지용)을 띄우려면 알림 권한 필요
