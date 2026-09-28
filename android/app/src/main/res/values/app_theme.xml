@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 앱 배경(웹 globals.css 라이트 --bg)과 상태바 아이콘을 어둡게(밝은 배경용) -->
+<!-- 앱 배경(웹 globals.css 라이트 배경색)과 상태바 아이콘을 어둡게(밝은 배경용) -->
 <resources>
     <color name="app_bg">#F6F7F9</color>
     <bool name="light_system_bars">true</bool>

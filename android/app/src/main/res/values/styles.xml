@@ -13,7 +13,7 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
-        <!-- 상태바·하단 버튼 영역을 앱 배경색으로(웹 --bg와 동일), 아이콘 색은 밝기에 맞춤 -->
+        <!-- 상태바·하단 버튼 영역을 앱 배경색으로(웹 배경색과 동일), 아이콘 색은 밝기에 맞춤 -->
         <item name="android:windowBackground">@color/app_bg</item>
         <item name="android:statusBarColor">@color/app_bg</item>
         <item name="android:navigationBarColor">@color/app_bg</item>
