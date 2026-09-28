@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 홈 화면 위젯 색 (웹 globals.css 라이트 테마와 맞춤) -->
+<resources>
+    <color name="widget_bg">#FFFFFF</color>
+    <color name="widget_text">#111827</color>
+    <color name="widget_text_sub">#6B7280</color>
+    <color name="widget_brand">#0F9D63</color>
+    <color name="widget_btn_bg">#E7F8F0</color>
+</resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 홈 화면 위젯 색 (다크 모드) -->
+<resources>
+    <color name="widget_bg">#151B23</color>
+    <color name="widget_text">#F3F4F6</color>
+    <color name="widget_text_sub">#9CA3AF</color>
+    <color name="widget_brand">#3FD189</color>
+    <color name="widget_btn_bg">#1E2A33</color>
+</resources>

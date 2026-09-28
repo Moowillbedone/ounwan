@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">오운완</string>
+    <string name="title_activity_main">오운완</string>
+    <string name="package_name">com.ounwan.app</string>
+    <string name="custom_url_scheme">com.ounwan.app</string>
+    <string name="widget_name">오운완 잔디</string>
+    <string name="widget_description">연속기록과 운동 잔디를 홈 화면에서 확인하고 바로 운동·달리기를 시작해요</string>
+    <string name="widget_loading">앱을 한 번 열어 주세요</string>
+    <string name="widget_grass_desc">최근 운동 잔디</string>
+    <string name="widget_btn_log">＋ 운동 기록</string>
+    <string name="widget_btn_run">🏃 달리기</string>
+    <!-- 백그라운드 GPS 알림 (background-geolocation 플러그인) -->
+    <string name="capacitor_background_geolocation_notification_channel_name">러닝 기록</string>
+    <string name="capacitor_background_geolocation_notification_icon">drawable/ic_stat_run</string>
+    <string name="capacitor_background_geolocation_notification_color">#0F9D63</string>
+</resources>

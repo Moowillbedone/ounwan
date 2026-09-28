@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { Sheet, Button, Chip, EmptyState, IconButton, useToast, useConfirm } from "./ui";
 import { LabelField } from "./label-field";
+import { RunRoute } from "./run-route";
+import { fmtKm, fmtClock, fmtPace } from "@/lib/run-tracker";
 import {
   useSessions,
   useBodyMetrics,
@@ -467,6 +469,32 @@ export function SessionSummaryCard({
         )}
       </div>
 
+      {session.run ? (
+        <button onClick={onOpen} className="mt-2 w-full text-left">
+          <div className="flex gap-4 text-sm text-text-2">
+            <span>
+              거리 <b className="text-text">{fmtKm(session.run.distanceM)}</b>
+              <span className="text-text-3">km</span>
+            </span>
+            <span>
+              시간 <b className="text-text">{fmtClock(session.run.movingSec)}</b>
+            </span>
+            <span>
+              페이스{" "}
+              <b className="text-text">
+                {fmtPace(
+                  session.run.distanceM > 0
+                    ? session.run.movingSec / (session.run.distanceM / 1000)
+                    : null
+                )}
+              </b>
+            </span>
+          </div>
+          {session.run.route.length > 1 && (
+            <RunRoute route={session.run.route} className="mt-2 h-24 w-full" />
+          )}
+        </button>
+      ) : (
       <button onClick={onOpen} className="mt-2 w-full text-left">
         <div className="flex gap-4 text-sm text-text-2">
           <span>
@@ -482,6 +510,7 @@ export function SessionSummaryCard({
           {session.exercises.map((e) => exName(e.exerciseId)).join(" · ") || "—"}
         </div>
       </button>
+      )}
     </div>
   );
 }

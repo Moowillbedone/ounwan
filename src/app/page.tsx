@@ -12,7 +12,7 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import { useSessions, useBodyMetrics, useProfile } from "@/lib/hooks";
-import { toDateKey, todayKey, fmtNum, computeStreak, dateKeyToDate, isSessionDone } from "@/lib/utils";
+import { toDateKey, todayKey, fmtNum, computeStreak, dateKeyToDate, isSessionDone, dayGrassLevel } from "@/lib/utils";
 import { BODY_PART_META, DEFAULT_LABEL_COLOR } from "@/lib/constants";
 import { Heatmap, HeatmapLegend } from "@/components/heatmap";
 import { DayDetailSheet } from "@/components/day-detail";
@@ -45,15 +45,13 @@ export default function HomePage() {
   }, [metrics]);
 
   // 잔디: '운동을 완료(종료)한 날'만 초록. 계획만 저장한 미래 날짜/진행 중 세션은 제외.
-  // 레벨은 그날 완료 세션들의 완료 세트수 기준.
+  // 레벨은 dayGrassLevel(완료 세트수·러닝 거리 기준, 위젯과 동일).
   const heatData = useMemo(() => {
     const m = new Map<string, number>();
     for (const [date, arr] of byDate) {
       const done = arr.filter(isSessionDone);
       if (done.length === 0) continue;
-      const sets = done.reduce((n, s) => n + s.totalSets, 0);
-      // 임계값을 낮춰(일반 볼륨이 한 단계로 뭉치지 않게) 단계가 퍼지도록
-      m.set(date, sets < 8 ? 1 : sets < 14 ? 2 : sets < 20 ? 3 : 4);
+      m.set(date, dayGrassLevel(done));
     }
     return m;
   }, [byDate]);

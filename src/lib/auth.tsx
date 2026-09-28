@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
+import { isNativeApp, NATIVE_AUTH_REDIRECT } from "./native";
 import { KV } from "./db";
 import {
   ensureSeeded,
@@ -141,7 +142,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!sb) return { error: "동기화 서버가 설정되지 않았습니다." };
     const { error } = await sb.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      // 안드로이드 앱에서는 메일 링크가 브라우저가 아닌 앱으로 돌아오도록 전용 주소 사용
+      options: {
+        emailRedirectTo: isNativeApp() ? NATIVE_AUTH_REDIRECT : window.location.origin,
+      },
     });
     return error ? { error: error.message } : {};
   }, []);

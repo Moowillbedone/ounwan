@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Dumbbell, Play, ListPlus, Settings2 } from "lucide-react";
+import { Dumbbell, Play, ListPlus, Settings2, Footprints } from "lucide-react";
 import { Sheet, Button } from "./ui";
 import { useRoutines, useExerciseMap } from "@/lib/hooks";
 import { RoutineEditor } from "./routine-editor";
@@ -48,6 +48,22 @@ export function StartWorkoutSheet({
             <span className="block font-bold">빈 운동으로 시작</span>
             <span className="block text-xs text-text-3">
               운동을 그때그때 추가하며 기록
+            </span>
+          </span>
+        </button>
+
+        {/* GPS 달리기 */}
+        <button
+          onClick={() => go("/run")}
+          className="mt-2 flex w-full items-center gap-3 rounded-app border border-border bg-surface p-4 text-left active:scale-[0.99] transition"
+        >
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand">
+            <Footprints size={20} />
+          </span>
+          <span className="flex-1">
+            <span className="block font-bold">달리기 시작</span>
+            <span className="block text-xs text-text-3">
+              GPS로 거리·페이스·1km 구간 기록
             </span>
           </span>
         </button>

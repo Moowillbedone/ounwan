@@ -115,10 +115,22 @@ export interface WorkoutSession extends SyncMeta {
   bodyweight?: number | null; // kg
   note?: string | null;
   exercises: SessionExercise[];
+  run?: RunRecord | null; // GPS 달리기 기록(러닝 세션일 때만)
   // 파생 캐시(빠른 캘린더 조회용)
   bodyParts: BodyPart[]; // 이 세션에서 자극한 부위(중복 제거)
   totalVolume: number; // kg·reps 합
   totalSets: number;
+}
+
+/**
+ * GPS 달리기 기록. 세션 문서(JSONB) 안에 들어가므로 DB 스키마 변경 없이 동기화된다.
+ * 경로는 저장 용량을 위해 단순화한 [위도, 경도] 목록.
+ */
+export interface RunRecord {
+  distanceM: number; // 총 거리(m)
+  movingSec: number; // 일시정지 제외 기록 시간(초)
+  splits: number[]; // 1km마다 걸린 시간(초) — 완주한 km만
+  route: [number, number][]; // 단순화한 경로 [lat, lng]
 }
 
 export interface BodyMetric extends SyncMeta {

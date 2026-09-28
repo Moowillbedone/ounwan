@@ -187,6 +187,20 @@ export function isSessionDone(s: { endedAt?: string | null }): boolean {
   return !!s.endedAt;
 }
 
+/**
+ * 그날 완료 세션들로 잔디 단계(1~4)를 정한다. 홈 잔디와 홈 화면 위젯이 같이 쓴다.
+ * 근력: 완료 세트 수 기준. 러닝: 거리 기준(3/5/10km). 둘 중 높은 단계.
+ */
+export function dayGrassLevel(
+  done: { totalSets: number; run?: { distanceM: number } | null }[]
+): number {
+  const sets = done.reduce((n, s) => n + s.totalSets, 0);
+  const setLevel = sets < 8 ? 1 : sets < 14 ? 2 : sets < 20 ? 3 : 4;
+  const km = done.reduce((n, s) => n + (s.run?.distanceM ?? 0), 0) / 1000;
+  const runLevel = km <= 0 ? 0 : km < 3 ? 1 : km < 5 ? 2 : km < 10 ? 3 : 4;
+  return Math.max(setLevel, runLevel);
+}
+
 /** 주(週) 시작 자정의 epoch(ms). weekStartsOn: 0=일요일, 1=월요일. 로컬 타임존 기준. */
 function weekStartMs(key: string, weekStartsOn: 0 | 1): number {
   const d = dateKeyToDate(key);
