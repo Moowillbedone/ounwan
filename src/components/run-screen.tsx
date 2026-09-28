@@ -19,7 +19,7 @@ import {
   fmtClock,
   type RunState,
 } from "@/lib/run-tracker";
-import { gpsKeepsRunningInBackground } from "@/lib/gps";
+import { gpsKeepsRunningInBackground, openLocationSettings } from "@/lib/gps";
 import { useSaveSession } from "@/lib/hooks";
 import { getSessionsByDate, newEmptySession } from "@/lib/repo";
 import { toDateKey, uid } from "@/lib/utils";
@@ -66,7 +66,7 @@ export function RunScreen() {
       const idx = sameDay.reduce((m, s) => Math.max(m, s.sessionIndexOfDay), 0) + 1;
       const km = (result.record.distanceM / 1000).toFixed(2);
       const session = newEmptySession(date, idx);
-      session.title = `러닝 ${km}km`;
+      session.title = "GPS 러닝"; // 거리는 세트에 있으므로 제목엔 넣지 않음(수정 시 어긋남 방지)
       session.startedAt = result.startedAt;
       session.endedAt = result.endedAt;
       session.run = result.record;
@@ -75,7 +75,7 @@ export function RunScreen() {
           id: uid(),
           exerciseId: RUN_EXERCISE_ID,
           orderIndex: 0,
-          trackingMode: "time",
+          trackingMode: "distance",
           sets: [
             {
               id: uid(),
@@ -83,6 +83,7 @@ export function RunScreen() {
               weight: 0,
               reps: 0,
               durationSec: result.record.movingSec,
+              distanceM: result.record.distanceM,
               isCompleted: true,
               completedAt: result.endedAt,
             },
@@ -248,6 +249,14 @@ function GpsBanner({ run }: { run: RunState }) {
       <div className="mt-2 rounded-app bg-danger/10 p-3 text-[13px] text-text-2">
         📍 위치 권한이 꺼져 있어요. 휴대폰 설정 → 앱 → 오운완(또는 브라우저) → 권한에서 위치를
         &lsquo;허용&rsquo;으로 바꿔 주세요.
+        {gpsKeepsRunningInBackground() && (
+          <button
+            onClick={() => void openLocationSettings()}
+            className="mt-2 block rounded-full bg-danger px-3 py-1.5 text-xs font-bold text-white"
+          >
+            권한 설정 열기
+          </button>
+        )}
       </div>
     );
   }

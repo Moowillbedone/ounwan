@@ -28,6 +28,20 @@ import {
   type SyncState,
 } from "./sync";
 
+/** Supabase 인증 에러(영문)를 사용자용 한국어 안내로 */
+export function authErrorKo(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("rate limit"))
+    return "메일 발송 한도를 넘었어요. 1시간쯤 뒤에 한 번만 다시 시도해 주세요.";
+  if (m.includes("expired") || m.includes("invalid"))
+    return "로그인 링크가 만료됐거나 이미 사용됐어요. 새 링크를 받아 주세요.";
+  if (m.includes("email") && m.includes("valid"))
+    return "이메일 주소를 다시 확인해 주세요.";
+  if (m.includes("network") || m.includes("fetch"))
+    return "인터넷 연결을 확인해 주세요.";
+  return message;
+}
+
 export interface AuthUser {
   id: string;
   email: string | null;
@@ -147,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailRedirectTo: isNativeApp() ? NATIVE_AUTH_REDIRECT : window.location.origin,
       },
     });
-    return error ? { error: error.message } : {};
+    return error ? { error: authErrorKo(error.message) } : {};
   }, []);
 
   const signInWithGoogle = useCallback(async () => {

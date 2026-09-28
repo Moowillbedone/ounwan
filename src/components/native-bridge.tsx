@@ -7,6 +7,7 @@ import { useProfile, useSessions } from "@/lib/hooks";
 import { isNativeApp, WidgetBridge, SystemBars, NATIVE_AUTH_REDIRECT } from "@/lib/native";
 import { useTheme } from "@/lib/theme";
 import { getSupabase } from "@/lib/supabase";
+import { authErrorKo } from "@/lib/auth";
 import { computeStreak, dayGrassLevel, isSessionDone, toDateKey } from "@/lib/utils";
 import { useToast } from "./ui";
 import { closeTopOverlay } from "@/lib/back-stack";
@@ -83,7 +84,7 @@ export function NativeBridge() {
         u.searchParams.forEach((v, k) => params.set(k, v));
         const err = params.get("error_description");
         if (err) {
-          toast(`로그인 실패: ${err}`, "error");
+          toast(authErrorKo(err.replace(/\+/g, " ")), "error");
           return;
         }
         const access_token = params.get("access_token");
@@ -94,7 +95,7 @@ export function NativeBridge() {
           : code
           ? await sb.auth.exchangeCodeForSession(code)
           : { error: new Error("로그인 정보가 없어요") };
-        toast(error ? `로그인 실패: ${error.message}` : "로그인 완료!", error ? "error" : "info");
+        toast(error ? authErrorKo(error.message) : "로그인 완료!", error ? "error" : "info");
         if (!error) router.push("/");
         return;
       }

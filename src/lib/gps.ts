@@ -20,6 +20,13 @@ export type GpsError = "denied" | "unavailable";
 const BackgroundGeolocation =
   registerPlugin<BackgroundGeolocationPlugin>("BackgroundGeolocation");
 
+/** 앱: 이 앱의 권한 설정 화면 열기(위치 권한을 거부했을 때). 웹은 불가 → false */
+export async function openLocationSettings(): Promise<boolean> {
+  if (!isNativeApp()) return false;
+  await BackgroundGeolocation.openSettings();
+  return true;
+}
+
 export function gpsKeepsRunningInBackground(): boolean {
   return isNativeApp();
 }

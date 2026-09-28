@@ -13,6 +13,7 @@ import {
   Copy,
   ClipboardPaste,
   CalendarArrowDown,
+  Footprints,
 } from "lucide-react";
 import { Sheet, Button, Chip, EmptyState, IconButton, useToast, useConfirm } from "./ui";
 import { LabelField } from "./label-field";
@@ -36,6 +37,8 @@ import {
   dateKeyToDate,
   uid,
   todayKey,
+  sessionDistance,
+  paceSecPerKm,
 } from "@/lib/utils";
 import {
   useClipboard,
@@ -87,17 +90,21 @@ export function DayDetailSheet({
     let durationSec = 0;
     let volume = 0;
     let doneCount = 0;
+    let meters = 0;
     for (const s of daySessions) {
       if (!s.endedAt) continue;
       doneCount++;
       volume += s.totalVolume;
-      if (s.startedAt) {
-        const d =
-          (new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime()) / 1000;
-        if (d > 0) durationSec += d;
-      }
+      const dist = sessionDistance(s);
+      meters += dist.meters;
+      // 타이머 경과시간과, 러닝처럼 직접 입력한 시간 중 긴 쪽(타이머 없이 기록만 입력한 경우 대비)
+      const elapsed = s.startedAt
+        ? (new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime()) / 1000
+        : 0;
+      const d = Math.max(elapsed, dist.sec);
+      if (d > 0) durationSec += d;
     }
-    return { durationSec, volume, doneCount };
+    return { durationSec, volume, doneCount, meters };
   }, [daySessions]);
 
   const bw = useMemo(
@@ -119,7 +126,15 @@ export function DayDetailSheet({
         value: fmtElapsedKo(dayStats.durationSec),
         sub: dayStats.doneCount > 1 ? `${dayStats.doneCount}회 합계` : undefined,
       });
-    if (dayStats.doneCount > 0)
+    if (dayStats.meters > 0)
+      out.push({
+        icon: <Footprints size={13} />,
+        label: "거리",
+        value: fmtKm(dayStats.meters),
+        sub: "km",
+      });
+    // 러닝만 한 날엔 '볼륨 0'을 굳이 보여주지 않음
+    if (dayStats.doneCount > 0 && (dayStats.volume > 0 || dayStats.meters === 0))
       out.push({
         icon: <Dumbbell size={13} />,
         label: "총 볼륨",
@@ -158,6 +173,7 @@ export function DayDetailSheet({
           weight: x.weight,
           reps: x.reps,
           durationSec: x.durationSec ?? null,
+          distanceM: x.distanceM ?? null,
           restSeconds: x.restSeconds ?? null,
           isCompleted: x.isCompleted,
         })),
@@ -228,6 +244,7 @@ export function DayDetailSheet({
         weight: s.weight,
         reps: s.reps,
         durationSec: s.durationSec ?? null,
+        distanceM: s.distanceM ?? null,
         restSeconds: s.restSeconds ?? null,
         isCompleted: false, // 복사 시 '완료' 진행상황은 빼고, 무게·횟수·휴식(계획)만 가져옴
       })),
@@ -410,6 +427,7 @@ export function SessionSummaryCard({
   onSetLabel?: (label: string) => void;
   onSetLabelColor?: (color: string) => void;
 }) {
+  const dist = sessionDistance(session);
   return (
     <div className="rounded-app border border-border bg-surface p-4">
       {onSetLabel && (
@@ -469,28 +487,25 @@ export function SessionSummaryCard({
         )}
       </div>
 
-      {session.run ? (
+      {dist.meters > 0 && session.totalVolume === 0 ? (
         <button onClick={onOpen} className="mt-2 w-full text-left">
           <div className="flex gap-4 text-sm text-text-2">
             <span>
-              거리 <b className="text-text">{fmtKm(session.run.distanceM)}</b>
+              거리 <b className="text-text">{fmtKm(dist.meters)}</b>
               <span className="text-text-3">km</span>
             </span>
-            <span>
-              시간 <b className="text-text">{fmtClock(session.run.movingSec)}</b>
-            </span>
-            <span>
-              페이스{" "}
-              <b className="text-text">
-                {fmtPace(
-                  session.run.distanceM > 0
-                    ? session.run.movingSec / (session.run.distanceM / 1000)
-                    : null
-                )}
-              </b>
-            </span>
+            {dist.sec > 0 && (
+              <span>
+                시간 <b className="text-text">{fmtClock(dist.sec)}</b>
+              </span>
+            )}
+            {dist.sec > 0 && (
+              <span>
+                페이스 <b className="text-text">{fmtPace(paceSecPerKm(dist.meters, dist.sec))}</b>
+              </span>
+            )}
           </div>
-          {session.run.route.length > 1 && (
+          {session.run && session.run.route.length > 1 && (
             <RunRoute route={session.run.route} className="mt-2 h-24 w-full" />
           )}
         </button>
