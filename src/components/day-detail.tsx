@@ -14,10 +14,12 @@ import {
   ClipboardPaste,
   CalendarArrowDown,
   Footprints,
+  Map as MapIcon,
 } from "lucide-react";
 import { Sheet, Button, Chip, EmptyState, IconButton, useToast, useConfirm } from "./ui";
 import { LabelField } from "./label-field";
 import { RunRoute } from "./run-route";
+import { RunMap } from "./run-map";
 import { fmtKm, fmtClock, fmtPace } from "@/lib/run-tracker";
 import {
   useSessions,
@@ -507,6 +509,7 @@ export function SessionSummaryCard({
   onSetLabelColor?: (color: string) => void;
 }) {
   const dist = sessionDistance(session);
+  const [mapOpen, setMapOpen] = useState(false);
   return (
     <div className="rounded-app border border-border bg-surface p-4">
       {onSetLabel && (
@@ -588,7 +591,23 @@ export function SessionSummaryCard({
             <RunRoute route={session.run.route} className="mt-2 h-24 w-full" />
           )}
         </button>
-      ) : (
+      ) : null}
+      {dist.meters > 0 && session.totalVolume === 0 && session.run && session.run.route.length > 1 && (
+        <>
+          <button
+            onClick={() => setMapOpen(true)}
+            className="mt-1 flex items-center gap-1 text-xs font-bold text-brand active:scale-95"
+          >
+            <MapIcon size={13} /> 지도로 보기
+          </button>
+          <Sheet open={mapOpen} onClose={() => setMapOpen(false)} title="달린 경로">
+            {mapOpen && (
+              <RunMap route={session.run.route} className="h-[60vh] w-full overflow-hidden rounded-app" />
+            )}
+          </Sheet>
+        </>
+      )}
+      {!(dist.meters > 0 && session.totalVolume === 0) && (
       <button onClick={onOpen} className="mt-2 w-full text-left">
         <div className="flex gap-4 text-sm text-text-2">
           <span>

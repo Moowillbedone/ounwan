@@ -17,6 +17,7 @@ import { StartWorkoutSheet } from "./start-workout";
 import { RestTimer } from "./rest-timer";
 import { RunPill } from "./run-pill";
 import { NativeBridge } from "./native-bridge";
+import { UpdateBanner } from "./update-banner";
 import { APP_NAME } from "@/lib/constants";
 
 const TABS = [
@@ -113,6 +114,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <OnboardingGate />
         ) : (
           <>
+            {!immersive && <UpdateBanner />}
             <main className={cn(!immersive && "pb-[86px]")}>{children}</main>
             {!immersive && (
               <BottomNav

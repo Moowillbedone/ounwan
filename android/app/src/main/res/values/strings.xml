@@ -10,6 +10,8 @@
     <string name="widget_grass_desc">최근 운동 잔디</string>
     <string name="widget_btn_log">＋ 운동 기록</string>
     <string name="widget_btn_run">🏃 달리기</string>
+    <string name="widget_streak_name">오운완 연속기록</string>
+    <string name="widget_streak_description">연속기록과 오늘 운동 여부를 작게 보여줘요</string>
     <!-- 백그라운드 GPS 알림 (background-geolocation 플러그인) -->
     <string name="capacitor_background_geolocation_notification_channel_name">러닝 기록</string>
     <string name="capacitor_background_geolocation_notification_icon">drawable/ic_stat_run</string>

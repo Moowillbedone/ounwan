@@ -2,7 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Pause, Play, Square, Footprints, Satellite, TriangleAlert } from "lucide-react";
+import {
+  ChevronLeft,
+  Pause,
+  Play,
+  Square,
+  Footprints,
+  Satellite,
+  TriangleAlert,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { isVoiceOn, setVoiceOn, speak } from "@/lib/voice";
 import { Button, Card, IconButton, cn, useToast } from "./ui";
 import {
   useRun,
@@ -23,7 +34,7 @@ import { gpsKeepsRunningInBackground, openLocationSettings } from "@/lib/gps";
 import { useSaveSession } from "@/lib/hooks";
 import { getSessionsByDate, newEmptySession } from "@/lib/repo";
 import { toDateKey, uid } from "@/lib/utils";
-import { RunRoute } from "./run-route";
+import { RunMap } from "./run-map";
 
 export const RUN_EXERCISE_ID = "outdoor-running";
 
@@ -35,9 +46,11 @@ export function RunScreen() {
   const [, tick] = useState(0);
   const [saving, setSaving] = useState(false);
   const [native, setNative] = useState(false);
+  const [voice, setVoice] = useState(true);
 
   useEffect(() => {
     setNative(gpsKeepsRunningInBackground());
+    setVoice(isVoiceOn());
     reattachRun();
   }, []);
 
@@ -111,6 +124,22 @@ export function RunScreen() {
           <ChevronLeft size={22} />
         </IconButton>
         <h1 className="text-lg font-bold">러닝</h1>
+        <button
+          onClick={() => {
+            const next = !voice;
+            setVoiceOn(next);
+            setVoice(next);
+            if (next) void speak("음성 안내를 켰어요");
+          }}
+          className={cn(
+            "ml-auto flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold active:scale-95",
+            voice ? "bg-brand-soft text-brand-strong" : "bg-surface-2 text-text-3"
+          )}
+          aria-label="음성 안내 켜기/끄기"
+        >
+          {voice ? <Volume2 size={14} /> : <VolumeX size={14} />}
+          음성 안내 {voice ? "켜짐" : "꺼짐"}
+        </button>
       </header>
 
       {!run ? <IdleView native={native} /> : <ActiveView run={run} />}
@@ -157,7 +186,7 @@ function IdleView({ native }: { native: boolean }) {
       </div>
       <p className="mt-4 text-xl font-black">GPS로 거리·페이스 측정</p>
       <p className="mt-2 text-sm leading-relaxed text-text-3">
-        1km마다 구간 기록이 남고, 끝나면 캘린더에 <b>러닝 세션</b>으로 저장돼요.
+        1km마다 구간 기록과 음성 안내가 나오고, 끝나면 캘린더에 <b>러닝 세션</b>으로 저장돼요.
       </p>
       <div
         className={cn(
@@ -214,9 +243,9 @@ function ActiveView({ run }: { run: RunState }) {
         <Stat label="현재 페이스" value={fmtPace(curPace)} />
       </div>
 
-      {run.route.length > 1 && (
+      {run.route.length > 0 && (
         <Card className="mt-5 p-3">
-          <RunRoute route={run.route} className="h-40 w-full" />
+          <RunMap route={run.route} live={run.status === "running"} className="h-56 w-full overflow-hidden rounded-lg" />
         </Card>
       )}
 

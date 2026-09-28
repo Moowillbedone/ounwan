@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LogIn,
   LogOut,
@@ -11,7 +11,13 @@ import {
   Monitor,
   Check,
   User,
+  Bell,
+  Smartphone,
 } from "lucide-react";
+import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
+import { App } from "@capacitor/app";
+import { checkForUpdate, installUpdate, type UpdateInfo } from "@/lib/updater";
 import { Sheet, Button, Segmented, useToast, cn } from "@/components/ui";
 import { LoginForm } from "@/components/onboarding";
 import { useAuth } from "@/lib/auth";
@@ -31,15 +37,13 @@ export default function SettingsPage() {
   const toast = useToast();
   const [loginOpen, setLoginOpen] = useState(false);
 
+  const [native, setNative] = useState(false);
+  useEffect(() => setNative(isNativeApp()), []);
+
   const unit: Unit = profile?.unit ?? "kg";
   const weekMon = profile?.weekStartsMonday ?? true;
 
   const exportCsv = async () => {
-    // 안드로이드 앱의 웹뷰는 파일 다운로드(blob)를 지원하지 않는다 → 브라우저로 안내
-    if (isNativeApp()) {
-      toast("앱에서는 아직 파일 저장이 안 돼요. 브라우저에서 로그인 후 내보내 주세요.");
-      return;
-    }
     const sessions = await repo.listSessions();
     const exs = await repo.listExercises();
     const nameOf = new Map(exs.map((e) => [e.id, e.nameKo]));
@@ -69,11 +73,28 @@ export default function SettingsPage() {
     const csv =
       "﻿" +
       rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const fileName = `오운완_기록_${new Date().toISOString().slice(0, 10)}.csv`;
+    // 안드로이드 앱: 웹뷰는 파일 다운로드를 못 하므로 앱 저장소에 쓰고 공유 시트로 넘긴다
+    if (isNativeApp()) {
+      try {
+        const w = await Filesystem.writeFile({
+          path: fileName,
+          data: csv,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8,
+        });
+        await Share.share({ title: fileName, files: [w.uri], dialogTitle: "CSV 저장·공유" });
+      } catch (e) {
+        const msg = String((e as Error)?.message ?? e);
+        if (!/cancel/i.test(msg)) toast("CSV를 공유하지 못했어요", "error");
+      }
+      return;
+    }
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `오운완_기록_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
     toast("CSV로 내보냈어요");
@@ -279,6 +300,42 @@ export default function SettingsPage() {
         </div>
       </Section>
 
+      {/* 알림 · 앱 (안드로이드 앱 전용 기능) */}
+      <Section title="알림 · 앱">
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            <Bell size={16} className="text-text-3" /> 오늘 운동 알림
+          </span>
+          <Segmented<string>
+            value={profile?.reminderEnabled ? "on" : "off"}
+            options={[
+              { value: "on", label: "켜기" },
+              { value: "off", label: "끄기" },
+            ]}
+            onChange={(v) => updateProfile.mutate({ reminderEnabled: v === "on" })}
+          />
+        </div>
+        {profile?.reminderEnabled && (
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-sm text-text-2">알림 시간</span>
+            <input
+              type="time"
+              value={profile?.reminderTime ?? "20:00"}
+              onChange={(e) => e.target.value && updateProfile.mutate({ reminderTime: e.target.value })}
+              className="rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-sm font-semibold"
+            />
+          </div>
+        )}
+        <p className="px-4 py-2.5 text-[11px] leading-snug text-text-3">
+          {native ? (
+            <>운동을 끝낸 날은 울리지 않아요. 휴식 종료 알림은 앱이 백그라운드일 때 제시간에 울려요.</>
+          ) : (
+            <>알림은 안드로이드 앱(APK)에서만 울려요.</>
+          )}
+        </p>
+        {native && <AppVersionRow />}
+      </Section>
+
       {/* 데이터 */}
       <Section title="데이터">
         <button
@@ -360,6 +417,57 @@ function NumField({
       />
       <span className="w-5 text-xs text-text-3">{suffix}</span>
     </span>
+  );
+}
+
+/** 앱 버전 + 업데이트 확인·설치 */
+function AppVersionRow() {
+  const toast = useToast();
+  const [version, setVersion] = useState<string>("");
+  const [info, setInfo] = useState<UpdateInfo | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [pct, setPct] = useState<number | null>(null);
+  useEffect(() => {
+    void App.getInfo().then((i) => setVersion(i.version)).catch(() => {});
+  }, []);
+
+  const check = async () => {
+    setChecking(true);
+    const r = await checkForUpdate();
+    setChecking(false);
+    setInfo(r);
+    if (!r) toast("업데이트 정보를 가져오지 못했어요", "error");
+    else if (!r.available) toast(`최신 버전이에요 (v${r.current})`);
+  };
+  const install = async () => {
+    if (!info) return;
+    try {
+      setPct(0);
+      const r = await installUpdate(info.url, setPct);
+      if (r === "needs-permission") toast("설정에서 '이 출처 허용'을 켠 뒤 다시 눌러 주세요");
+    } catch (e) {
+      toast(String((e as Error)?.message ?? "업데이트를 받지 못했어요"), "error");
+    } finally {
+      setPct(null);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <span className="flex items-center gap-2 text-sm font-semibold">
+        <Smartphone size={16} className="text-text-3" /> 앱 버전
+        <span className="font-normal text-text-3">v{version || "…"}</span>
+      </span>
+      {info?.available ? (
+        <Button size="sm" onClick={install} disabled={pct != null}>
+          {pct != null ? `받는 중 ${pct}%` : `v${info.latest} 설치`}
+        </Button>
+      ) : (
+        <Button size="sm" variant="secondary" onClick={check} disabled={checking}>
+          {checking ? "확인 중…" : "업데이트 확인"}
+        </Button>
+      )}
+    </div>
   );
 }
 
