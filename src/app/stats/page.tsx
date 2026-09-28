@@ -139,7 +139,7 @@ export default function StatsPage() {
     [eligible, hiddenIds]
   );
   const nonMeasurableCount = trained.filter(
-    (e) => !measurableIds.has(e.id) && !distanceIds.has(e.id)
+    (e) => !measurableIds.has(e.id) && !distanceIds.has(e.id) && e.category !== "cardio"
   ).length;
 
   const [filterOpen, setFilterOpen] = useState(false);
@@ -232,6 +232,36 @@ export default function StatsPage() {
     return { week, month, total, bestPace, longest, points };
   }, [sessions]);
 
+  // 유산소 시간 — '시간만' 방식 기록도 포함(거리 입력이 없어도 통계에 보이도록)
+  const cardio = useMemo(() => {
+    const now = new Date();
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    let weekMin = 0,
+      monthMin = 0;
+    const monthDays = new Set<string>();
+    let any = false;
+    for (const sess of (sessions ?? []).filter(isSessionDone)) {
+      const d = dateKeyToDate(sess.date);
+      const inMonth = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      for (const ex of sess.exercises) {
+        if (exMap.get(ex.exerciseId)?.category !== "cardio") continue;
+        const done = ex.sets.filter((x) => x.isCompleted);
+        if (done.length === 0) continue;
+        any = true;
+        const min = done.reduce((n, x) => n + (x.durationSec ?? 0), 0) / 60;
+        if (d >= weekAgo) weekMin += min;
+        if (inMonth) {
+          monthMin += min;
+          monthDays.add(sess.date);
+        }
+      }
+    }
+    return any
+      ? { weekMin: Math.round(weekMin), monthMin: Math.round(monthMin), monthDays: monthDays.size }
+      : null;
+  }, [sessions, exMap]);
+
   // 이번 달 러닝(러닝·트레드밀만) 횟수와 평균 페이스(시간을 입력한 기록만)
   const runMonth = useMemo(() => {
     const now = new Date();
@@ -275,7 +305,7 @@ export default function StatsPage() {
         </div>
         {eligible.length === 0 ? (
           <div className="py-8 text-center text-sm text-text-3">
-            {trained.length === 0 || trained.every((e) => distanceIds.has(e.id))
+            {trained.length === 0 || trained.every((e) => distanceIds.has(e.id) || e.category === "cardio")
               ? "근력 운동을 기록하면 성장 그래프가 그려져요"
               : "중량 운동을 기록하면 추정 1RM 성장이 그려져요"}
           </div>
@@ -327,25 +357,41 @@ export default function StatsPage() {
       </section>
 
       {/* 거리 기록(러닝 등) — 기록이 있을 때만 */}
-      {distance && (
+      {(distance || cardio) && (
         <section className="rounded-app border border-border bg-surface p-4 shadow-[var(--shadow-card)]">
           <div className="mb-3 font-bold flex items-center gap-1.5">
-            <Footprints size={16} className="text-text-3" /> 러닝·유산소 거리
+            <Footprints size={16} className="text-text-3" /> 러닝·유산소
           </div>
-          <div className="mb-3 grid grid-cols-3 gap-2 text-center">
-            <PrStat label="최근 7일" value={`${fmtKm(distance.week)}km`} />
-            <PrStat label="이번 달" value={`${fmtKm(distance.month)}km`} highlight />
-            <PrStat label="누적" value={`${fmtKm(distance.total)}km`} />
-          </div>
-          {distance.points.length > 1 && (
-            <LineChart data={distance.points} valueSuffix="km" />
+          {cardio && (
+            <div className="mb-3 grid grid-cols-3 gap-2 text-center">
+              <PrStat label="최근 7일 유산소" value={`${cardio.weekMin}분`} />
+              <PrStat label="이번 달 유산소" value={`${cardio.monthMin}분`} highlight={!distance} />
+              <PrStat label="이번 달 유산소일" value={`${cardio.monthDays}일`} />
+            </div>
           )}
-          <div className="mt-2 grid grid-cols-2 gap-2 text-center">
-            <PrStat label="최장 거리" value={`${fmtKm(distance.longest)}km`} />
-            <PrStat label="최고 페이스" value={distance.bestPace != null ? fmtPace(distance.bestPace) : "—"} />
-            <PrStat label="이번 달 러닝" value={`${runMonth.count}회`} />
-            <PrStat label="이번 달 평균 페이스" value={runMonth.avgPace != null ? fmtPace(runMonth.avgPace) : "—"} />
-          </div>
+          {distance ? (
+            <>
+              <div className="mb-3 grid grid-cols-3 gap-2 text-center">
+                <PrStat label="최근 7일 거리" value={`${fmtKm(distance.week)}km`} />
+                <PrStat label="이번 달 거리" value={`${fmtKm(distance.month)}km`} highlight />
+                <PrStat label="누적 거리" value={`${fmtKm(distance.total)}km`} />
+              </div>
+              {distance.points.length > 1 && (
+                <LineChart data={distance.points} valueSuffix="km" />
+              )}
+              <div className="mt-2 grid grid-cols-2 gap-2 text-center">
+                <PrStat label="최장 거리" value={`${fmtKm(distance.longest)}km`} />
+                <PrStat label="최고 페이스" value={distance.bestPace != null ? fmtPace(distance.bestPace) : "—"} />
+                <PrStat label="이번 달 러닝" value={`${runMonth.count}회`} />
+                <PrStat label="이번 달 평균 페이스" value={runMonth.avgPace != null ? fmtPace(runMonth.avgPace) : "—"} />
+              </div>
+            </>
+          ) : (
+            <p className="rounded-app bg-surface-2 px-3 py-2.5 text-[12px] leading-snug text-text-2">
+              지금은 유산소를 <b>시간</b>으로만 기록했어요. 러닝 카드의 <b>⋮ → 기록 방식 → 거리 + 시간</b>으로
+              바꾸거나 GPS로 달리면 거리·페이스·최장 거리도 여기에 보여요.
+            </p>
+          )}
           <p className="mt-2 text-[11px] text-text-3">
             주간 거리 추이·부상 위험 체크·예상 기록은 <b className="text-text-2">분석</b> 탭에서 볼 수 있어요.
           </p>
