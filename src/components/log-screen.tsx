@@ -26,6 +26,7 @@ import { startRest } from "@/lib/rest-timer";
 import { useSaveSession, useProfile, useUpdateProfile, useExerciseMap } from "@/lib/hooks";
 import { armFeedback } from "@/lib/feedback";
 import * as repo from "@/lib/repo";
+import { useBackClose } from "@/lib/back-stack";
 import {
   uid,
   nowISO,
@@ -896,6 +897,7 @@ function ExerciseLogCard({
   onRemoveExercise: () => void;
 }) {
   const [menu, setMenu] = useState(false);
+  useBackClose(menu, () => setMenu(false));
   const [ssOpen, setSsOpen] = useState(false);
   const [ssSel, setSsSel] = useState<string[]>([]);
   const [restOpen, setRestOpen] = useState(false);
