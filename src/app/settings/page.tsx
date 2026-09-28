@@ -530,19 +530,50 @@ function HealthRow({ native }: { native: boolean }) {
       </div>
       <p className="mt-1.5 text-[11px] leading-snug text-text-3">{desc}</p>
       {linked && preview && (
-        <p className="mt-1.5 rounded-lg bg-surface-2 px-2.5 py-2 text-[12px] text-text-2">
+        <div className="mt-1.5 rounded-lg bg-surface-2 px-2.5 py-2 text-[12px] text-text-2">
           최근 체중{" "}
           <b className="text-text">
             {preview.weight ? `${preview.weight.kg}kg (${preview.weight.date.slice(5).replace("-", "/")})` : "없음"}
           </b>{" "}
           · 오늘 걸음 <b className="text-text">{preview.stepsToday.toLocaleString()}</b>보
-          {!preview.weight && preview.stepsToday === 0 && (
-            <span className="mt-1 block text-[11px] text-text-3">
-              들어온 데이터가 없어요. 삼성 헬스 → 설정 → Health Connect에서 &lsquo;삼성 헬스가 쓸 수 있는
-              데이터&rsquo;(걸음 수·체중·심박)가 켜져 있는지 확인해 주세요.
-            </span>
-          )}
-        </p>
+          {/* 진단 — 데이터가 안 보일 때 원인 파악용 */}
+          <div className="mt-1.5 border-t border-border pt-1.5 text-[11px] leading-snug text-text-3">
+            최근 7일 걸음 기록 {preview.stepRecords7d}건 · 합계 {preview.steps7d.toLocaleString()}보
+            <br />
+            마지막 걸음 기록:{" "}
+            {preview.lastStepAt
+              ? new Date(preview.lastStepAt).toLocaleString("ko-KR", {
+                  month: "numeric",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "없음"}
+            {preview.sources.length > 0 && (
+              <>
+                <br />
+                출처: {preview.sources.map((x) => (x.includes("shealth") ? "삼성 헬스" : x)).join(", ")}
+              </>
+            )}
+            {preview.errors.map((e) => (
+              <span key={e} className="block text-danger">
+                오류 · {e}
+              </span>
+            ))}
+            {preview.stepRecords7d === 0 && preview.errors.length === 0 && (
+              <span className="mt-1 block">
+                Health Connect에 걸음 기록이 아직 없어요. 삼성 헬스는 Health Connect로 <b>주기적으로</b>{" "}
+                보내요 — 삼성 헬스 앱을 한 번 열어 동기화한 뒤 아래 &lsquo;다시 확인&rsquo;을 눌러 보세요.
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => void refresh()}
+            className="mt-1.5 text-[11px] font-bold text-brand active:scale-95"
+          >
+            다시 확인
+          </button>
+        </div>
       )}
       {native && status === "available" && (
         <p className="mt-1 text-[11px] leading-snug text-text-3">

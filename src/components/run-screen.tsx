@@ -224,6 +224,13 @@ function ActiveView({ run }: { run: RunState }) {
         </div>
       )}
       <GpsBanner run={run} />
+      {(run.maxGapSec ?? 0) >= 30 && (
+        <div className="mt-2 flex items-start gap-2 rounded-app bg-warn/10 p-3 text-[12px] leading-snug text-text-2">
+          <TriangleAlert size={15} className="mt-0.5 shrink-0 text-warn" />
+          기록 중 위치가 최대 {run.maxGapSec}초 동안 끊겼어요(그 구간은 직선으로 이어져요). 휴대폰 설정 → 앱 →
+          오운완 → 배터리를 &lsquo;제한 없음&rsquo;으로 바꾸면 화면이 꺼져도 끊기지 않아요.
+        </div>
+      )}
 
       <div className="pt-4 text-center">
         <div className="text-[64px] font-black leading-none tracking-tight tabular-nums">

@@ -33,6 +33,8 @@ export interface RunState {
   accuracy: number | null; // 마지막으로 받은 위치 정확도(m)
   lastFixAt: number | null;
   gpsError: GpsError | null;
+  /** 달리는 중 위치 업데이트 사이 최장 공백(초) — 화면 꺼짐 중 수집이 끊겼는지 자가 점검용 */
+  maxGapSec?: number;
 }
 
 function read(): RunState | null {
@@ -95,7 +97,19 @@ export function currentPaceOf(s: RunState): number | null {
 function onFix(fix: GpsFix) {
   const s = state;
   if (!s) return;
-  const base = { ...s, accuracy: fix.accuracy, lastFixAt: Date.now(), gpsError: null };
+  const now = Date.now();
+  // 달리는 중 연속된 두 위치 사이 공백(일시정지·재개 직후 첫 위치는 제외)
+  const gap =
+    s.status === "running" && s.lastFixAt != null && s.resumedAt != null && s.lastFixAt >= s.resumedAt
+      ? (now - s.lastFixAt) / 1000
+      : 0;
+  const base = {
+    ...s,
+    accuracy: fix.accuracy,
+    lastFixAt: now,
+    gpsError: null,
+    maxGapSec: Math.max(s.maxGapSec ?? 0, Math.round(gap)),
+  };
   if (s.status !== "running" || fix.accuracy > MAX_ACCURACY_M) {
     set(base);
     return;
