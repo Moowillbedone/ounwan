@@ -5,15 +5,15 @@ import type { Map as LMap, Polyline, CircleMarker, TileLayer } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useTheme } from "@/lib/theme";
 
-// 러닝 경로 지도(Leaflet + CARTO 타일 — OpenStreetMap 데이터, 키 불필요).
+// 러닝 경로 지도(Leaflet + OpenStreetMap 타일, 키 불필요).
 // live=true면 현재 위치를 따라가고, false면 전체 경로가 보이게 맞춘다.
 // 인터넷이 없으면 타일만 비고 경로 선은 그대로 보인다.
 
-const TILE = {
-  light: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-};
-const ATTRIBUTION = "&copy; OpenStreetMap contributors &copy; CARTO";
+// OpenStreetMap 기본 타일(키 불필요, 출처 표기 필수). CARTO는 이제 API 키가 필요해 교체.
+// 다크 모드는 타일에 색 반전 필터를 씌워 어둡게 보이게 한다.
+const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const ATTRIBUTION = "&copy; OpenStreetMap contributors";
+const DARK_FILTER = "invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9)";
 
 export function RunMap({
   route,
@@ -68,12 +68,11 @@ export function RunMap({
   function setTiles(L: typeof import("leaflet"), theme: string) {
     const m = map.current;
     if (!m) return;
-    tiles.current?.remove();
-    tiles.current = L.tileLayer(theme === "dark" ? TILE.dark : TILE.light, {
-      attribution: ATTRIBUTION,
-      subdomains: "abcd",
-      maxZoom: 19,
-    }).addTo(m);
+    if (!tiles.current) {
+      tiles.current = L.tileLayer(TILE_URL, { attribution: ATTRIBUTION, maxZoom: 19 }).addTo(m);
+    }
+    const c = tiles.current.getContainer();
+    if (c) c.style.filter = theme === "dark" ? DARK_FILTER : "";
   }
 
   // 테마가 바뀌면 타일 교체

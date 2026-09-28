@@ -14,10 +14,23 @@ import * as repo from "./repo";
 const KEY = "ounwan-health";
 const READ = ["weight", "steps", "heartRate"] as const;
 
-// 이 패키지는 불러올 때 window를 참조할 수 있어 필요할 때만 불러온다(정적 빌드 보호)
-async function plugin() {
-  const { Health } = await import("@capgo/capacitor-health");
-  return Health;
+type HealthPlugin = typeof import("@capgo/capacitor-health").Health;
+
+// 이 패키지는 불러올 때 window를 참조할 수 있어 필요할 때만 불러온다(정적 빌드 보호).
+// ⚠️ Capacitor 플러그인 객체는 모든 속성(then 포함)을 네이티브 호출로 바꾸는 Proxy라서
+//    async 함수에서 '그대로 반환'하면 Promise가 thenable로 착각해 영원히 기다린다.
+//    그래서 플러그인을 반환하지 않고, 콜백 안에서 바로 쓰게 한다.
+async function withHealth<T>(fn: (H: HealthPlugin) => Promise<T>): Promise<T> {
+  const mod = await import("@capgo/capacitor-health");
+  return fn(mod.Health);
+}
+
+/** 응답이 없으면 에러로 끝내기(무한 대기 방지) */
+function timeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`${what} 응답 없음`)), ms)),
+  ]);
 }
 
 export function isHealthLinked(): boolean {
@@ -42,7 +55,7 @@ export type HealthStatus = "unsupported" | "not-installed" | "available";
 export async function healthStatus(): Promise<HealthStatus> {
   if (!isNativeApp()) return "unsupported";
   try {
-    const r = await (await plugin()).isAvailable();
+    const r = await timeout(withHealth((H) => H.isAvailable()), 8000, "Health Connect");
     if (r.available) return "available";
     return /install|update|provider/i.test(r.reason ?? "") ? "not-installed" : "unsupported";
   } catch {
@@ -52,11 +65,25 @@ export async function healthStatus(): Promise<HealthStatus> {
 
 /** 권한 요청 → 하나라도 허용되면 연결됨 */
 export async function connectHealth(): Promise<boolean> {
-  const H = await plugin();
-  const r = await H.requestAuthorization({ read: [...READ], write: [] });
-  const ok = (r.readAuthorized ?? []).length > 0;
-  setLinked(ok);
-  return ok;
+  await withHealth((H) => H.requestAuthorization({ read: [...READ], write: [] }));
+  // 결과는 Health Connect에 실제로 허용된 권한으로 다시 확인(권한 화면 결과 전달이 누락돼도 안전)
+  return refreshLinked();
+}
+
+/** Health Connect에 허용된 읽기 권한이 있는지 확인해 연결 상태를 갱신 */
+export async function refreshLinked(): Promise<boolean> {
+  try {
+    const r = await timeout(
+      withHealth((H) => H.checkAuthorization({ read: [...READ], write: [] })),
+      8000,
+      "권한 확인"
+    );
+    const ok = (r.readAuthorized ?? []).length > 0;
+    setLinked(ok);
+    return ok;
+  } catch {
+    return isHealthLinked();
+  }
 }
 
 export function disconnectHealth() {
@@ -66,15 +93,39 @@ export function disconnectHealth() {
 type Sample = { value: number; startDate: string; endDate: string };
 
 async function read(dataType: (typeof READ)[number], start: Date, end: Date): Promise<Sample[]> {
-  const H = await plugin();
-  const { samples } = await H.readSamples({
-    dataType,
-    startDate: start.toISOString(),
-    endDate: end.toISOString(),
-    limit: 0, // 0 = 전부
-    ascending: true,
-  });
+  const { samples } = await timeout(
+    withHealth((H) =>
+      H.readSamples({
+        dataType,
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+        limit: 0, // 0 = 전부
+        ascending: true,
+      })
+    ),
+    15000,
+    "건강 데이터 읽기"
+  );
   return samples as Sample[];
+}
+
+/** 설정 화면 미리보기: 최근 체중·오늘 걸음 수(데이터가 실제로 들어오는지 확인용) */
+export async function healthPreview(): Promise<{
+  weight: { kg: number; date: string } | null;
+  stepsToday: number;
+}> {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 30);
+  const [w, steps] = await Promise.all([
+    read("weight", start, end).catch(() => [] as Sample[]),
+    stepsByDay(1).catch(() => [] as { date: string; steps: number }[]),
+  ]);
+  const last = w[w.length - 1];
+  return {
+    weight: last ? { kg: Math.round(last.value * 10) / 10, date: toDateKey(new Date(last.startDate)) } : null,
+    stepsToday: steps[0]?.steps ?? 0,
+  };
 }
 
 /** 최근 30일 체중을 가져와 체중이 비어 있는 날만 채운다. 채운 날 수를 반환. */

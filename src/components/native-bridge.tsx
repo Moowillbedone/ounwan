@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { App } from "@capacitor/app";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProfile, useSessions, qk } from "@/lib/hooks";
-import { importWeights, isHealthLinked } from "@/lib/health";
+import { importWeights, refreshLinked } from "@/lib/health";
 import { isNativeApp, WidgetBridge, SystemBars, NATIVE_AUTH_REDIRECT } from "@/lib/native";
 import { useTheme } from "@/lib/theme";
 import { getSupabase } from "@/lib/supabase";
@@ -39,7 +39,7 @@ export function NativeBridge() {
 
   // 6) Health Connect: 앱을 열거나 돌아올 때(1시간에 한 번) 비어 있는 날의 체중 채우기
   useEffect(() => {
-    if (!isNativeApp() || !isHealthLinked()) return;
+    if (!isNativeApp()) return;
     const KEY = "ounwan-health-pull";
     try {
       if (Date.now() - Number(localStorage.getItem(KEY) || 0) < 60 * 60 * 1000) return;
@@ -47,7 +47,9 @@ export function NativeBridge() {
     } catch {
       /* noop */
     }
-    void importWeights()
+    // 허용 여부는 Health Connect에서 직접 확인(연결 안 됐으면 아무것도 안 함)
+    void refreshLinked()
+      .then((ok) => (ok ? importWeights() : 0))
       .then((n) => {
         if (n > 0) void qc.invalidateQueries({ queryKey: qk.bodyMetrics });
       })
