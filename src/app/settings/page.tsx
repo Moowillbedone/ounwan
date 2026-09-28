@@ -538,7 +538,8 @@ function HealthRow({ native }: { native: boolean }) {
           · 오늘 걸음 <b className="text-text">{preview.stepsToday.toLocaleString()}</b>보
           {/* 진단 — 데이터가 안 보일 때 원인 파악용 */}
           <div className="mt-1.5 border-t border-border pt-1.5 text-[11px] leading-snug text-text-3">
-            오늘 걸음 계산: 시간대 병합 <b>{preview.stepsToday.toLocaleString()}</b> · 단순 합산{" "}
+            오늘 걸음 계산: 표시값 <b>{preview.stepsToday.toLocaleString()}</b>
+            {preview.sources.some((x) => x.includes("shealth")) ? "(삼성 헬스 기준)" : "(시간대 병합)"} · 단순 합산{" "}
             {preview.stepsTodayRaw.toLocaleString()} · Health Connect 합계{" "}
             {preview.stepsTodayAggregate != null ? preview.stepsTodayAggregate.toLocaleString() : "—"}
             {" "}(기록 흐름 {preview.streamsToday}개)
