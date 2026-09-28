@@ -1,6 +1,8 @@
 package com.ounwan.app;
 
 import android.Manifest;
+import android.content.Intent;
+import android.net.Uri;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,8 +14,28 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
 
+    // Health Connect가 '권한 사용 안내'를 열 때 → 웹의 건강 데이터 안내 화면으로
+    private static final String HEALTH_PRIVACY_URL = "com.ounwan.app://open/health-privacy";
+
+    private void routeHealthRationale(Intent intent) {
+        if (intent == null) return;
+        String action = intent.getAction();
+        if ("androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE".equals(action)
+                || "android.intent.action.VIEW_PERMISSION_USAGE".equals(action)) {
+            intent.setAction(Intent.ACTION_VIEW);
+            intent.setData(Uri.parse(HEALTH_PRIVACY_URL));
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        routeHealthRationale(intent);
+        super.onNewIntent(intent);
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        routeHealthRationale(getIntent());
         // 자체 플러그인은 super.onCreate 전에 등록해야 웹에서 보인다
         registerPlugin(WidgetBridgePlugin.class);
         registerPlugin(SystemBarsPlugin.class);

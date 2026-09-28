@@ -20,6 +20,7 @@ import { Sheet, Button, Chip, EmptyState, IconButton, useToast, useConfirm } fro
 import { LabelField } from "./label-field";
 import { RunRoute } from "./run-route";
 import { RunMap } from "./run-map";
+import { RunHeartRate } from "./health-bits";
 import { fmtKm, fmtClock, fmtPace } from "@/lib/run-tracker";
 import {
   useSessions,
@@ -587,6 +588,7 @@ export function SessionSummaryCard({
               </span>
             )}
           </div>
+          <RunHeartRate startedAt={session.startedAt} endedAt={session.endedAt} />
           {session.run && session.run.route.length > 1 && (
             <RunRoute route={session.run.route} className="mt-2 h-24 w-full" />
           )}

@@ -30,6 +30,7 @@ import {
 } from "@/lib/utils";
 import { fmtKm, fmtPace } from "@/lib/run-tracker";
 import { runsOf } from "@/lib/running";
+import { StepsCard } from "@/components/health-bits";
 import type { BodyPart, Exercise, Unit } from "@/lib/types";
 
 export default function StatsPage() {
@@ -350,6 +351,9 @@ export default function StatsPage() {
           </p>
         </section>
       )}
+
+      {/* 걸음 수 — Health Connect 연결 시 */}
+      <StepsCard />
 
       {/* 체중 추이 */}
       <section className="rounded-app border border-border bg-surface p-4 shadow-[var(--shadow-card)]">

@@ -22,6 +22,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Health Connect 권한 화면의 '개인정보 처리 안내' 링크(Android 13 이하) -->
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+
             <!-- com.ounwan.app://… 로 앱 열기: 위젯 버튼(open/…)·로그인 메일 링크(login-callback) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -31,6 +36,18 @@
             </intent-filter>
 
         </activity>
+
+        <!-- Health Connect 권한 사용 안내(Android 14+) → 앱의 건강 데이터 안내 화면 -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- 홈 화면 위젯 -->
         <receiver
