@@ -8,6 +8,7 @@ import { useSyncExternalStore } from "react";
 import { startGps, haversineM, type GpsFix, type GpsError } from "./gps";
 import type { RunRecord } from "./types";
 import { speak, spokenDuration } from "./voice";
+import { startStepSensor, readStepSensor } from "./steps";
 
 const KEY = "ounwan-run";
 
@@ -17,6 +18,13 @@ const MIN_STEP_M = 3; // 이보다 짧은 이동은 제자리 떨림으로 보�
 const MAX_SPEED_MS = 12; // 43km/h 초과 = 튐(순간이동)으로 보고 버림
 const ROUTE_STEP_M = 10; // 경로 저장 간격(용량 절약)
 const PACE_WINDOW_SEC = 60; // 현재 페이스 계산 구간
+const CADENCE_WINDOW_SEC = 60; // 현재 케이던스 계산 구간
+
+/** 운동 기록 화면에서 시작한 러닝이면, 끝났을 때 결과를 넣을 세션·운동 */
+export interface RunLink {
+  sessionId: string;
+  exId: string;
+}
 
 export interface RunState {
   status: "running" | "paused";
@@ -35,6 +43,12 @@ export interface RunState {
   gpsError: GpsError | null;
   /** 달리는 중 위치 업데이트 사이 최장 공백(초) — 화면 꺼짐 중 수집이 끊겼는지 자가 점검용 */
   maxGapSec?: number;
+  link?: RunLink | null;
+  // 걸음 센서(앱 전용): 달리는 구간의 센서 증가분만 더한다
+  steps?: number;
+  stepLast?: number | null; // 마지막 센서 누적값(일시정지·재개 직후엔 null → 다음 값이 기준)
+  stepRecent?: { s: number; n: number }[]; // 현재 케이던스용 최근 (기록초, 걸음)
+  stepsOk?: boolean; // 센서 값을 한 번이라도 받았는지
 }
 
 function read(): RunState | null {
@@ -52,6 +66,7 @@ function read(): RunState | null {
       s.status = "paused";
       s.interrupted = true;
       s.anchor = null;
+      s.stepLast = null;
     }
     return s;
   } catch {
@@ -81,6 +96,34 @@ function set(next: RunState | null) {
 export function movingSecOf(s: RunState, now = Date.now()): number {
   const ms = s.movingMs + (s.resumedAt != null ? now - s.resumedAt : 0);
   return Math.max(0, ms / 1000);
+}
+
+/** 센서 누적값을 받아 달린 걸음을 더한다(재부팅으로 값이 줄면 기준만 다시 잡음) */
+function withSteps(s: RunState, total: number): RunState {
+  const last = s.stepLast ?? null;
+  const add = last != null && total >= last ? total - last : 0;
+  const steps = (s.steps ?? 0) + add;
+  const sec = movingSecOf(s);
+  const stepRecent = [...(s.stepRecent ?? []), { s: sec, n: steps }].filter(
+    (p) => sec - p.s <= CADENCE_WINDOW_SEC
+  );
+  return { ...s, steps, stepLast: total, stepRecent, stepsOk: true };
+}
+
+function onStepSensor(total: number) {
+  const s = state;
+  if (!s || s.status !== "running") return; // 멈춘 동안 걸음은 세지 않음
+  set(withSteps(s, total));
+}
+
+/** 최근 1분 기준 현재 케이던스(걸음/분). 판단 불가하면 null. */
+export function currentCadenceOf(s: RunState): number | null {
+  const r = s.stepRecent ?? [];
+  if (r.length < 2) return null;
+  const a = r[0];
+  const b = r[r.length - 1];
+  if (b.s - a.s < 15) return null;
+  return ((b.n - a.n) / (b.s - a.s)) * 60;
 }
 
 /** 최근 1분 기준 현재 페이스(초/km). 판단 불가하면 null. */
@@ -178,7 +221,17 @@ function onGpsError(e: GpsError) {
   if (state) set({ ...state, gpsError: e });
 }
 
+let stopSteps: (() => void) | null = null;
+
 async function ensureWatcher() {
+  if (!stopSteps) {
+    stopSteps = () => {};
+    void startStepSensor(onStepSensor).then((stop) => {
+      // 그사이 기록이 끝났으면 바로 끈다
+      if (stopSteps && state) stopSteps = stop;
+      else stop();
+    });
+  }
   if (stopWatcher) return;
   stopWatcher = () => {}; // 중복 시작 방지(비동기 등록 중)
   try {
@@ -191,9 +244,11 @@ async function ensureWatcher() {
 function releaseWatcher() {
   stopWatcher?.();
   stopWatcher = null;
+  stopSteps?.();
+  stopSteps = null;
 }
 
-export function startRun() {
+export function startRun(link: RunLink | null = null) {
   set({
     status: "running",
     interrupted: false,
@@ -209,6 +264,11 @@ export function startRun() {
     accuracy: null,
     lastFixAt: null,
     gpsError: null,
+    link,
+    steps: 0,
+    stepLast: null,
+    stepRecent: [],
+    stepsOk: false,
   });
   void ensureWatcher();
   void speak("러닝을 시작합니다");
@@ -226,31 +286,62 @@ export function pauseRun() {
     anchor: null,
     recent: [],
   });
+  // 멈춘 순간까지의 걸음을 마저 더하고, 재개 전까지는 세지 않음
+  void readStepSensor().then((v) => {
+    const cur = state;
+    if (!cur || cur.status !== "paused") return;
+    set({ ...(v != null ? withSteps(cur, v) : cur), stepLast: null, stepRecent: [] });
+  });
   void speak("일시정지");
 }
 
 export function resumeRun() {
   const s = state;
   if (!s || s.status !== "paused") return;
-  set({ ...s, status: "running", interrupted: false, resumedAt: Date.now(), anchor: null });
+  set({
+    ...s,
+    status: "running",
+    interrupted: false,
+    resumedAt: Date.now(),
+    anchor: null,
+    stepLast: null,
+    stepRecent: [],
+  });
   void ensureWatcher();
   void speak("다시 달립니다");
 }
 
+export interface RunResult {
+  startedAt: string;
+  endedAt: string;
+  record: RunRecord;
+  link: RunLink | null;
+}
+
 /** 기록 종료 → 저장용 결과 반환(상태는 비움). */
-export function finishRun(): { startedAt: string; endedAt: string; record: RunRecord } | null {
-  const s = state;
+export async function finishRun(): Promise<RunResult | null> {
+  let s = state;
+  if (!s) return null;
+  if (s.status === "running") {
+    const v = await readStepSensor(); // 마지막 걸음까지
+    if (v != null && state) s = withSteps(state, v);
+  }
   if (!s) return null;
   releaseWatcher();
   const movingSec = Math.round(movingSecOf(s));
-  const out = {
+  const endedAt = new Date().toISOString();
+  const out: RunResult = {
     startedAt: s.startedAt,
-    endedAt: new Date().toISOString(),
+    endedAt,
+    link: s.link ?? null,
     record: {
       distanceM: Math.round(s.distanceM),
       movingSec,
       splits: s.splits,
       route: simplifyRoute(s.route),
+      startedAt: s.startedAt,
+      endedAt,
+      steps: s.stepsOk ? Math.round(s.steps ?? 0) : null,
     },
   };
   set(null);

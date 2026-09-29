@@ -6,13 +6,21 @@ import { Dumbbell, Play, ListPlus, Settings2, Footprints } from "lucide-react";
 import { Sheet, Button } from "./ui";
 import { useRoutines, useExerciseMap } from "@/lib/hooks";
 import { RoutineEditor } from "./routine-editor";
+import { dateKeyToDate, todayKey } from "@/lib/utils";
 
+/**
+ * 운동 시작/추가 시트. date가 있으면 캘린더에서 '이 날 운동 추가'로 연 것 → 그 날짜에 추가.
+ * GPS 달리기: 오늘이면 바로 러닝 화면, 다른 날이면 'GPS 러닝' 종목이 든 운동을 만들어 두고
+ * 그날 운동 화면에서 측정을 시작한다.
+ */
 export function StartWorkoutSheet({
   open,
   onClose,
+  date,
 }: {
   open: boolean;
   onClose: () => void;
+  date?: string | null;
 }) {
   const router = useRouter();
   const { data: routines } = useRoutines();
@@ -23,13 +31,17 @@ export function StartWorkoutSheet({
     onClose();
     router.push(path);
   };
+  const forDate = date ?? null;
+  const isToday = !forDate || forDate === todayKey();
+  const q = forDate ? `date=${forDate}` : "";
+  const dd = forDate ? dateKeyToDate(forDate) : null;
 
   return (
     <>
       <Sheet
         open={open}
         onClose={onClose}
-        title="운동 시작"
+        title={dd && !isToday ? `${dd.getMonth() + 1}월 ${dd.getDate()}일 운동 추가` : "운동 시작"}
         footer={
           <Button size="lg" variant="secondary" onClick={() => setEditorOpen(true)}>
             <ListPlus size={18} /> 새 루틴 만들기
@@ -38,14 +50,14 @@ export function StartWorkoutSheet({
       >
         {/* 빈 운동 */}
         <button
-          onClick={() => go("/log")}
+          onClick={() => go(q ? `/log?${q}` : "/log")}
           className="flex w-full items-center gap-3 rounded-app border border-brand/30 bg-brand-soft/50 p-4 text-left active:scale-[0.99] transition"
         >
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand text-white">
             <Dumbbell size={20} />
           </span>
           <span className="flex-1">
-            <span className="block font-bold">빈 운동으로 시작</span>
+            <span className="block font-bold">{isToday ? "빈 운동으로 시작" : "빈 운동 추가"}</span>
             <span className="block text-xs text-text-3">
               운동을 그때그때 추가하며 기록
             </span>
@@ -54,16 +66,18 @@ export function StartWorkoutSheet({
 
         {/* GPS 달리기 */}
         <button
-          onClick={() => go("/run")}
+          onClick={() => go(isToday ? "/run" : `/log?${q}&gps=1`)}
           className="mt-2 flex w-full items-center gap-3 rounded-app border border-border bg-surface p-4 text-left active:scale-[0.99] transition"
         >
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand">
             <Footprints size={20} />
           </span>
           <span className="flex-1">
-            <span className="block font-bold">달리기 시작</span>
+            <span className="block font-bold">{isToday ? "GPS 달리기 시작" : "GPS 러닝 추가"}</span>
             <span className="block text-xs text-text-3">
-              GPS로 거리·페이스·1km 구간 기록
+              {isToday
+                ? "GPS로 거리·페이스·케이던스·1km 구간 기록"
+                : "그날 운동 화면에서 'GPS 달리기 시작'을 눌러 측정해요"}
             </span>
           </span>
         </button>
@@ -85,7 +99,7 @@ export function StartWorkoutSheet({
             {routines.map((r) => (
               <button
                 key={r.id}
-                onClick={() => go(`/log?routine=${r.id}`)}
+                onClick={() => go(`/log?routine=${r.id}${q ? `&${q}` : ""}`)}
                 className="flex w-full items-center gap-3 rounded-app border border-border bg-surface p-3 text-left active:scale-[0.99] transition"
               >
                 <span className="text-2xl">{r.emoji ?? "🔥"}</span>

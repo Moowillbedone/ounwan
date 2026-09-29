@@ -324,3 +324,20 @@ export async function heartRateBetween(
     max: Math.round(Math.max(...vals)),
   };
 }
+
+/**
+ * 러닝 구간 걸음(걸음 센서 기록이 없는 옛 러닝용).
+ * 삼성 헬스의 '하루 통째 기록'은 구간을 알 수 없어 빼고(2시간 넘는 기록 제외),
+ * 휴대폰·워치의 짧은 기록만 시간대 병합한다. 없으면 null.
+ */
+export async function stepsInWindow(startISO: string, endISO: string): Promise<number | null> {
+  const start = new Date(startISO);
+  const end = new Date(endISO);
+  if (!(end > start)) return null;
+  const samples = await read("steps", start, end);
+  const fine = samples.filter(
+    (x) => Date.parse(x.endDate || x.startDate) - Date.parse(x.startDate) <= 2 * 60 * 60 * 1000
+  );
+  const n = mergeSteps(fine, start, end);
+  return n > 0 ? n : null;
+}

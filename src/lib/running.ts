@@ -1,4 +1,4 @@
-import type { Exercise, WorkoutSession } from "./types";
+import type { BodyMetric, Exercise, RunRecord, WorkoutSession } from "./types";
 import { dateKeyToDate, isSessionDone, toDateKey } from "./utils";
 
 /* ------------------------------------------------------------------ *
@@ -187,3 +187,117 @@ export const PREDICT_DISTANCES = [
   { label: "하프", meters: 21097.5 },
   { label: "풀코스", meters: 42195 },
 ];
+
+/* ---------------- GPS 러닝 상세(케이던스·칼로리·속도) ---------------- */
+
+export const KCAL_SOURCE =
+  "칼로리는 ACSM(미국스포츠의학회) 대사 공식으로 추정해요. 평지 기준 산소 소모량(달리기 0.2×속도+3.5, 걷기 0.1×속도+3.5 mL/kg/분)에 체중과 시간을 곱하고, 산소 1L≈5kcal로 환산해요. 오르막·바람은 반영하지 않아 실제와 다를 수 있어요.";
+
+/** 세션 안의 GPS 기록들. 지금은 운동(ex.run)에 저장되고, 옛 기록은 세션(run)에 있다. */
+export interface SessionRun {
+  key: string;
+  exId: string | null; // null = 옛 세션 단위 기록
+  exerciseId: string | null;
+  run: RunRecord;
+  startedAt: string | null;
+  endedAt: string | null;
+}
+
+export function sessionRuns(s: WorkoutSession): SessionRun[] {
+  const out: SessionRun[] = [];
+  for (const ex of [...s.exercises].sort((a, b) => a.orderIndex - b.orderIndex)) {
+    if (!ex.run) continue;
+    out.push({
+      key: ex.id,
+      exId: ex.id,
+      exerciseId: ex.exerciseId,
+      run: ex.run,
+      startedAt: ex.run.startedAt ?? s.startedAt ?? null,
+      endedAt: ex.run.endedAt ?? s.endedAt ?? null,
+    });
+  }
+  if (out.length === 0 && s.run)
+    out.push({
+      key: "session",
+      exId: null,
+      exerciseId: null,
+      run: s.run,
+      startedAt: s.startedAt ?? null,
+      endedAt: s.endedAt ?? null,
+    });
+  return out;
+}
+
+/** 그날 체중(없으면 그 전 가장 가까운 기록, 그것도 없으면 가장 오래된 기록). 없으면 null */
+export function weightOn(metrics: BodyMetric[] | undefined, date: string): number | null {
+  const ws = (metrics ?? [])
+    .filter((m) => m.weight != null && m.weight > 0 && !m.deletedAt)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (ws.length === 0) return null;
+  const before = ws.filter((m) => m.date <= date);
+  return (before.length ? before[before.length - 1] : ws[0]).weight ?? null;
+}
+
+export const DEFAULT_WEIGHT_KG = 70;
+
+/** ACSM 공식 칼로리(kcal). 속도 6km/h 이상 또는 케이던스 140 이상이면 달리기, 아니면 걷기 공식 */
+export function runKcal(
+  meters: number,
+  sec: number,
+  weightKg: number,
+  cadence: number | null = null
+): number | null {
+  if (meters <= 0 || sec <= 0 || weightKg <= 0) return null;
+  const min = sec / 60;
+  const v = meters / min; // m/분
+  const running = v >= 100 || (cadence != null && cadence >= 140);
+  const vo2 = (running ? 0.2 : 0.1) * v + 3.5; // mL/kg/분
+  return Math.round(((vo2 * weightKg * min) / 1000) * 5);
+}
+
+export interface RunMetrics {
+  meters: number;
+  sec: number;
+  paceSec: number | null; // 초/km
+  speedKmh: number | null;
+  steps: number | null;
+  cadence: number | null; // 걸음/분
+  kcal: number | null;
+  weightKg: number;
+  weightAssumed: boolean; // 체중 기록이 없어 70kg로 계산
+}
+
+/**
+ * 러닝 상세 지표. 걸음은 센서 기록(run.steps) 우선, 없으면 extraSteps(Health Connect)로.
+ * extraSteps는 일시정지 시간까지 포함한 구간 값이라 케이던스는 전체 경과 시간으로 나눈다.
+ */
+export function runMetrics(
+  run: RunRecord,
+  weightKg: number | null,
+  extra?: { steps: number; elapsedSec: number } | null
+): RunMetrics {
+  const meters = run.distanceM;
+  const sec = run.movingSec;
+  const w = weightKg && weightKg > 0 ? weightKg : DEFAULT_WEIGHT_KG;
+  let steps: number | null = null;
+  let cadence: number | null = null;
+  if (run.steps != null && run.steps > 0) {
+    steps = run.steps;
+    cadence = sec > 0 ? (run.steps / sec) * 60 : null;
+  } else if (extra && extra.steps > 0) {
+    steps = extra.steps;
+    cadence = extra.elapsedSec > 0 ? (extra.steps / extra.elapsedSec) * 60 : null;
+  }
+  if (cadence != null && (cadence < 40 || cadence > 260)) cadence = null; // 센서 오류 값은 버림
+  return {
+    meters,
+    sec,
+    paceSec: meters > 0 && sec > 0 ? sec / (meters / 1000) : null,
+    speedKmh: meters > 0 && sec > 0 ? (meters / 1000) / (sec / 3600) : null,
+    steps,
+    cadence: cadence != null ? Math.round(cadence) : null,
+    kcal: runKcal(meters, sec, w, cadence),
+    weightKg: w,
+    weightAssumed: !(weightKg && weightKg > 0),
+  };
+}

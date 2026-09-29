@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   Pause,
@@ -25,21 +25,98 @@ import {
   reattachRun,
   movingSecOf,
   currentPaceOf,
+  currentCadenceOf,
   fmtKm,
   fmtPace,
   fmtClock,
   type RunState,
+  type RunResult,
+  type RunLink,
 } from "@/lib/run-tracker";
 import { gpsKeepsRunningInBackground, openLocationSettings } from "@/lib/gps";
 import { useSaveSession } from "@/lib/hooks";
-import { getSessionsByDate, newEmptySession } from "@/lib/repo";
+import { getSession, getSessionsByDate, newEmptySession } from "@/lib/repo";
 import { toDateKey, uid } from "@/lib/utils";
+import type { SessionExercise, WorkoutSet, WorkoutSession } from "@/lib/types";
 import { RunMap } from "./run-map";
 
 export const RUN_EXERCISE_ID = "outdoor-running";
 
+function runSet(r: RunResult): WorkoutSet {
+  return {
+    id: uid(),
+    setType: "working",
+    weight: 0,
+    reps: 0,
+    durationSec: r.record.movingSec,
+    distanceM: r.record.distanceM,
+    isCompleted: true,
+    completedAt: r.endedAt,
+  };
+}
+
+/** GPS 러닝 종목(운동 기록 화면의 카드). 측정 결과는 세트(거리·시간)와 run(경로·걸음)에 담긴다. */
+export function gpsExercise(orderIndex: number, r?: RunResult): SessionExercise {
+  return {
+    id: uid(),
+    exerciseId: RUN_EXERCISE_ID,
+    orderIndex,
+    trackingMode: "distance",
+    gps: true,
+    run: r ? r.record : null,
+    sets: r ? [runSet(r)] : [],
+  };
+}
+
+/**
+ * 러닝 결과 저장. 운동 기록 화면에서 시작한 러닝(link)이면 그 운동 카드에 넣고,
+ * 아니면 새 'GPS 러닝' 세션을 만든다. 돌아갈 화면 경로를 반환.
+ */
+async function saveRunResult(
+  r: RunResult,
+  save: (s: WorkoutSession) => Promise<unknown>
+): Promise<{ path: string; session: WorkoutSession }> {
+  if (r.link) {
+    const s = await getSession(r.link.sessionId);
+    if (s && !s.deletedAt) {
+      const exs = [...s.exercises];
+      const i = exs.findIndex((e) => e.id === r.link!.exId);
+      if (i >= 0)
+        exs[i] = {
+          ...exs[i],
+          trackingMode: "distance",
+          gps: true,
+          run: r.record,
+          sets: [runSet(r)],
+        };
+      else exs.push(gpsExercise(exs.length, r));
+      const onlyRun = exs.length === 1;
+      const next: WorkoutSession = {
+        ...s,
+        exercises: exs,
+        startedAt: s.startedAt ?? r.startedAt,
+        // 러닝만 있는 운동이면 러닝이 끝난 때 운동도 끝(다른 운동이 있으면 운동 화면에서 마무리)
+        endedAt: onlyRun ? s.endedAt ?? r.endedAt : s.endedAt,
+      };
+      await save(next);
+      return { path: onlyRun ? "/" : `/log?id=${s.id}`, session: next };
+    }
+  }
+  const date = toDateKey(new Date(r.startedAt));
+  const sameDay = await getSessionsByDate(date);
+  const idx = sameDay.reduce((m, s) => Math.max(m, s.sessionIndexOfDay), 0) + 1;
+  const session = newEmptySession(date, idx);
+  session.title = "GPS 러닝"; // 거리는 세트에 있으므로 제목엔 넣지 않음(수정 시 어긋남 방지)
+  session.startedAt = r.startedAt;
+  session.endedAt = r.endedAt;
+  session.exercises = [gpsExercise(0, r)];
+  await save(session);
+  return { path: "/", session };
+}
+
 export function RunScreen() {
   const router = useRouter();
+  const params = useSearchParams();
   const run = useRun();
   const toast = useToast();
   const save = useSaveSession();
@@ -53,6 +130,23 @@ export function RunScreen() {
     setVoice(isVoiceOn());
     reattachRun();
   }, []);
+
+  // 운동 기록 화면의 'GPS 러닝' 카드에서 온 경우 → 끝나면 그 카드에 기록
+  const sessionParam = params.get("session");
+  const exParam = params.get("ex");
+  const link: RunLink | null =
+    sessionParam && exParam ? { sessionId: sessionParam, exId: exParam } : null;
+  const [linkName, setLinkName] = useState<string | null>(null);
+  const activeLink = run ? run.link ?? null : link;
+  useEffect(() => {
+    if (!activeLink) {
+      setLinkName(null);
+      return;
+    }
+    void getSession(activeLink.sessionId).then((s) =>
+      setLinkName(s ? s.title || s.label || "오늘 운동" : null)
+    );
+  }, [activeLink?.sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 달리는 중에는 1초마다 시간·페이스 표시 갱신
   useEffect(() => {
@@ -70,42 +164,17 @@ export function RunScreen() {
         : "달리기를 끝내고 기록을 저장할까요?"
     );
     if (!ok) return;
-    const result = finishRun();
-    if (!result) return;
     setSaving(true);
     try {
-      const date = toDateKey(new Date(result.startedAt));
-      const sameDay = await getSessionsByDate(date);
-      const idx = sameDay.reduce((m, s) => Math.max(m, s.sessionIndexOfDay), 0) + 1;
+      const result = await finishRun();
+      if (!result) return;
       const km = (result.record.distanceM / 1000).toFixed(2);
-      const session = newEmptySession(date, idx);
-      session.title = "GPS 러닝"; // 거리는 세트에 있으므로 제목엔 넣지 않음(수정 시 어긋남 방지)
-      session.startedAt = result.startedAt;
-      session.endedAt = result.endedAt;
-      session.run = result.record;
-      session.exercises = [
-        {
-          id: uid(),
-          exerciseId: RUN_EXERCISE_ID,
-          orderIndex: 0,
-          trackingMode: "distance",
-          sets: [
-            {
-              id: uid(),
-              setType: "working",
-              weight: 0,
-              reps: 0,
-              durationSec: result.record.movingSec,
-              distanceM: result.record.distanceM,
-              isCompleted: true,
-              completedAt: result.endedAt,
-            },
-          ],
-        },
-      ];
-      await save.mutateAsync(session);
-      toast(`러닝 ${km}km 저장 완료!`, "pr");
-      router.push("/");
+      const { path } = await saveRunResult(result, (x) => save.mutateAsync(x));
+      toast(
+        result.link ? `러닝 ${km}km를 운동 기록에 넣었어요!` : `러닝 ${km}km 저장 완료!`,
+        "pr"
+      );
+      router.push(path);
     } catch {
       toast("저장에 실패했어요. 다시 시도해 주세요.", "error");
     } finally {
@@ -120,7 +189,10 @@ export function RunScreen() {
   return (
     <div className="min-h-dvh bg-bg pb-[calc(env(safe-area-inset-bottom)+24px)]">
       <header className="sticky top-0 z-20 flex items-center gap-1 bg-bg/90 px-2 pt-[calc(env(safe-area-inset-top)+8px)] pb-2 backdrop-blur">
-        <IconButton onClick={() => router.push("/")} aria-label="뒤로">
+        <IconButton
+          onClick={() => router.push(activeLink ? `/log?id=${activeLink.sessionId}` : "/")}
+          aria-label="뒤로"
+        >
           <ChevronLeft size={22} />
         </IconButton>
         <h1 className="text-lg font-bold">러닝</h1>
@@ -142,11 +214,16 @@ export function RunScreen() {
         </button>
       </header>
 
+      {linkName && (
+        <div className="mx-5 mt-1 rounded-app bg-brand-soft/60 px-3 py-2 text-center text-[13px] text-text-2">
+          <b className="text-brand-strong">{linkName}</b>의 GPS 러닝으로 기록돼요
+        </div>
+      )}
       {!run ? <IdleView native={native} /> : <ActiveView run={run} />}
 
       <div className="px-5 pt-6">
         {!run && (
-          <Button size="lg" onClick={() => startRun()}>
+          <Button size="lg" onClick={() => startRun(link)}>
             <Play size={20} /> 달리기 시작
           </Button>
         )}
@@ -214,6 +291,7 @@ function ActiveView({ run }: { run: RunState }) {
   const sec = movingSecOf(run);
   const avgPace = run.distanceM >= 50 ? sec / (run.distanceM / 1000) : null;
   const curPace = run.status === "running" ? currentPaceOf(run) : null;
+  const cadence = run.status === "running" ? currentCadenceOf(run) : null;
 
   return (
     <div className="px-5">
@@ -249,6 +327,12 @@ function ActiveView({ run }: { run: RunState }) {
         <Stat label="평균 페이스" value={fmtPace(avgPace)} />
         <Stat label="현재 페이스" value={fmtPace(curPace)} />
       </div>
+      {run.stepsOk && (
+        <div className="mt-2 grid grid-cols-2 gap-2 text-center">
+          <Stat label="케이던스(걸음/분)" value={cadence != null ? String(Math.round(cadence)) : "--"} />
+          <Stat label="걸음" value={Math.round(run.steps ?? 0).toLocaleString("ko-KR")} />
+        </div>
+      )}
 
       {run.route.length > 0 && (
         <Card className="mt-5 p-3">
