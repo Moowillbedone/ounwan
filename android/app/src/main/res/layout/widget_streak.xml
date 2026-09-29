@@ -1,30 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 1x1 연속기록 위젯: 불꽃 + 연속 일수 + 오늘 완료 여부 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 1x1 연속기록 위젯: 이번 주 7일 링(3D) + 가운데 연속 일수 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/streak_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_bg"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:padding="6dp">
+    android:background="@drawable/widget_bg">
 
-    <TextView
-        android:id="@+id/streak_value"
+    <ImageView
+        android:id="@+id/streak_ring"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/widget_grass_desc"
+        android:padding="5dp"
+        android:scaleType="fitCenter" />
+
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:maxLines="1"
-        android:text="🔥 0"
-        android:textColor="@color/widget_text"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:layout_gravity="center"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/streak_sub"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:maxLines="1"
-        android:text="@string/widget_loading"
-        android:textColor="@color/widget_text_sub"
-        android:textSize="10sp" />
-</LinearLayout>
+        <TextView
+            android:id="@+id/streak_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-black"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="0"
+            android:textColor="@color/widget_text"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/streak_sub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:maxLines="1"
+            android:text="@string/widget_streak_unit"
+            android:textColor="@color/widget_text_sub"
+            android:textSize="9sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</FrameLayout>
