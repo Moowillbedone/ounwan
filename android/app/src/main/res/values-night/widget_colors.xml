@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 홈 화면 위젯 색 (다크 모드) -->
 <resources>
-    <color name="widget_bg">#151B23</color>
-    <color name="widget_text">#F3F4F6</color>
-    <color name="widget_text_sub">#9CA3AF</color>
+    <color name="widget_bg">#0E1A15</color>
+    <color name="widget_bg_start">#0C1612</color>
+    <color name="widget_bg_end">#10261C</color>
+    <color name="widget_glow">#383FD189</color>
+    <color name="widget_stroke">#14FFFFFF</color>
+    <color name="widget_text">#F2F7F4</color>
+    <color name="widget_text_sub">#93A69C</color>
     <color name="widget_brand">#3FD189</color>
-    <color name="widget_btn_bg">#1E2A33</color>
+    <color name="widget_on_brand">#06140E</color>
+    <color name="widget_btn_bg">#243FD189</color>
 </resources>
