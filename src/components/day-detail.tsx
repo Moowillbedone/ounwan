@@ -14,13 +14,15 @@ import {
   ClipboardPaste,
   CalendarArrowDown,
   Footprints,
-  Map as MapIcon,
+  Combine,
 } from "lucide-react";
-import { Sheet, Button, Chip, EmptyState, IconButton, useToast, useConfirm } from "./ui";
+import { Sheet, Button, Chip, EmptyState, IconButton, useToast, useConfirm, cn } from "./ui";
 import { LabelField } from "./label-field";
-import { RunRoute } from "./run-route";
-import { RunMap } from "./run-map";
 import { RunHeartRate } from "./health-bits";
+import { RunDetail } from "./run-detail";
+import { StartWorkoutSheet } from "./start-workout";
+import { sessionRuns } from "@/lib/running";
+import { mergeSessions } from "@/lib/merge";
 import { fmtKm, fmtClock, fmtPace } from "@/lib/run-tracker";
 import {
   useSessions,
@@ -68,6 +70,7 @@ function toClip(s: WorkoutSession): SessionClip {
       trackingMode: e.trackingMode,
       restSeconds: e.restSeconds ?? null,
       supersetGroup: e.supersetGroup ?? null,
+      gps: e.gps || undefined,
       sets: e.sets.map((x) => ({
         setType: x.setType,
         weight: x.weight,
@@ -96,7 +99,9 @@ function fromClip(c: SessionClip, date: string, indexOfDay: number): WorkoutSess
     trackingMode: e.trackingMode,
     restSeconds: e.restSeconds ?? null,
     supersetGroup: e.supersetGroup ?? null,
-    sets: e.sets.map((st) => ({
+    gps: e.gps || undefined,
+    // GPS 러닝은 측정 결과 대신 '측정 전' 상태로
+    sets: (e.gps ? [] : e.sets).map((st) => ({
       id: uid(),
       setType: st.setType,
       weight: st.weight,
@@ -131,6 +136,10 @@ export function DayDetailSheet({
   const unit = profile?.unit ?? "kg";
   const [moveTarget, setMoveTarget] = useState<WorkoutSession | null>(null);
   const [moveDate, setMoveDate] = useState<string>(() => todayKey());
+  const [addOpen, setAddOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [mergeSel, setMergeSel] = useState<string[]>([]);
+  const [mergeTitle, setMergeTitle] = useState("");
 
   // 대상 날짜의 다음 세션 인덱스(기존 max+1) — 이동/붙여넣기로 갭이 생겨도 충돌 없음
   const nextIndexForDate = (date: string, excludeId?: string) => {
@@ -286,6 +295,44 @@ export function DayDetailSheet({
     toast(`하루 전체 복사됨 · 운동 ${daySessions.length}개 — 다른 날짜에 붙여넣기`);
   };
 
+  const sessionName = (s: WorkoutSession) =>
+    s.title || s.label || s.bodyParts.join("·") || `${s.exercises.length}개 운동`;
+
+  const openMerge = () => {
+    setMergeSel(daySessions.map((s) => s.id));
+    setMergeTitle(
+      dayLabel?.label ||
+        daySessions
+          .map((s) => s.title || s.label)
+          .filter(Boolean)
+          .join(" + ")
+    );
+    setMergeOpen(true);
+  };
+
+  // 선택한 운동들을 하나로(첫 운동에 이어 붙이고 나머지는 삭제)
+  const doMerge = async () => {
+    const picked = daySessions.filter((s) => mergeSel.includes(s.id));
+    if (picked.length < 2) return;
+    if (
+      !confirm(
+        `운동 ${picked.length}개를 하나로 합칠까요?\n합친 뒤에는 다시 나눌 수 없어요.\n(걱정되면 '하루 전체 복사'로 먼저 복사해 두세요)`
+      )
+    )
+      return;
+    // 캘린더 라벨: 하루 대표 라벨이 있으면 그것, 없으면 합친 이름(비우면 첫 운동 라벨 유지)
+    const name = mergeTitle.trim();
+    const merged = mergeSessions(picked, {
+      title: name,
+      label: dayLabel?.label || name || undefined,
+      labelColor: dayLabel?.label ? dayLabel.color ?? null : undefined,
+    });
+    await saveSession.mutateAsync(merged);
+    for (const s of picked) if (s.id !== merged.id) await delSession.mutateAsync(s.id);
+    setMergeOpen(false);
+    toast(`운동 ${picked.length}개를 하나로 합쳤어요 · 운동 ${merged.exercises.length}개`);
+  };
+
   const doPaste = async () => {
     if (!clip || !dateKey) return;
     const items = clipSessions(clip);
@@ -341,7 +388,7 @@ export function DayDetailSheet({
               </IconButton>
             </div>
           )}
-          <Button size="lg" onClick={() => router.push(`/log?date=${dateKey}`)}>
+          <Button size="lg" onClick={() => setAddOpen(true)}>
             <Plus size={20} /> 이 날 운동 추가
           </Button>
         </div>
@@ -359,17 +406,27 @@ export function DayDetailSheet({
       {dateKey && (daySessions.length >= 2 || dayLabel) && (
         <div className="mb-3 rounded-app border border-border bg-surface-2/40 p-3">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-text-3">
-              하루 대표 라벨 · 캘린더에 이 라벨이 보여요
+            <span className="min-w-0 text-xs font-bold text-text-3">
+              하루 대표 라벨 · 캘린더에 표시
             </span>
-            {daySessions.length > 0 && (
-              <button
-                onClick={doCopyDay}
-                className="flex shrink-0 items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-strong active:scale-95"
-              >
-                <Copy size={13} /> 하루 전체 복사
-              </button>
-            )}
+            <span className="flex shrink-0 gap-1.5">
+              {daySessions.length >= 2 && (
+                <button
+                  onClick={openMerge}
+                  className="flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-strong active:scale-95"
+                >
+                  <Combine size={13} /> 합치기
+                </button>
+              )}
+              {daySessions.length > 0 && (
+                <button
+                  onClick={doCopyDay}
+                  className="flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand-strong active:scale-95"
+                >
+                  <Copy size={13} /> 전체 복사
+                </button>
+              )}
+            </span>
           </div>
           <LabelField
             key={`${dateKey}:${dayLabel?.label ?? ""}`}
@@ -452,6 +509,76 @@ export function DayDetailSheet({
         </Button>
       </div>
     </Sheet>
+
+    <StartWorkoutSheet open={addOpen} onClose={() => setAddOpen(false)} date={dateKey} />
+
+    <Sheet
+      open={mergeOpen}
+      onClose={() => setMergeOpen(false)}
+      title="운동 하나로 합치기"
+      footer={
+        <Button size="lg" onClick={doMerge} disabled={mergeSel.length < 2}>
+          <Combine size={20} />{" "}
+          {mergeSel.length < 2 ? "2개 이상 골라주세요" : `${mergeSel.length}개 합치기`}
+        </Button>
+      }
+    >
+      <p className="mb-3 text-sm text-text-3">
+        고른 운동들을 <b className="text-text-2">위에서부터 순서대로</b> 한 운동 기록으로 이어 붙여요.
+        세트·완료 기록·GPS 러닝은 그대로 옮겨지고, 순서는 합친 뒤 꾹 눌러 바꿀 수 있어요.
+      </p>
+      <div className="space-y-1.5">
+        {daySessions.map((s) => {
+          const on = mergeSel.includes(s.id);
+          return (
+            <button
+              key={s.id}
+              onClick={() =>
+                setMergeSel((v) => (v.includes(s.id) ? v.filter((x) => x !== s.id) : [...v, s.id]))
+              }
+              className={cn(
+                "flex w-full items-center gap-3 rounded-app border px-3 py-2.5 text-left transition",
+                on ? "border-brand bg-brand-soft/50" : "border-border"
+              )}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="truncate font-semibold">{sessionName(s)}</span>
+                  {s.endedAt && (
+                    <span className="shrink-0 rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold text-white">
+                      완료
+                    </span>
+                  )}
+                </span>
+                <span className="block truncate text-xs text-text-3">
+                  {s.exercises.map((e) => exMap.get(e.exerciseId)?.nameKo ?? "운동").join(" · ") || "운동 없음"}
+                </span>
+              </span>
+              <span
+                className={cn(
+                  "grid h-5 w-5 shrink-0 place-items-center rounded-full border-2",
+                  on ? "border-brand bg-brand text-white" : "border-border"
+                )}
+              >
+                {on && <Check size={13} strokeWidth={3} />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <label className="mb-1 mt-4 block text-sm font-semibold text-text-2">합친 운동 이름</label>
+      <input
+        value={mergeTitle}
+        onChange={(e) => setMergeTitle(e.target.value)}
+        placeholder="예: 전신 A"
+        maxLength={40}
+        className="w-full rounded-app border border-border bg-surface-2 px-3 py-3 text-base outline-none focus:border-brand"
+      />
+      <p className="mt-2 text-[11px] leading-relaxed text-text-3">
+        운동 시간은 각 운동 시간을 더한 값으로 유지돼요. 하나라도 완료된 운동이 있으면 합친 운동도
+        완료로 남아요.
+      </p>
+    </Sheet>
     </>
   );
 }
@@ -510,7 +637,13 @@ export function SessionSummaryCard({
   onSetLabelColor?: (color: string) => void;
 }) {
   const dist = sessionDistance(session);
-  const [mapOpen, setMapOpen] = useState(false);
+  const runs = sessionRuns(session);
+  // 근력 등 거리 방식이 아닌 운동이 있는지(러닝만 있는 세션이면 볼륨 요약은 생략)
+  const hasOther = session.exercises.some(
+    (e) => !e.gps && (e.trackingMode ?? "weight_reps") !== "distance"
+  );
+  const manualDistOnly = runs.length === 0 && dist.meters > 0 && !hasOther;
+  const showVolume = hasOther || (runs.length === 0 && !manualDistOnly);
   return (
     <div className="rounded-app border border-border bg-surface p-4">
       {onSetLabel && (
@@ -570,7 +703,7 @@ export function SessionSummaryCard({
         )}
       </div>
 
-      {dist.meters > 0 && session.totalVolume === 0 ? (
+      {manualDistOnly && (
         <button onClick={onOpen} className="mt-2 w-full text-left">
           <div className="flex gap-4 text-sm text-text-2">
             <span>
@@ -589,27 +722,9 @@ export function SessionSummaryCard({
             )}
           </div>
           <RunHeartRate startedAt={session.startedAt} endedAt={session.endedAt} />
-          {session.run && session.run.route.length > 1 && (
-            <RunRoute route={session.run.route} className="mt-2 h-24 w-full" />
-          )}
         </button>
-      ) : null}
-      {dist.meters > 0 && session.totalVolume === 0 && session.run && session.run.route.length > 1 && (
-        <>
-          <button
-            onClick={() => setMapOpen(true)}
-            className="mt-1 flex items-center gap-1 text-xs font-bold text-brand active:scale-95"
-          >
-            <MapIcon size={13} /> 지도로 보기
-          </button>
-          <Sheet open={mapOpen} onClose={() => setMapOpen(false)} title="달린 경로">
-            {mapOpen && (
-              <RunMap route={session.run.route} className="h-[60vh] w-full overflow-hidden rounded-app" />
-            )}
-          </Sheet>
-        </>
       )}
-      {!(dist.meters > 0 && session.totalVolume === 0) && (
+      {showVolume && (
       <button onClick={onOpen} className="mt-2 w-full text-left">
         <div className="flex gap-4 text-sm text-text-2">
           <span>
@@ -626,6 +741,22 @@ export function SessionSummaryCard({
         </div>
       </button>
       )}
+      {runs.map((r) => (
+        <div key={r.key} className="mt-2">
+          {(runs.length > 1 || hasOther) && (
+            <div className="mb-1 flex items-center gap-1 text-xs font-bold text-text-2">
+              <Footprints size={13} className="text-brand" /> GPS 러닝
+            </div>
+          )}
+          <RunDetail
+            run={r.run}
+            date={session.date}
+            startedAt={r.startedAt}
+            endedAt={r.endedAt}
+            title={runs.length === 1 && !hasOther && session.title ? session.title : "GPS 러닝"}
+          />
+        </div>
+      ))}
     </div>
   );
 }

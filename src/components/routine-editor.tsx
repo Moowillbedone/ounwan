@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, ChevronUp, ChevronDown, Plus, Minus, CalendarDays } from "lucide-react";
+import { Trash2, GripVertical, Plus, Minus, CalendarDays } from "lucide-react";
 import { Sheet, Button, useToast } from "./ui";
 import { ExercisePicker } from "./exercise-picker";
 import { useSaveRoutine, useExerciseMap, useSessions } from "@/lib/hooks";
 import { BODY_PART_META } from "@/lib/constants";
 import { relativeDayLabel } from "@/lib/utils";
+import { useDragSort, moveItem } from "@/lib/drag-sort";
 import type { Routine, RoutineExerciseRef, WorkoutSession } from "@/lib/types";
 
 const EMOJIS = ["🔥", "💪", "🦵", "🏋️", "⚡", "🎯", "🌅", "🌙", "🏃", "🧘"];
@@ -46,14 +47,8 @@ export function RoutineEditor({
         .map((id) => ({ exerciseId: id, targetSets: 3 })),
     ]);
 
-  const move = (i: number, dir: number) =>
-    setItems((prev) => {
-      const j = i + dir;
-      if (j < 0 || j >= prev.length) return prev;
-      const next = [...prev];
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
-    });
+  // 꾹 눌러(손잡이는 짧게) 끌어서 순서 바꾸기
+  const dnd = useDragSort((_scope, from, to) => setItems((prev) => moveItem(prev, from, to)));
 
   const setTarget = (i: number, delta: number) =>
     setItems((prev) =>
@@ -139,8 +134,18 @@ export function RoutineEditor({
             return (
               <div
                 key={it.exerciseId}
-                className="flex items-center gap-2 rounded-app border border-border bg-surface p-2.5"
+                ref={dnd.itemRef("r", i)}
+                {...dnd.pressProps("r", i)}
+                style={{ ...dnd.pressProps("r", i).style, ...dnd.itemStyle("r", i) }}
+                className="flex select-none items-center gap-2 rounded-app border border-border bg-surface p-2.5"
               >
+                <span
+                  {...dnd.pressProps("r", i, true)}
+                  className="-ml-1 grid h-8 w-5 shrink-0 cursor-grab place-items-center text-text-3"
+                  aria-label="꾹 눌러 순서 바꾸기"
+                >
+                  <GripVertical size={16} />
+                </span>
                 <span
                   className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-bold"
                   style={{
@@ -171,22 +176,6 @@ export function RoutineEditor({
                       <Plus size={12} />
                     </button>
                   </div>
-                </div>
-                <div className="flex flex-col">
-                  <button
-                    onClick={() => move(i, -1)}
-                    className="grid h-6 w-7 place-items-center text-text-3 disabled:opacity-30"
-                    disabled={i === 0}
-                  >
-                    <ChevronUp size={16} />
-                  </button>
-                  <button
-                    onClick={() => move(i, 1)}
-                    className="grid h-6 w-7 place-items-center text-text-3 disabled:opacity-30"
-                    disabled={i === items.length - 1}
-                  >
-                    <ChevronDown size={16} />
-                  </button>
                 </div>
                 <button
                   onClick={() => remove(i)}

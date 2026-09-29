@@ -7,8 +7,7 @@ import {
   Plus,
   Check,
   Trash2,
-  ChevronUp,
-  ChevronDown,
+  GripVertical,
   MoreVertical,
   Dumbbell,
   Minus,
@@ -18,10 +17,17 @@ import {
   RefreshCw,
   Link2,
   Unlink,
+  Footprints,
+  Satellite,
+  Play,
 } from "lucide-react";
 import { Button, IconButton, Sheet, useToast, EmptyState, cn } from "./ui";
 import { LabelField } from "./label-field";
-import { ExercisePicker } from "./exercise-picker";
+import { ExercisePicker, GPS_PICK_ID } from "./exercise-picker";
+import { RunDetail } from "./run-detail";
+import { gpsExercise, RUN_EXERCISE_ID } from "./run-screen";
+import { useDragSort, moveItem } from "@/lib/drag-sort";
+import { useRun, fmtClock, movingSecOf } from "@/lib/run-tracker";
 import { startRest } from "@/lib/rest-timer";
 import { useSaveSession, useProfile, useUpdateProfile, useExerciseMap } from "@/lib/hooks";
 import { armFeedback } from "@/lib/feedback";
@@ -174,6 +180,7 @@ export function LogScreen() {
   const idParam = params.get("id");
   const dateParam = params.get("date");
   const routineParam = params.get("routine");
+  const gpsParam = params.get("gps") === "1";
 
   useEffect(() => {
     let alive = true;
@@ -218,13 +225,18 @@ export function LogScreen() {
           s.exercises = exs;
         }
       }
+      // 캘린더 '이 날 운동 추가 → GPS 러닝': GPS 러닝 종목이 든 운동으로 시작
+      if (gpsParam && !s.exercises.some((e) => e.gps)) {
+        s.exercises = [...s.exercises, gpsExercise(s.exercises.length)];
+        if (!s.title) s.title = "GPS 러닝";
+      }
       if (alive) setSession(s);
     })();
     return () => {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idParam, dateParam, routineParam]);
+  }, [idParam, dateParam, routineParam, gpsParam]);
 
   async function primeHistory(exerciseIds: string[], excludeId?: string) {
     for (const eid of exerciseIds) {
@@ -262,21 +274,82 @@ export function LogScreen() {
   }, []);
 
   const addExercises = async (ids: string[]) => {
-    await primeHistory(ids);
+    const normal = ids.filter((id) => id !== GPS_PICK_ID);
+    await primeHistory(normal);
     update((s) => {
       const base = s.exercises.length;
       const added = ids.map((eid, i) =>
-        buildExercise(
-          eid,
-          base + i,
-          lastPerf.current[eid]?.exercise,
-          undefined,
-          defaultModeFor(exMap.get(eid)?.category, exMap.get(eid)?.slug)
-        )
+        eid === GPS_PICK_ID
+          ? gpsExercise(base + i)
+          : buildExercise(
+              eid,
+              base + i,
+              lastPerf.current[eid]?.exercise,
+              undefined,
+              defaultModeFor(exMap.get(eid)?.category, exMap.get(eid)?.slug)
+            )
       );
       return { ...s, exercises: [...s.exercises, ...added] };
     });
   };
+
+  // GPS 러닝 카드 → 지금까지 내용을 바로 저장하고 러닝 화면으로(끝나면 이 카드에 기록이 들어옴)
+  const activeRun = useRun();
+  const startGps = async (exId: string) => {
+    if (!session) return;
+    if (activeRun) {
+      toast(
+        activeRun.link?.exId === exId ? "러닝 기록 중이에요" : "이미 다른 달리기를 기록 중이에요",
+        activeRun.link?.exId === exId ? "info" : "error"
+      );
+      router.push("/run");
+      return;
+    }
+    if (saveRef.current) clearTimeout(saveRef.current);
+    await saveSession.mutateAsync(session);
+    router.push(`/run?session=${session.id}&ex=${exId}`);
+  };
+
+  // 꾹 눌러 순서 바꾸기: 'root' = 전체(슈퍼세트는 묶음 통째), 'g:번호' = 묶음 안
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const dnd = useDragSort((scope, from, to) => {
+    const reorder = (list: SessionExercise[]) => {
+      const sorted = [...list].sort((a, b) => a.orderIndex - b.orderIndex);
+      let flat: SessionExercise[];
+      let moved: string | null;
+      if (scope === "root") {
+        const blocks = toBlocks(sorted);
+        moved = blocks[from]?.[0]?.id ?? null;
+        flat = moveItem(blocks, from, to).flat();
+      } else {
+        const g = Number(scope.slice(2));
+        const pos = sorted
+          .map((e, i) => ((e.supersetGroup ?? null) === g ? i : -1))
+          .filter((i) => i >= 0);
+        const members = moveItem(
+          pos.map((i) => sorted[i]),
+          from,
+          to
+        );
+        moved = pos[from] != null ? sorted[pos[from]].id : null;
+        flat = [...sorted];
+        pos.forEach((i, k) => (flat[i] = members[k]));
+      }
+      return { list: flat.map((e, i) => ({ ...e, orderIndex: i })), moved };
+    };
+    if (session) setFocusId(reorder(session.exercises).moved);
+    update((s) => ({ ...s, exercises: reorder(s.exercises).list }));
+  });
+  // 놓은 뒤 펼쳐진 화면에서 옮긴 카드가 보이게
+  useEffect(() => {
+    if (!focusId) return;
+    const t = setTimeout(() => {
+      document.getElementById(`ex-${focusId}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      setFocusId(null);
+    }, 30);
+    return () => clearTimeout(t);
+  }, [focusId]);
+  const compact = dnd.drag != null;
 
   const patchExercise = (exId: string, patch: Partial<SessionExercise>) =>
     update((s) => ({
@@ -291,34 +364,6 @@ export function LogScreen() {
         s.exercises.filter((e) => e.id !== exId).sort((a, b) => a.orderIndex - b.orderIndex)
       ).map((e, i) => ({ ...e, orderIndex: i })),
     }));
-
-  // 운동 순서 변경 — 슈퍼세트는 묶음(블록) 통째로 한 칸 이동
-  const moveExercise = (exId: string, dir: -1 | 1) =>
-    update((s) => {
-      const sorted = [...s.exercises].sort((a, b) => a.orderIndex - b.orderIndex);
-      const blocks = toBlocks(sorted);
-      const i = blocks.findIndex((b) => b.some((e) => e.id === exId));
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= blocks.length) return s;
-      [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
-      return {
-        ...s,
-        exercises: blocks.flat().map((e, idx) => ({ ...e, orderIndex: idx })),
-      };
-    });
-
-  /** 묶음 '안에서' 순서 바꾸기(같은 그룹끼리만 스왑) */
-  const moveWithinGroup = (exId: string, dir: -1 | 1) =>
-    update((s) => {
-      const sorted = [...s.exercises].sort((a, b) => a.orderIndex - b.orderIndex);
-      const i = sorted.findIndex((e) => e.id === exId);
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= sorted.length) return s;
-      if ((sorted[i].supersetGroup ?? null) !== (sorted[j].supersetGroup ?? null))
-        return s; // 묶음 밖으로는 나가지 않음
-      [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
-      return { ...s, exercises: sorted.map((e, idx) => ({ ...e, orderIndex: idx })) };
-    });
 
   /** 슈퍼세트 묶기/변경: anchor + 선택 종목들을 한 묶음으로(anchor 자리로 모음). 1개 이하면 해제 */
   const setSuperset = (anchorId: string, memberIds: string[]) => {
@@ -687,10 +732,23 @@ export function LogScreen() {
           const blocks = toBlocks(sorted);
           return blocks.map((block, bi) => {
             const isGroup = block.length > 1 && block[0].supersetGroup != null;
+            const gScope = `g:${block[0].supersetGroup}`;
             const cards = block.map((ex, mi) => (
               <ExerciseLogCard
                 key={ex.id}
                 ex={ex}
+                compact={compact}
+                dragRef={isGroup ? dnd.itemRef(gScope, mi) : dnd.itemRef("root", bi)}
+                dragStyle={isGroup ? dnd.itemStyle(gScope, mi) : dnd.itemStyle("root", bi)}
+                press={isGroup ? dnd.pressProps(gScope, mi) : dnd.pressProps("root", bi)}
+                handle={isGroup ? dnd.pressProps(gScope, mi, true) : dnd.pressProps("root", bi, true)}
+                date={session.date}
+                runLive={
+                  activeRun?.link?.sessionId === session.id && activeRun.link.exId === ex.id
+                    ? { meters: activeRun.distanceM, sec: movingSecOf(activeRun) }
+                    : null
+                }
+                onStartGps={() => void startGps(ex.id)}
                 exercise={exMap.get(ex.exerciseId)}
                 unit={unit}
                 lastPerf={lastPerf.current[ex.exerciseId]}
@@ -709,14 +767,6 @@ export function LogScreen() {
                 nextId={sorted[sorted.findIndex((e) => e.id === ex.id) + 1]?.id ?? null}
                 groupMemberIds={isGroup ? block.map((e) => e.id) : []}
                 onSetSuperset={(ids) => setSuperset(ex.id, ids)}
-                isFirst={isGroup ? mi === 0 : bi === 0}
-                isLast={isGroup ? mi === block.length - 1 : bi === blocks.length - 1}
-                onMoveUp={() =>
-                  isGroup ? moveWithinGroup(ex.id, -1) : moveExercise(ex.id, -1)
-                }
-                onMoveDown={() =>
-                  isGroup ? moveWithinGroup(ex.id, 1) : moveExercise(ex.id, 1)
-                }
                 onPatchSet={(setId, patch) => patchSet(ex.id, setId, patch)}
                 onPatchExercise={(patch) => patchExercise(ex.id, patch)}
                 onLoadLatest={() => loadLatest(ex.id, ex.exerciseId)}
@@ -728,31 +778,27 @@ export function LogScreen() {
             ));
             if (!isGroup) return cards;
             const rp = roundProgress(block);
+            const gp = dnd.pressProps("root", bi);
+            const gh = dnd.pressProps("root", bi, true);
             return (
               <div
                 key={`g-${block[0].supersetGroup}`}
+                ref={dnd.itemRef("root", bi)}
+                style={dnd.itemStyle("root", bi)}
                 className="rounded-app border border-brand/35 bg-brand-soft/25 p-1.5"
               >
-                <div className="flex items-center justify-between px-1.5 pb-1.5 pt-0.5">
+                <div
+                  {...gp}
+                  className="flex select-none items-center justify-between px-1.5 pb-1.5 pt-0.5"
+                >
                   <span className="flex items-center gap-1 text-[11px] font-bold text-brand-strong">
-                    {/* 묶음 통째 이동(멤버 카드 화살표는 묶음 안에서만 순서 변경) */}
-                    <span className="flex flex-col">
-                      <button
-                        onClick={() => moveExercise(block[0].id, -1)}
-                        disabled={bi === 0}
-                        aria-label="묶음 위로"
-                        className="text-text-3 disabled:opacity-25"
-                      >
-                        <ChevronUp size={13} />
-                      </button>
-                      <button
-                        onClick={() => moveExercise(block[0].id, 1)}
-                        disabled={bi === blocks.length - 1}
-                        aria-label="묶음 아래로"
-                        className="text-text-3 disabled:opacity-25"
-                      >
-                        <ChevronDown size={13} />
-                      </button>
+                    {/* 손잡이·머리를 꾹 누르면 묶음 통째 이동(카드는 묶음 안에서만) */}
+                    <span
+                      {...gh}
+                      className="-my-1 -ml-1 grid h-7 w-6 cursor-grab place-items-center text-text-3"
+                      aria-label="묶음 순서 바꾸기"
+                    >
+                      <GripVertical size={14} />
                     </span>
                     <Link2 size={12} /> 슈퍼세트 · {block.length}종목
                   </span>
@@ -784,6 +830,7 @@ export function LogScreen() {
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         onConfirm={addExercises}
+        allowGps
       />
       <Sheet open={resumeOpen} onClose={() => setResumeOpen(false)} title="운동 이어서 하기">
         <p className="text-sm leading-relaxed text-text-2">
@@ -881,10 +928,14 @@ function ExerciseLogCard({
   nextId,
   groupMemberIds,
   onSetSuperset,
-  isFirst,
-  isLast,
-  onMoveUp,
-  onMoveDown,
+  compact,
+  dragRef,
+  dragStyle,
+  press,
+  handle,
+  date,
+  runLive,
+  onStartGps,
   onPatchSet,
   onPatchExercise,
   onLoadLatest,
@@ -907,10 +958,14 @@ function ExerciseLogCard({
   nextId: string | null;
   groupMemberIds: string[];
   onSetSuperset: (memberIds: string[]) => void;
-  isFirst: boolean;
-  isLast: boolean;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
+  compact: boolean;
+  dragRef: (el: HTMLElement | null) => void;
+  dragStyle: React.CSSProperties;
+  press: DragPress;
+  handle: DragPress;
+  date: string;
+  runLive: { meters: number; sec: number } | null;
+  onStartGps: () => void;
   onPatchSet: (setId: string, patch: Partial<WorkoutSet>) => void;
   onPatchExercise: (patch: Partial<SessionExercise>) => void;
   onToggle: (setId: string) => void;
@@ -930,7 +985,14 @@ function ExerciseLogCard({
   useEffect(() => setMemo(note), [note]);
   const mode: TrackingMode = ex.trackingMode ?? "weight_reps";
   const rest = effectiveRest(ex, exercise);
-  const prevSummary = prevSummaryText(lastPerf?.exercise, mode, unit);
+  const prevSummary = ex.gps ? null : prevSummaryText(lastPerf?.exercise, mode, unit);
+  const isCardio = exercise?.category === "cardio" || ex.exerciseId === RUN_EXERCISE_ID;
+  // 접은 모드(순서 바꾸는 중)에서 보여줄 한 줄 요약
+  const compactLine = ex.gps
+    ? ex.run
+      ? `GPS 러닝 · ${fmtKm(ex.run.distanceM)}km`
+      : "GPS 러닝 · 측정 전"
+    : `${ex.sets.length}세트`;
 
   const cols =
     mode === "weight_reps"
@@ -940,27 +1002,24 @@ function ExerciseLogCard({
       : "grid-cols-[26px_1fr_40px]";
 
   return (
-    <div className="rounded-app border border-border bg-surface shadow-[var(--shadow-card)]">
-      {/* 헤더 */}
-      <div className="flex items-center gap-1.5 px-3 pt-3">
-        <div className="flex shrink-0 flex-col -my-1">
-          <button
-            onClick={onMoveUp}
-            disabled={isFirst}
-            aria-label="위로 이동"
-            className="grid h-5 w-6 place-items-center rounded text-text-3 active:text-brand disabled:opacity-20"
-          >
-            <ChevronUp size={17} />
-          </button>
-          <button
-            onClick={onMoveDown}
-            disabled={isLast}
-            aria-label="아래로 이동"
-            className="grid h-5 w-6 place-items-center rounded text-text-3 active:text-brand disabled:opacity-20"
-          >
-            <ChevronDown size={17} />
-          </button>
-        </div>
+    <div
+      id={`ex-${ex.id}`}
+      ref={dragRef}
+      style={dragStyle}
+      className="rounded-app border border-border bg-surface shadow-[var(--shadow-card)]"
+    >
+      {/* 헤더 — 꾹 누르면 순서 바꾸기(손잡이는 짧게 눌러도) */}
+      <div
+        {...press}
+        className={cn("flex select-none items-center gap-1.5 px-3 pt-3", compact && "pb-3")}
+      >
+        <span
+          {...handle}
+          className="-my-1 -ml-1.5 grid h-9 w-6 shrink-0 cursor-grab place-items-center text-text-3 active:text-brand"
+          aria-label="꾹 눌러 순서 바꾸기"
+        >
+          <GripVertical size={17} />
+        </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
             {grouped && groupIndex != null && (
@@ -968,16 +1027,19 @@ function ExerciseLogCard({
                 {groupIndex}
               </span>
             )}
-            <span className="font-bold truncate">{exercise?.nameKo ?? "운동"}</span>
+            {ex.gps && <Satellite size={14} className="shrink-0 text-brand" />}
+            <span className="font-bold truncate">
+              {ex.gps ? "GPS 러닝" : exercise?.nameKo ?? "운동"}
+            </span>
           </div>
-          {prevSummary && (
+          {(compact || prevSummary) && (
             <div className="text-[11px] text-text-3 truncate">
-              지난 {relativeDayLabel(lastPerf!.date)} · {prevSummary}
+              {compact ? compactLine : `지난 ${relativeDayLabel(lastPerf!.date)} · ${prevSummary}`}
             </div>
           )}
         </div>
         {/* 휴식 시간 칩 — 슈퍼세트는 대표(첫 종목)만 노출: 묶음 전체 휴식 */}
-        {(!grouped || isGroupFirst) && (
+        {!compact && !ex.gps && (!grouped || isGroupFirst) && (
           <button
             onClick={() => setRestOpen(true)}
             className="flex shrink-0 items-center gap-1 rounded-full bg-surface-2 px-2.5 h-8 text-xs font-semibold text-text-2 active:scale-95"
@@ -987,6 +1049,7 @@ function ExerciseLogCard({
             {rest === 0 ? "휴식 끔" : fmtDuration(rest)}
           </button>
         )}
+        {!compact && (
         <div className="relative shrink-0">
           <IconButton onClick={() => setMenu((m) => !m)} aria-label="메뉴" className="h-8 w-8">
             <MoreVertical size={18} />
@@ -1033,17 +1096,30 @@ function ExerciseLogCard({
                 <div className="px-3 pt-1.5 pb-1 text-[11px] font-bold text-text-3">
                   기록 방식
                 </div>
+                {isCardio && (
+                  <button
+                    onClick={() => {
+                      onPatchExercise({ trackingMode: "distance", gps: true });
+                      setMenu(false);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-surface-2"
+                  >
+                    GPS로 측정
+                    {ex.gps && <Check size={15} className="text-brand" />}
+                  </button>
+                )}
                 {(Object.keys(MODE_LABEL) as TrackingMode[]).map((m) => (
                   <button
                     key={m}
                     onClick={() => {
-                      onPatchExercise({ trackingMode: m });
+                      // 직접 입력 방식으로 바꾸면 GPS 측정은 끈다(측정 결과는 세트에 남음)
+                      onPatchExercise({ trackingMode: m, gps: false });
                       setMenu(false);
                     }}
                     className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-surface-2"
                   >
                     {MODE_LABEL[m]}
-                    {mode === m && <Check size={15} className="text-brand" />}
+                    {!ex.gps && mode === m && <Check size={15} className="text-brand" />}
                   </button>
                 ))}
                 <div className="my-1 border-t border-border" />
@@ -1060,8 +1136,11 @@ function ExerciseLogCard({
             </>
           )}
         </div>
+        )}
       </div>
 
+      {!compact && (
+      <>
       {/* 메모 */}
       <div className="px-3 pt-1.5 pb-1">
         <div className="flex items-center gap-1.5 rounded-lg bg-surface-2/60 px-2.5 py-1.5">
@@ -1082,6 +1161,10 @@ function ExerciseLogCard({
         </div>
       </div>
 
+      {ex.gps ? (
+        <GpsPanel ex={ex} date={date} live={runLive} onStart={onStartGps} />
+      ) : (
+      <>
       {/* 세트 헤더 */}
       <div className={cn("grid items-center gap-1 px-3 pb-1 text-[11px] font-semibold text-text-3", cols)}>
         <span className="text-center">세트</span>
@@ -1124,6 +1207,10 @@ function ExerciseLogCard({
           <Plus size={16} /> 세트 추가
         </button>
       </div>
+      </>
+      )}
+      </>
+      )}
 
       {/* 슈퍼세트 묶기 시트 */}
       <Sheet
@@ -1332,6 +1419,70 @@ function ExerciseLogCard({
           })()
         )}
       </Sheet>
+    </div>
+  );
+}
+
+type DragPress = ReturnType<ReturnType<typeof useDragSort>["pressProps"]>;
+
+/* ---------- GPS 러닝 카드 본문 ---------- */
+
+function GpsPanel({
+  ex,
+  date,
+  live,
+  onStart,
+}: {
+  ex: SessionExercise;
+  date: string;
+  live: { meters: number; sec: number } | null;
+  onStart: () => void;
+}) {
+  if (live)
+    return (
+      <div className="px-3 pb-3 pt-2">
+        <button
+          onClick={onStart}
+          className="flex w-full items-center gap-3 rounded-app bg-brand px-4 py-3 text-left text-white active:scale-[0.99]"
+        >
+          <Footprints size={20} className="shrink-0" />
+          <span className="flex-1">
+            <span className="block text-xs font-semibold opacity-85">기록 중 · 탭하면 러닝 화면</span>
+            <span className="block text-lg font-black tabular-nums">
+              {fmtKm(live.meters)}km · {fmtClock(live.sec)}
+            </span>
+          </span>
+        </button>
+      </div>
+    );
+  if (ex.run)
+    return (
+      <div className="px-3 pb-3 pt-2">
+        <RunDetail
+          run={ex.run}
+          date={date}
+          startedAt={ex.run.startedAt ?? null}
+          endedAt={ex.run.endedAt ?? null}
+          title="GPS 러닝"
+        />
+        <button
+          onClick={() => {
+            if (window.confirm("다시 측정하면 지금 러닝 기록을 새 기록으로 바꿔요. 계속할까요?")) onStart();
+          }}
+          className="mt-2 text-[11px] font-semibold text-text-3 active:text-brand"
+        >
+          다시 측정하기
+        </button>
+      </div>
+    );
+  return (
+    <div className="px-3 pb-3 pt-2">
+      <Button onClick={onStart} className="w-full">
+        <Play size={18} /> GPS 달리기 시작
+      </Button>
+      <p className="mt-1.5 text-center text-[11px] text-text-3">
+        끝나면 거리·시간·페이스·케이던스·경로가 이 카드에 기록돼요
+      </p>
     </div>
   );
 }

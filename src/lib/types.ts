@@ -99,6 +99,9 @@ export interface SessionExercise {
   note?: string | null; // 운동별 메모(자세·주의점 등, 30자 이내)
   trackingMode?: TrackingMode; // 기록 방식(미지정=weight_reps)
   restSeconds?: number | null; // 이 운동의 휴식시간(미지정=운동 기본값)
+  /** GPS로 측정하는 종목(러닝 화면에서 기록 → 결과가 이 운동의 세트·run에 들어온다) */
+  gps?: boolean;
+  run?: RunRecord | null; // GPS 측정 결과(경로·구간·걸음)
   sets: WorkoutSet[];
 }
 
@@ -116,7 +119,7 @@ export interface WorkoutSession extends SyncMeta {
   bodyweight?: number | null; // kg
   note?: string | null;
   exercises: SessionExercise[];
-  run?: RunRecord | null; // GPS 달리기 기록(러닝 세션일 때만)
+  run?: RunRecord | null; // (구버전) GPS 달리기 기록 — 지금은 운동(SessionExercise.run)에 저장
   // 파생 캐시(빠른 캘린더 조회용)
   bodyParts: BodyPart[]; // 이 세션에서 자극한 부위(중복 제거)
   totalVolume: number; // kg·reps 합
@@ -132,6 +135,9 @@ export interface RunRecord {
   movingSec: number; // 일시정지 제외 기록 시간(초)
   splits: number[]; // 1km마다 걸린 시간(초) — 완주한 km만
   route: [number, number][]; // 단순화한 경로 [lat, lng]
+  startedAt?: string | null; // 달리기 시작·끝 시각(ISO) — 심박 조회 구간
+  endedAt?: string | null;
+  steps?: number | null; // 휴대폰 걸음 센서로 센 걸음(일시정지 구간 제외). 없으면 null
 }
 
 export interface BodyMetric extends SyncMeta {

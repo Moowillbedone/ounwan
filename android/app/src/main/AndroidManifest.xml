@@ -101,6 +101,10 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
     <!-- 앱 안 업데이트: 받은 APK 설치 화면 열기 -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- 러닝 중 걸음 센서(케이던스) — 안드로이드 10+ '신체 활동' 권한 -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <!-- 진동(휴식 종료 알림·꾹 눌러 순서 바꾸기) — 설치 시 자동 허용되는 일반 권한 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Health Connect: 오운완은 체중·걸음 수·심박을 '읽기'만 한다 → 플러그인이 선언한 나머지 권한 제거 -->
     <uses-permission android:name="android.permission.health.WRITE_STEPS" tools:node="remove" />
     <uses-permission android:name="android.permission.health.WRITE_DISTANCE" tools:node="remove" />

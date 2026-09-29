@@ -19,6 +19,7 @@ export interface ClipExercise {
   trackingMode?: TrackingMode;
   restSeconds?: number | null;
   supersetGroup?: number | null; // 슈퍼세트 묶음(복사 시 유지)
+  gps?: boolean; // GPS 러닝 종목(붙여넣으면 측정 전 상태로)
   sets: ClipSet[];
 }
 export interface WorkoutClip {
