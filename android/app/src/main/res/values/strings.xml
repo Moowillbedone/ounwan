@@ -8,8 +8,9 @@
     <string name="widget_description">연속기록과 운동 잔디를 홈 화면에서 확인하고 바로 운동·달리기를 시작해요</string>
     <string name="widget_loading">앱을 한 번 열어 주세요</string>
     <string name="widget_grass_desc">최근 운동 잔디</string>
-    <string name="widget_btn_log">＋ 운동 기록</string>
-    <string name="widget_btn_run">🏃 달리기</string>
+    <string name="widget_btn_log">＋ 운동</string>
+    <string name="widget_btn_run">달리기</string>
+    <string name="widget_streak_unit">일 연속</string>
     <string name="widget_streak_name">오운완 연속기록</string>
     <string name="widget_streak_description">연속기록과 오늘 운동 여부를 작게 보여줘요</string>
     <!-- 백그라운드 GPS 알림 (background-geolocation 플러그인) -->

@@ -1,5 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="@color/widget_bg"/>
-    <corners android:radius="24dp"/>
-</shape>
+<!-- 위젯 배경: 은은한 대각선 그라데이션 + 오른쪽 위 브랜드색 빛 + 얇은 테두리(유리 느낌) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="26dp" />
+            <gradient
+                android:angle="315"
+                android:endColor="@color/widget_bg_end"
+                android:startColor="@color/widget_bg_start" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="26dp" />
+            <gradient
+                android:centerX="0.8"
+                android:centerY="0.1"
+                android:endColor="#00000000"
+                android:gradientRadius="220dp"
+                android:startColor="@color/widget_glow"
+                android:type="radial" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="26dp" />
+            <solid android:color="#00000000" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/widget_stroke" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,86 +1,152 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 오운완 홈 화면 위젯: 연속기록 · 이번 달 운동일 · 오늘 상태 · 잔디 · 바로가기 버튼 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 오운완 4x2 위젯: 왼쪽 = 연속기록·오늘 상태·바로가기, 오른쪽 = 최근 몇 주 잔디를 3D(아이소메트릭) 블록으로 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_bg"
-    android:orientation="vertical"
-    android:padding="14dp">
+    android:background="@drawable/widget_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="14dp">
 
-        <TextView
-            android:id="@+id/widget_streak"
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:maxLines="1"
-            android:text="@string/widget_loading"
-            android:textColor="@color/widget_text"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:layout_height="match_parent"
+            android:layout_weight="44"
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/widget_month"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:textColor="@color/widget_text_sub"
-            android:textSize="12sp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/app_name"
+                    android:textColor="@color/widget_brand"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_month"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_sub"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:baselineAligned="true"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_streak"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-black"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:text="0"
+                    android:textColor="@color/widget_text"
+                    android:textSize="42sp" />
+
+                <TextView
+                    android:id="@+id/widget_streak_unit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:maxLines="1"
+                    android:text="@string/widget_streak_unit"
+                    android:textColor="@color/widget_text"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/widget_today"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_loading"
+                android:textColor="@color/widget_text_sub"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:minHeight="6dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_btn_log"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/widget_btn_primary"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:text="@string/widget_btn_log"
+                    android:textColor="@color/widget_on_brand"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/widget_btn_run"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/widget_btn_bg"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:text="@string/widget_btn_run"
+                    android:textColor="@color/widget_brand"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/widget_grass"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="6dp"
+            android:layout_weight="56"
+            android:contentDescription="@string/widget_grass_desc"
+            android:scaleType="fitCenter" />
     </LinearLayout>
 
     <TextView
-        android:id="@+id/widget_today"
-        android:layout_width="match_parent"
+        android:id="@+id/widget_caption"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:maxLines="1"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="16dp"
         android:textColor="@color/widget_text_sub"
-        android:textSize="12sp" />
-
-    <ImageView
-        android:id="@+id/widget_grass"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:layout_weight="1"
-        android:contentDescription="@string/widget_grass_desc"
-        android:scaleType="fitCenter" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/widget_btn_log"
-            android:layout_width="0dp"
-            android:layout_height="34dp"
-            android:layout_weight="1"
-            android:background="@drawable/widget_btn_bg"
-            android:gravity="center"
-            android:text="@string/widget_btn_log"
-            android:textColor="@color/widget_brand"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/widget_btn_run"
-            android:layout_width="0dp"
-            android:layout_height="34dp"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:background="@drawable/widget_btn_bg"
-            android:gravity="center"
-            android:text="@string/widget_btn_run"
-            android:textColor="@color/widget_brand"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-</LinearLayout>
+        android:textSize="10sp"
+        android:textStyle="bold" />
+</FrameLayout>
