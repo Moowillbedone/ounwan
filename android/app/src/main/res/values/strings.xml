@@ -4,7 +4,7 @@
     <string name="title_activity_main">오운완</string>
     <string name="package_name">com.ounwan.app</string>
     <string name="custom_url_scheme">com.ounwan.app</string>
-    <string name="widget_name">오운완 잔디</string>
+    <string name="widget_name">오운완 3D 잔디</string>
     <string name="widget_description">연속기록과 운동 잔디를 홈 화면에서 확인하고 바로 운동·달리기를 시작해요</string>
     <string name="widget_loading">앱을 한 번 열어 주세요</string>
     <string name="widget_grass_desc">최근 운동 잔디</string>
@@ -17,4 +17,15 @@
     <string name="capacitor_background_geolocation_notification_channel_name">러닝 기록</string>
     <string name="capacitor_background_geolocation_notification_icon">drawable/ic_stat_run</string>
     <string name="capacitor_background_geolocation_notification_color">#0F9D63</string>
+    <string name="widget_week_name">오운완 이번 주</string>
+    <string name="widget_week_title">이번 주</string>
+    <string name="widget_week_description">요일별 3D 기둥으로 이번 주 운동을 한눈에 — 높이가 그날 운동량이에요</string>
+    <string name="widget_month_name">오운완 이번 달</string>
+    <string name="widget_month_title">이번 달 달력</string>
+    <string name="widget_month_description">이번 달 달력을 3D 타일로 — 운동한 날이 볼록하게 표시돼요</string>
+    <string name="widget_ring_name">오운완 목표 링</string>
+    <string name="widget_ring_title">목표 링</string>
+    <string name="widget_ring_month">이번 달</string>
+    <string name="widget_ring_week">이번 주</string>
+    <string name="widget_ring_description">이번 달·이번 주 운동한 날을 3D 링으로 채워요</string>
 </resources>

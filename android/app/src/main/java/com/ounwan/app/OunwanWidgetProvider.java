@@ -44,13 +44,13 @@ public class OunwanWidgetProvider extends AppWidgetProvider {
 
     /** 테마 색상(웹 설정의 그린/연핑크 — 요약 JSON의 accent)과 라이트/다크에 따른 위젯 색 */
     static final class Palette {
-        final boolean night;
+        final boolean night, pink;
         final int[] grass;
         final int plate, track, brand, text, sub, onBrand;
         final int bgRes, btnPrimaryRes, btnRes;
 
         Palette(Context ctx, JSONObject data) {
-            boolean pink = data != null && "pink".equals(data.optString("accent"));
+            pink = data != null && "pink".equals(data.optString("accent"));
             night = (ctx.getResources().getConfiguration().uiMode
                     & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
             if (pink) {
@@ -95,6 +95,7 @@ public class OunwanWidgetProvider extends AppWidgetProvider {
         int[] ids = m.getAppWidgetIds(new ComponentName(ctx, OunwanWidgetProvider.class));
         for (int id : ids) render(ctx, m, id);
         OunwanStreakWidgetProvider.refreshAll(ctx); // 1x1 위젯도 같이 갱신
+        OunwanStyleWidgets.refreshAll(ctx); // 이번 주·이번 달·목표 링 위젯
     }
 
     @Override
