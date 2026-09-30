@@ -35,6 +35,8 @@ export type TrackingMode = "weight_reps" | "reps" | "time" | "distance";
 
 export type Unit = "kg" | "lb";
 export type ThemePref = "system" | "light" | "dark";
+/** 테마 색상: 기본 그린 / 연핑크 */
+export type Accent = "green" | "pink";
 export type RestSound = "chime" | "beep" | "arcade";
 
 /** sync 공통 메타 */
@@ -155,6 +157,7 @@ export interface Profile extends SyncMeta {
   displayName?: string | null;
   unit: Unit;
   theme: ThemePref;
+  accent?: Accent; // 테마 색상(미지정=그린) — 계정에 저장돼 다른 기기에서도 같은 색
   weekStartsMonday: boolean;
   restAlert?: boolean; // 휴식 종료 알림(소리·진동) — 미지정=켜짐
   restSound?: RestSound; // 휴식 종료 알림음 — 미지정=chime(기본)

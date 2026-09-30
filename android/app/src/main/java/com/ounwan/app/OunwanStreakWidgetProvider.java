@@ -4,7 +4,6 @@ import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -52,16 +51,10 @@ public class OunwanStreakWidgetProvider extends AppWidgetProvider {
         int sizeDp = Math.min(wDp > 0 ? wDp : 72, hDp > 0 ? hDp : 72);
         v.setTextViewTextSize(R.id.streak_value, TypedValue.COMPLEX_UNIT_SP, sizeDp < 64 ? 19 : 24);
 
-        boolean night = (ctx.getResources().getConfiguration().uiMode
-                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-
-        JSONObject data = null;
-        try {
-            String raw = ctx.getSharedPreferences(OunwanWidgetProvider.PREFS, Context.MODE_PRIVATE)
-                    .getString(OunwanWidgetProvider.KEY, null);
-            if (raw != null) data = new JSONObject(raw);
-        } catch (Exception ignored) {
-        }
+        JSONObject data = OunwanWidgetProvider.readData(ctx);
+        OunwanWidgetProvider.Palette pal = new OunwanWidgetProvider.Palette(ctx, data);
+        v.setInt(R.id.streak_root, "setBackgroundResource", pal.bgRes);
+        v.setTextColor(R.id.streak_value, pal.text);
         JSONObject days = data != null ? data.optJSONObject("days") : null;
         if (days == null) days = new JSONObject();
         int weekStartsOn = data != null ? data.optInt("weekStartsOn", 1) : 1;
@@ -77,7 +70,7 @@ public class OunwanStreakWidgetProvider extends AppWidgetProvider {
             v.setTextViewText(R.id.streak_value, String.valueOf(data.optInt("streak", 0)));
             v.setTextViewText(R.id.streak_sub, doneToday ? "✓ 오늘" : "일 연속");
         }
-        v.setTextColor(R.id.streak_sub, ctx.getColor(doneToday ? R.color.widget_brand : R.color.widget_text_sub));
+        v.setTextColor(R.id.streak_sub, doneToday ? pal.brand : pal.sub);
 
         // 이번 주 7일: 주 시작일부터
         Calendar cur = Calendar.getInstance();
@@ -94,18 +87,16 @@ public class OunwanStreakWidgetProvider extends AppWidgetProvider {
         }
         float scale = Math.min(ctx.getResources().getDisplayMetrics().density, 3f);
         int px = Math.max(60, Math.round((sizeDp - 10) * scale));
-        v.setImageViewBitmap(R.id.streak_ring, drawRing(level, todayIdx, px, night));
+        v.setImageViewBitmap(R.id.streak_ring, drawRing(level, todayIdx, px, pal));
         m.updateAppWidget(id, v);
     }
 
-    private static final int[] GRASS_LIGHT = {0xFFE6E9ED, 0xFF9FE2BF, 0xFF3FC98A, 0xFF12915D, 0xFF084027};
-    private static final int[] GRASS_DARK = {0xFF2A3440, 0xFF15693F, 0xFF26A668, 0xFF3FD189, 0xFF83F0C6};
-
     /** 7칸 링. 운동한 칸은 아래로 두께(어두운 면)를 줘 입체감, 오늘 칸은 바깥에 테두리 호. */
-    private static Bitmap drawRing(int[] level, int todayIdx, int size, boolean night) {
+    private static Bitmap drawRing(int[] level, int todayIdx, int size, OunwanWidgetProvider.Palette pal) {
+        boolean night = pal.night;
         Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(bmp);
-        int[] colors = night ? GRASS_DARK : GRASS_LIGHT;
+        int[] colors = pal.grass;
         float t = size * 0.08f;
         float depth = size * 0.028f;
         float r = size / 2f - t / 2f - size * 0.045f;
@@ -120,7 +111,7 @@ public class OunwanStreakWidgetProvider extends AppWidgetProvider {
         ring.setStyle(Paint.Style.STROKE);
         ring.setStrokeCap(Paint.Cap.ROUND);
         ring.setStrokeWidth(Math.max(2f, size * 0.022f));
-        ring.setColor(night ? Color.WHITE : 0xFF0B1F17);
+        ring.setColor(night ? Color.WHITE : pal.text);
 
         RectF top = new RectF(cx - r, cy - r, cx + r, cy + r);
         RectF low = new RectF(cx - r, cy - r + depth, cx + r, cy + r + depth);
@@ -131,7 +122,7 @@ public class OunwanStreakWidgetProvider extends AppWidgetProvider {
             float start = -90f + i * seg + gap / 2f;
             float sweep = seg - gap;
             int lv = level[i];
-            int base = lv < 0 ? (night ? 0xFF1E2A33 : 0xFFE9EEEB) : colors[lv];
+            int base = lv < 0 ? pal.track : colors[lv];
             if (lv > 0) {
                 p.setColor(shade(base, 0.62f));
                 c.drawArc(low, start, sweep, false, p);

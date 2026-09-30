@@ -33,7 +33,7 @@ export const viewport: Viewport = {
 };
 
 // 하이드레이션 전 테마 플래시 방지
-const themeScript = `(function(){try{var t=localStorage.getItem('ounwan-theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();`;
+const themeScript = `(function(){try{var t=localStorage.getItem('ounwan-theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);var a=localStorage.getItem('ounwan-accent');if(a==='pink')document.documentElement.setAttribute('data-accent','pink');}catch(e){}})();`;
 
 export default function RootLayout({
   children,

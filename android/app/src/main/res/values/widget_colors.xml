@@ -11,4 +11,13 @@
     <color name="widget_brand">#0F9D63</color>
     <color name="widget_on_brand">#FFFFFF</color>
     <color name="widget_btn_bg">#1A0F9D63</color>
+    <color name="widget_pink_bg_start">#FFFFFF</color>
+    <color name="widget_pink_bg_end">#FDE8EF</color>
+    <color name="widget_pink_glow">#2AEC5C8C</color>
+    <color name="widget_pink_stroke">#26EC5C8C</color>
+    <color name="widget_pink_brand">#D23F73</color>
+    <color name="widget_pink_on_brand">#FFFFFF</color>
+    <color name="widget_pink_btn_bg">#1FEC5C8C</color>
+    <color name="widget_pink_text">#22141A</color>
+    <color name="widget_pink_text_sub">#6E5A63</color>
 </resources>

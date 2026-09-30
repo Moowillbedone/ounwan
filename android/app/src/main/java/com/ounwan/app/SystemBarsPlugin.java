@@ -25,13 +25,17 @@ public class SystemBarsPlugin extends Plugin {
     public void set(PluginCall call) {
         boolean dark = Boolean.TRUE.equals(call.getBoolean("dark", false));
         int color = dark ? BG_DARK : BG_LIGHT;
+        // 테마 색상(연핑크 등)의 배경색을 넘기면 그 색으로
+        String bg = call.getString("bg");
+        if (bg != null && bg.matches("#[0-9a-fA-F]{6}")) color = 0xFF000000 | Integer.parseInt(bg.substring(1), 16);
+        final int barColor = color;
         getActivity().runOnUiThread(() -> {
             Window w = getActivity().getWindow();
             // 안드로이드 15+: 웹뷰가 비켜 앉은 여백에 창 배경이 보인다
-            w.getDecorView().setBackgroundColor(color);
+            w.getDecorView().setBackgroundColor(barColor);
             // 안드로이드 14 이하: 시스템 바 색을 직접 지정
-            w.setStatusBarColor(color);
-            w.setNavigationBarColor(color);
+            w.setStatusBarColor(barColor);
+            w.setNavigationBarColor(barColor);
             WindowInsetsControllerCompat c = WindowCompat.getInsetsController(w, w.getDecorView());
             c.setAppearanceLightStatusBars(!dark);
             c.setAppearanceLightNavigationBars(!dark);

@@ -36,9 +36,58 @@ public class OunwanWidgetProvider extends AppWidgetProvider {
     static final String KEY = "summary";
     static final String OPEN_URL = "com.ounwan.app://open";
 
-    // 웹 globals.css 잔디 색(--grass-0 ~ --grass-4)과 동일
-    private static final int[] GRASS_LIGHT = {0xFFE6E9ED, 0xFF9FE2BF, 0xFF3FC98A, 0xFF12915D, 0xFF084027};
-    private static final int[] GRASS_DARK = {0xFF2A3440, 0xFF15693F, 0xFF26A668, 0xFF3FD189, 0xFF83F0C6};
+    // 웹 globals.css 잔디 색(--grass-0 ~ --grass-4)과 동일 — 그린 / 연핑크
+    static final int[] GRASS_LIGHT = {0xFFE6E9ED, 0xFF9FE2BF, 0xFF3FC98A, 0xFF12915D, 0xFF084027};
+    static final int[] GRASS_DARK = {0xFF2A3440, 0xFF15693F, 0xFF26A668, 0xFF3FD189, 0xFF83F0C6};
+    static final int[] PINK_LIGHT = {0xFFF1E6EA, 0xFFF8BBD0, 0xFFF48FB1, 0xFFE0578A, 0xFF9E2459};
+    static final int[] PINK_DARK = {0xFF3F333A, 0xFF6B2744, 0xFFB23A6A, 0xFFF06A9B, 0xFFFFB3CF};
+
+    /** 테마 색상(웹 설정의 그린/연핑크 — 요약 JSON의 accent)과 라이트/다크에 따른 위젯 색 */
+    static final class Palette {
+        final boolean night;
+        final int[] grass;
+        final int plate, track, brand, text, sub, onBrand;
+        final int bgRes, btnPrimaryRes, btnRes;
+
+        Palette(Context ctx, JSONObject data) {
+            boolean pink = data != null && "pink".equals(data.optString("accent"));
+            night = (ctx.getResources().getConfiguration().uiMode
+                    & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+            if (pink) {
+                grass = night ? PINK_DARK : PINK_LIGHT;
+                plate = night ? 0xFF241820 : 0xFFFBF1F4;
+                track = night ? 0xFF2E2028 : 0xFFF6E6EC;
+                brand = ctx.getColor(R.color.widget_pink_brand);
+                text = ctx.getColor(R.color.widget_pink_text);
+                sub = ctx.getColor(R.color.widget_pink_text_sub);
+                onBrand = ctx.getColor(R.color.widget_pink_on_brand);
+                bgRes = R.drawable.widget_bg_pink;
+                btnPrimaryRes = R.drawable.widget_btn_primary_pink;
+                btnRes = R.drawable.widget_btn_bg_pink;
+            } else {
+                grass = night ? GRASS_DARK : GRASS_LIGHT;
+                plate = night ? 0xFF18222B : 0xFFF4F7F5;
+                track = night ? 0xFF1E2A33 : 0xFFE9EEEB;
+                brand = ctx.getColor(R.color.widget_brand);
+                text = ctx.getColor(R.color.widget_text);
+                sub = ctx.getColor(R.color.widget_text_sub);
+                onBrand = ctx.getColor(R.color.widget_on_brand);
+                bgRes = R.drawable.widget_bg;
+                btnPrimaryRes = R.drawable.widget_btn_primary;
+                btnRes = R.drawable.widget_btn_bg;
+            }
+        }
+    }
+
+    /** 앱이 저장한 요약 JSON(없으면 null) */
+    static JSONObject readData(Context ctx) {
+        try {
+            String raw = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null);
+            return raw != null ? new JSONObject(raw) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     /** 앱에서 데이터가 바뀌었을 때 모든 위젯을 즉시 다시 그린다. */
     public static void refreshAll(Context ctx) {
@@ -73,15 +122,18 @@ public class OunwanWidgetProvider extends AppWidgetProvider {
         boolean compact = heightDp < 140;
         v.setTextViewTextSize(R.id.widget_streak, TypedValue.COMPLEX_UNIT_SP, compact ? 34 : 42);
 
-        boolean night = (ctx.getResources().getConfiguration().uiMode
-                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-
-        JSONObject data = null;
-        try {
-            String raw = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null);
-            if (raw != null) data = new JSONObject(raw);
-        } catch (Exception ignored) {
-        }
+        JSONObject data = readData(ctx);
+        Palette pal = new Palette(ctx, data);
+        v.setInt(R.id.widget_root, "setBackgroundResource", pal.bgRes);
+        v.setInt(R.id.widget_btn_log, "setBackgroundResource", pal.btnPrimaryRes);
+        v.setInt(R.id.widget_btn_run, "setBackgroundResource", pal.btnRes);
+        v.setTextColor(R.id.widget_btn_log, pal.onBrand);
+        v.setTextColor(R.id.widget_btn_run, pal.brand);
+        v.setTextColor(R.id.widget_title, pal.brand);
+        v.setTextColor(R.id.widget_streak, pal.text);
+        v.setTextColor(R.id.widget_streak_unit, pal.text);
+        v.setTextColor(R.id.widget_month, pal.sub);
+        v.setTextColor(R.id.widget_caption, pal.sub);
         JSONObject days = data != null ? data.optJSONObject("days") : null;
         if (days == null) days = new JSONObject();
         int weekStartsOn = data != null ? data.optInt("weekStartsOn", 1) : 1;
@@ -99,8 +151,8 @@ public class OunwanWidgetProvider extends AppWidgetProvider {
             if (k.startsWith(monthPrefix) && days.optInt(k, 0) > 0) monthDays++;
         }
         boolean doneToday = days.optInt(todayKey, 0) > 0;
-        int brand = ctx.getColor(R.color.widget_brand);
-        int sub = ctx.getColor(R.color.widget_text_sub);
+        int brand = pal.brand;
+        int sub = pal.sub;
 
         v.setTextViewText(R.id.widget_streak, String.valueOf(streak));
         v.setTextViewText(R.id.widget_streak_unit, streak > 0 ? "일 연속 🔥" : "일 연속");
@@ -120,7 +172,7 @@ public class OunwanWidgetProvider extends AppWidgetProvider {
         int weeks = chartWdp < 150 ? 6 : chartWdp < 190 ? 8 : 10;
         float scale = Math.min(ctx.getResources().getDisplayMetrics().density, 2.2f);
         v.setImageViewBitmap(R.id.widget_grass, drawIsoGrass(days, weekStartsOn, weeks, todayKey, fmt,
-                Math.round(chartWdp * scale), Math.round(chartHdp * scale), night));
+                Math.round(chartWdp * scale), Math.round(chartHdp * scale), pal));
         v.setTextViewText(R.id.widget_caption, "최근 " + weeks + "주");
 
         m.updateAppWidget(id, v);
@@ -136,12 +188,13 @@ public class OunwanWidgetProvider extends AppWidgetProvider {
      * 운동한 날일수록 높고 진한 블록, 오늘은 윗면 테두리로 표시. 미래 칸은 비운다.
      */
     private static Bitmap drawIsoGrass(JSONObject days, int weekStartsOn, int weeks, String todayKey,
-                                       SimpleDateFormat fmt, int wPx, int hPx, boolean night) {
+                                       SimpleDateFormat fmt, int wPx, int hPx, Palette pal) {
+        boolean night = pal.night;
         wPx = Math.max(40, wPx);
         hPx = Math.max(40, hPx);
         Bitmap bmp = Bitmap.createBitmap(wPx, hPx, Bitmap.Config.ARGB_8888);
         Canvas c = new Canvas(bmp);
-        int[] colors = night ? GRASS_DARK : GRASS_LIGHT;
+        int[] colors = pal.grass;
 
         int n = weeks + 7;
         float s = Math.min(wPx / (n * 0.866f), (hPx - 4) / (n * 0.5f + MAX_H + PLATE_T * 1.2f));
@@ -157,7 +210,7 @@ public class OunwanWidgetProvider extends AppWidgetProvider {
 
         // 받침판
         float m = 0.35f, a0 = -m, b0 = -m, a1 = weeks + m, b1 = 7 + m;
-        int plate = night ? 0xFF18222B : 0xFFF4F7F5;
+        int plate = pal.plate;
         iso.face(c, p, shade(plate, night ? 0.8f : 0.86f), a0, b1, a1, b1, 0, -PLATE_T);
         iso.face(c, p, shade(plate, night ? 0.62f : 0.74f), a1, b0, a1, b1, 0, -PLATE_T);
         iso.top(c, p, plate, a0, b0, a1, b1, 0);
@@ -181,7 +234,7 @@ public class OunwanWidgetProvider extends AppWidgetProvider {
         ring.setStyle(Paint.Style.STROKE);
         ring.setStrokeJoin(Paint.Join.ROUND);
         ring.setStrokeWidth(Math.max(2f, s * 0.14f));
-        ring.setColor(night ? Color.WHITE : 0xFF0B1F17);
+        ring.setColor(night ? Color.WHITE : pal.text);
 
         // 뒤(위)에서 앞(아래)으로: a+b가 작은 칸부터
         final float g = 0.12f;

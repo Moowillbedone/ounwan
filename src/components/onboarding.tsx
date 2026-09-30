@@ -6,11 +6,13 @@ import { useAuth } from "@/lib/auth";
 import { Button, Spinner } from "./ui";
 
 export function LoginForm({ onDone }: { onDone?: () => void }) {
-  const { signInWithEmail, configured } = useAuth();
+  const { signInWithEmail, verifyEmailCode, configured } = useAuth();
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   if (!configured) {
     return (
@@ -22,14 +24,45 @@ export function LoginForm({ onDone }: { onDone?: () => void }) {
   }
 
   if (sent) {
+    const verify = async () => {
+      const c = code.replace(/\D/g, "");
+      if (c.length < 6) {
+        setErr("메일에 있는 숫자 코드를 모두 입력해 주세요.");
+        return;
+      }
+      setVerifying(true);
+      setErr(null);
+      const { error } = await verifyEmailCode(email.trim(), c);
+      setVerifying(false);
+      if (error) setErr(error);
+    };
     return (
-      <div className="text-center py-4">
+      <div className="py-2 text-center">
         <CheckCircle2 className="mx-auto text-brand" size={40} />
         <p className="mt-3 font-bold">메일함을 확인하세요</p>
         <p className="mt-1 text-sm text-text-3">
-          <b>{email}</b> 로 로그인 링크를 보냈어요.
+          <b>{email}</b> 로 로그인 메일을 보냈어요.
           <br />
-          링크를 누르면 자동으로 동기화가 시작돼요.
+          링크를 누르거나, 메일 속 <b>숫자 코드</b>를 아래에 입력하세요.
+        </p>
+        <div className="mt-4 flex gap-2">
+          <input
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="숫자 코드"
+            maxLength={10}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            onKeyDown={(e) => e.key === "Enter" && verify()}
+            className="h-12 min-w-0 flex-1 rounded-app border border-border bg-surface-2 px-3 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-brand"
+          />
+          <Button onClick={verify} disabled={verifying} className="shrink-0 px-5">
+            {verifying ? <Spinner size={18} /> : "로그인"}
+          </Button>
+        </div>
+        {err && <p className="mt-2 text-sm text-danger">{err}</p>}
+        <p className="mt-3 text-[11px] leading-relaxed text-text-3">
+          아이폰 홈 화면 앱은 링크가 Safari에서 열려서 이 앱이 로그인되지 않아요 → 코드를 입력하세요.
         </p>
       </div>
     );

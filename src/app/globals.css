@@ -75,6 +75,47 @@
   --shadow-pop: 0 10px 34px rgba(0, 0, 0, 0.55);
 }
 
+/* 연핑크 테마(설정 → 테마 색상). html[data-accent="pink"] — 라이트/다크 각각 */
+html[data-accent="pink"] {
+  --brand: #ec5c8c;
+  --brand-strong: #d23f73;
+  --brand-soft: #fde4ec;
+
+  --grass-0: #f1e6ea;
+  --grass-1: #f8bbd0;
+  --grass-2: #f48fb1;
+  --grass-3: #e0578a;
+  --grass-4: #9e2459;
+
+  --bg: #fff5f8;
+  --surface: #ffffff;
+  --surface-2: #fcedf2;
+  --border: #f3dde5;
+  --text: #22141a;
+  --text-2: #6e5a63;
+  --text-3: #a8929c;
+}
+
+html.dark[data-accent="pink"] {
+  --brand: #ff7aa8;
+  --brand-strong: #ff95bb;
+  --brand-soft: #3a1826;
+
+  --grass-0: #3f333a;
+  --grass-1: #6b2744;
+  --grass-2: #b23a6a;
+  --grass-3: #f06a9b;
+  --grass-4: #ffb3cf;
+
+  --bg: #140c10;
+  --surface: #1e141a;
+  --surface-2: #281b22;
+  --border: #3a2a33;
+  --text: #f7eef2;
+  --text-2: #b8a3ad;
+  --text-3: #7a6570;
+}
+
 @theme inline {
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);

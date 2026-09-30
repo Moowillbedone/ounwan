@@ -33,7 +33,7 @@ export function NativeBridge() {
   const toast = useToast();
   const { data: sessions } = useSessions();
   const { data: profile } = useProfile();
-  const { resolved } = useTheme();
+  const { resolved, accent } = useTheme();
   const [resumeTick, setResumeTick] = useState(0);
   const qc = useQueryClient();
 
@@ -95,8 +95,10 @@ export function NativeBridge() {
   // 0) 상태바·하단 버튼 영역 색을 앱 테마(라이트/다크)에 맞춤. 구버전 APK엔 플러그인이 없으니 실패 무시.
   useEffect(() => {
     if (!isNativeApp()) return;
-    void SystemBars.set({ dark: resolved === "dark" }).catch(() => {});
-  }, [resolved]);
+    // 배경색은 웹 테마 변수(--bg)를 그대로 — 연핑크 테마도 위아래 띠가 맞게
+    const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+    void SystemBars.set({ dark: resolved === "dark", bg: /^#[0-9a-f]{6}$/i.test(bg) ? bg : undefined }).catch(() => {});
+  }, [resolved, accent]);
 
   // 1) 위젯 요약 전송 — 잔디 단계·연속기록은 홈 화면과 같은 함수로 계산
   useEffect(() => {
@@ -117,9 +119,9 @@ export function NativeBridge() {
       if (date >= sinceKey) days[date] = dayGrassLevel(arr);
     }
     const streak = computeStreak(new Set(byDate.keys()), weekStartsOn).current;
-    const payload = { v: 1, streak, weekStartsOn, days, updatedAt: Date.now() };
+    const payload = { v: 1, streak, weekStartsOn, days, accent, updatedAt: Date.now() };
     void WidgetBridge.update({ data: JSON.stringify(payload) }).catch(() => {});
-  }, [sessions, profile?.weekStartsMonday]);
+  }, [sessions, profile?.weekStartsMonday, accent]);
 
   // 3) 안드로이드 뒤로가기: 열린 시트·메뉴 먼저 닫기 → 이전 화면 → 첫 화면이면 앱을 백그라운드로
   //    (종료 대신 백그라운드로 보내야 러닝 기록·휴식 타이머가 끊기지 않음)
