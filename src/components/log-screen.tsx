@@ -658,7 +658,7 @@ export function LogScreen() {
 
   return (
     <div className="min-h-dvh pb-40">
-      <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-border bg-surface/95 px-2 py-2 backdrop-blur-md">
+      <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-border bg-surface/95 px-2 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] backdrop-blur-md">
         <IconButton onClick={close} aria-label="닫기">
           <X size={22} />
         </IconButton>

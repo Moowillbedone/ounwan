@@ -59,6 +59,7 @@ export const PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25];
 export const BAR_WEIGHT_KG = 20;
 
 export const THEME_KEY = "ounwan-theme";
+export const ACCENT_KEY = "ounwan-accent";
 
 // 메모 라벨 텍스트 색상 — 라이트/다크 양쪽에서 읽히고 브랜드를 해치지 않는 차분한 형광톤
 export const DEFAULT_LABEL_COLOR = "#16c47f"; // 기본(브랜드 그린)

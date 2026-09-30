@@ -59,6 +59,8 @@ interface AuthCtx {
   sync: SyncState;
   chooseGuest: () => Promise<void>;
   signInWithEmail: (email: string) => Promise<{ error?: string }>;
+  /** 메일 속 숫자 코드로 로그인(아이폰 홈 화면 앱처럼 메일 링크가 다른 곳(Safari)에서 열리는 경우) */
+  verifyEmailCode: (email: string, code: string) => Promise<{ error?: string }>;
   signInWithGoogle: () => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   syncNow: () => void;
@@ -173,6 +175,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return error ? { error: authErrorKo(error.message) } : {};
   }, []);
 
+  const verifyEmailCode = useCallback(async (email: string, code: string) => {
+    const sb = getSupabase();
+    if (!sb) return { error: "동기화 서버가 설정되지 않았습니다." };
+    const { error } = await sb.auth.verifyOtp({ email, token: code, type: "email" });
+    if (!error) {
+      try {
+        localStorage.removeItem(LOGIN_PENDING_KEY);
+      } catch {
+        /* noop */
+      }
+    }
+    return error ? { error: authErrorKo(error.message) } : {};
+  }, []);
+
   const signInWithGoogle = useCallback(async () => {
     const sb = getSupabase();
     if (!sb) return { error: "동기화 서버가 설정되지 않았습니다." };
@@ -209,6 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sync,
         chooseGuest,
         signInWithEmail,
+        verifyEmailCode,
         signInWithGoogle,
         signOut,
         syncNow,

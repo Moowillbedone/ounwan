@@ -39,12 +39,12 @@ import { useProfile, useUpdateProfile } from "@/lib/hooks";
 import { playRestSound, armFeedback, REST_SOUNDS } from "@/lib/feedback";
 import * as repo from "@/lib/repo";
 import { APP_NAME } from "@/lib/constants";
-import type { ThemePref, Unit } from "@/lib/types";
+import type { Accent, ThemePref, Unit } from "@/lib/types";
 import { isNativeApp } from "@/lib/native";
 
 export default function SettingsPage() {
   const { mode, user, configured, sync, signOut, syncNow } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, accent, setAccent } = useTheme();
   const { data: profile } = useProfile();
   const updateProfile = useUpdateProfile();
   const toast = useToast();
@@ -310,6 +310,39 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
+          <div className="mb-2 mt-4 text-sm font-semibold">테마 색상</div>
+          <div className="grid grid-cols-2 gap-2">
+            {(
+              [
+                { v: "green", label: "그린", sw: ["#16c47f", "#d3f5e6"] },
+                { v: "pink", label: "연핑크", sw: ["#ec5c8c", "#fde4ec"] },
+              ] as { v: Accent; label: string; sw: [string, string] }[]
+            ).map((a) => (
+              <button
+                key={a.v}
+                onClick={() => {
+                  setAccent(a.v);
+                  updateProfile.mutate({ accent: a.v });
+                }}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-app border py-2.5 text-xs font-semibold transition",
+                  accent === a.v
+                    ? "border-brand bg-brand-soft text-brand-strong"
+                    : "border-border text-text-2"
+                )}
+              >
+                <span
+                  className="h-5 w-5 rounded-full border-2 border-white shadow"
+                  style={{ background: `linear-gradient(135deg, ${a.sw[0]} 50%, ${a.sw[1]} 50%)` }}
+                />
+                {a.label}
+                {accent === a.v && <Check size={12} />}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[11px] text-text-3">
+            화면·잔디·홈 화면 위젯 색이 함께 바뀌고, 계정에 저장돼 다른 기기에서도 같은 색이에요.
+          </p>
         </div>
       </Section>
 

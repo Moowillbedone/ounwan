@@ -21,7 +21,14 @@ export interface ShareCardData {
 const W = 1080;
 const H = 1350;
 const FONT = '"Pretendard", system-ui, -apple-system, "Segoe UI", sans-serif';
-const BRAND = "#34D399";
+// 테마 색상별 카드 색(그린 / 연핑크)
+function palette() {
+  const pink =
+    typeof document !== "undefined" && document.documentElement.getAttribute("data-accent") === "pink";
+  return pink
+    ? { brand: "#FF8FB8", glow: "rgba(255,143,184,0.65)", bg0: "#4A1530", bg1: "#12060C" }
+    : { brand: "#34D399", glow: "rgba(52,211,153,0.65)", bg0: "#0E3B2B", bg1: "#050F0B" };
+}
 
 function dateLine(d: ShareCardData): string {
   const dt = dateKeyToDate(d.date);
@@ -85,7 +92,7 @@ function drawRoute(
     ctx.stroke();
   };
   dot(pts[0], "#ffffff");
-  dot(pts[pts.length - 1], BRAND);
+  dot(pts[pts.length - 1], palette().brand);
   ctx.restore();
 }
 
@@ -128,8 +135,8 @@ export async function renderShareCard(d: ShareCardData, photo: HTMLImageElement 
     });
   } else {
     const g = ctx.createLinearGradient(0, 0, W * 0.4, H);
-    g.addColorStop(0, "#0E3B2B");
-    g.addColorStop(1, "#050F0B");
+    g.addColorStop(0, palette().bg0);
+    g.addColorStop(1, palette().bg1);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
     // 은은한 격자
@@ -148,9 +155,9 @@ export async function renderShareCard(d: ShareCardData, photo: HTMLImageElement 
       ctx.stroke();
     }
     drawRoute(ctx, d.route, { x: 110, y: 210, w: W - 220, h: 520 }, {
-      color: BRAND,
+      color: palette().brand,
       width: 12,
-      glow: "rgba(52,211,153,0.65)",
+      glow: palette().glow,
     });
   }
 
@@ -172,7 +179,7 @@ export async function renderShareCard(d: ShareCardData, photo: HTMLImageElement 
   ctx.fillText(km, 64, 960);
   const kmW = ctx.measureText(km).width;
   ctx.font = `800 64px ${FONT}`;
-  ctx.fillStyle = photo ? "#ffffff" : BRAND;
+  ctx.fillStyle = photo ? "#ffffff" : palette().brand;
   ctx.fillText("km", 64 + kmW + 18, 960);
 
   // 지표 3×2

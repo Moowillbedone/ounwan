@@ -14,7 +14,7 @@ export const WidgetBridge = registerPlugin<WidgetBridgePlugin>("WidgetBridge");
 
 /** 상태바·하단 버튼 영역 색을 앱 테마에 맞추는 자체 플러그인(SystemBarsPlugin.java) */
 export interface SystemBarsPlugin {
-  set(options: { dark: boolean }): Promise<void>;
+  set(options: { dark: boolean; bg?: string }): Promise<void>;
 }
 export const SystemBars = registerPlugin<SystemBarsPlugin>("SystemBars");
 
