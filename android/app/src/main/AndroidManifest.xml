@@ -82,6 +82,43 @@
                 android:resource="@xml/ounwan_streak_widget_info" />
         </receiver>
 
+        <!-- 4x2 스타일 위젯 3종: 이번 주 기둥 / 이번 달 달력 / 목표 링 -->
+        <receiver
+            android:name=".OunwanWeekWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_week_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ounwan_week_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".OunwanMonthWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_month_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ounwan_month_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".OunwanRingWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_ring_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ounwan_ring_widget_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

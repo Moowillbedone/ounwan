@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 기본 4x2. 30분마다 갱신(날짜가 바뀌어도 '오늘' 표시가 맞도록), 기록이 바뀌면 앱이 즉시 갱신 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:description="@string/widget_description"
-    android:initialLayout="@layout/widget_ounwan"
+    android:description="@string/widget_ring_description"
+    android:initialLayout="@layout/widget_ring"
     android:minWidth="250dp"
     android:minHeight="110dp"
-    android:minResizeWidth="180dp"
+    android:minResizeWidth="220dp"
     android:minResizeHeight="110dp"
-    android:previewImage="@drawable/widget_preview_iso"
+    android:previewImage="@drawable/widget_preview_ring"
     android:resizeMode="horizontal|vertical"
     android:targetCellWidth="4"
     android:targetCellHeight="2"
