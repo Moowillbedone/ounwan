@@ -745,7 +745,7 @@ export function SessionSummaryCard({
         <div key={r.key} className="mt-2">
           {(runs.length > 1 || hasOther) && (
             <div className="mb-1 flex items-center gap-1 text-xs font-bold text-text-2">
-              <Footprints size={13} className="text-brand" /> GPS 러닝
+              <Footprints size={13} className="text-brand" /> {r.run.indoor ? "실내 러닝" : "GPS 러닝"}
             </div>
           )}
           <RunDetail
@@ -753,7 +753,13 @@ export function SessionSummaryCard({
             date={session.date}
             startedAt={r.startedAt}
             endedAt={r.endedAt}
-            title={runs.length === 1 && !hasOther && session.title ? session.title : "GPS 러닝"}
+            title={
+              runs.length === 1 && !hasOther && session.title
+                ? session.title
+                : r.run.indoor
+                ? "실내 러닝"
+                : "GPS 러닝"
+            }
           />
         </div>
       ))}

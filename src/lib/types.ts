@@ -103,6 +103,8 @@ export interface SessionExercise {
   restSeconds?: number | null; // 이 운동의 휴식시간(미지정=운동 기본값)
   /** GPS로 측정하는 종목(러닝 화면에서 기록 → 결과가 이 운동의 세트·run에 들어온다) */
   gps?: boolean;
+  /** 실내(트레드밀) 측정 — gps와 함께 켜짐. GPS 없이 시간·걸음으로 재고 거리는 끝낼 때 입력 */
+  indoor?: boolean;
   run?: RunRecord | null; // GPS 측정 결과(경로·구간·걸음)
   sets: WorkoutSet[];
 }
@@ -140,6 +142,7 @@ export interface RunRecord {
   startedAt?: string | null; // 달리기 시작·끝 시각(ISO) — 심박 조회 구간
   endedAt?: string | null;
   steps?: number | null; // 휴대폰 걸음 센서로 센 걸음(일시정지 구간 제외). 없으면 null
+  indoor?: boolean; // 실내(트레드밀) 러닝: 경로 없음, 거리는 사용자가 입력(걸음 기반 추정값으로 시작)
 }
 
 export interface BodyMetric extends SyncMeta {

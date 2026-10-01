@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Button, IconButton, Sheet, useToast, EmptyState, cn } from "./ui";
 import { LabelField } from "./label-field";
-import { ExercisePicker, GPS_PICK_ID } from "./exercise-picker";
+import { ExercisePicker, GPS_PICK_ID, INDOOR_PICK_ID } from "./exercise-picker";
 import { RunDetail } from "./run-detail";
 import { gpsExercise, RUN_EXERCISE_ID } from "./run-screen";
 import { useDragSort, moveItem } from "@/lib/drag-sort";
@@ -181,6 +181,7 @@ export function LogScreen() {
   const dateParam = params.get("date");
   const routineParam = params.get("routine");
   const gpsParam = params.get("gps") === "1";
+  const indoorParam = params.get("indoor") === "1";
 
   useEffect(() => {
     let alive = true;
@@ -230,13 +231,18 @@ export function LogScreen() {
         s.exercises = [...s.exercises, gpsExercise(s.exercises.length)];
         if (!s.title) s.title = "GPS 러닝";
       }
+      // 캘린더 '이 날 운동 추가 → 실내 러닝'
+      if (indoorParam && !s.exercises.some((e) => e.indoor)) {
+        s.exercises = [...s.exercises, gpsExercise(s.exercises.length, undefined, true)];
+        if (!s.title) s.title = "실내 러닝";
+      }
       if (alive) setSession(s);
     })();
     return () => {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idParam, dateParam, routineParam, gpsParam]);
+  }, [idParam, dateParam, routineParam, gpsParam, indoorParam]);
 
   async function primeHistory(exerciseIds: string[], excludeId?: string) {
     for (const eid of exerciseIds) {
@@ -274,13 +280,15 @@ export function LogScreen() {
   }, []);
 
   const addExercises = async (ids: string[]) => {
-    const normal = ids.filter((id) => id !== GPS_PICK_ID);
+    const normal = ids.filter((id) => id !== GPS_PICK_ID && id !== INDOOR_PICK_ID);
     await primeHistory(normal);
     update((s) => {
       const base = s.exercises.length;
       const added = ids.map((eid, i) =>
         eid === GPS_PICK_ID
           ? gpsExercise(base + i)
+          : eid === INDOOR_PICK_ID
+          ? gpsExercise(base + i, undefined, true)
           : buildExercise(
               eid,
               base + i,
@@ -307,7 +315,8 @@ export function LogScreen() {
     }
     if (saveRef.current) clearTimeout(saveRef.current);
     await saveSession.mutateAsync(session);
-    router.push(`/run?session=${session.id}&ex=${exId}`);
+    const indoor = session.exercises.find((e) => e.id === exId)?.indoor;
+    router.push(`/run?session=${session.id}&ex=${exId}${indoor ? "&indoor=1" : ""}`);
   };
 
   // 꾹 눌러 순서 바꾸기: 'root' = 전체(슈퍼세트는 묶음 통째), 'g:번호' = 묶음 안
@@ -991,10 +1000,11 @@ function ExerciseLogCard({
   const prevSummary = ex.gps ? null : prevSummaryText(lastPerf?.exercise, mode, unit);
   const isCardio = exercise?.category === "cardio" || ex.exerciseId === RUN_EXERCISE_ID;
   // 접은 모드(순서 바꾸는 중)에서 보여줄 한 줄 요약
+  const runName = ex.indoor ? "실내 러닝" : "GPS 러닝";
   const compactLine = ex.gps
     ? ex.run
-      ? `GPS 러닝 · ${fmtKm(ex.run.distanceM)}km`
-      : "GPS 러닝 · 측정 전"
+      ? `${runName} · ${fmtKm(ex.run.distanceM)}km`
+      : `${runName} · 측정 전`
     : `${ex.sets.length}세트`;
 
   const cols =
@@ -1030,9 +1040,14 @@ function ExerciseLogCard({
                 {groupIndex}
               </span>
             )}
-            {ex.gps && <Satellite size={14} className="shrink-0 text-brand" />}
+            {ex.gps &&
+              (ex.indoor ? (
+                <Footprints size={14} className="shrink-0 text-brand" />
+              ) : (
+                <Satellite size={14} className="shrink-0 text-brand" />
+              ))}
             <span className="font-bold truncate">
-              {ex.gps ? "GPS 러닝" : exercise?.nameKo ?? "운동"}
+              {ex.gps ? runName : exercise?.nameKo ?? "운동"}
             </span>
           </div>
           {(compact || prevSummary) && (
@@ -1102,13 +1117,25 @@ function ExerciseLogCard({
                 {isCardio && (
                   <button
                     onClick={() => {
-                      onPatchExercise({ trackingMode: "distance", gps: true });
+                      onPatchExercise({ trackingMode: "distance", gps: true, indoor: false });
                       setMenu(false);
                     }}
                     className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-surface-2"
                   >
                     GPS로 측정
-                    {ex.gps && <Check size={15} className="text-brand" />}
+                    {ex.gps && !ex.indoor && <Check size={15} className="text-brand" />}
+                  </button>
+                )}
+                {isCardio && (
+                  <button
+                    onClick={() => {
+                      onPatchExercise({ trackingMode: "distance", gps: true, indoor: true });
+                      setMenu(false);
+                    }}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-surface-2"
+                  >
+                    실내 러닝으로 측정
+                    {ex.gps && ex.indoor && <Check size={15} className="text-brand" />}
                   </button>
                 )}
                 {(Object.keys(MODE_LABEL) as TrackingMode[]).map((m) => (
@@ -1116,7 +1143,7 @@ function ExerciseLogCard({
                     key={m}
                     onClick={() => {
                       // 직접 입력 방식으로 바꾸면 GPS 측정은 끈다(측정 결과는 세트에 남음)
-                      onPatchExercise({ trackingMode: m, gps: false });
+                      onPatchExercise({ trackingMode: m, gps: false, indoor: false });
                       setMenu(false);
                     }}
                     className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-surface-2"
@@ -1466,7 +1493,7 @@ function GpsPanel({
           date={date}
           startedAt={ex.run.startedAt ?? null}
           endedAt={ex.run.endedAt ?? null}
-          title="GPS 러닝"
+          title={ex.indoor ? "실내 러닝" : "GPS 러닝"}
         />
         <button
           onClick={() => {
@@ -1481,10 +1508,12 @@ function GpsPanel({
   return (
     <div className="px-3 pb-3 pt-2">
       <Button onClick={onStart} className="w-full">
-        <Play size={18} /> GPS 달리기 시작
+        <Play size={18} /> {ex.indoor ? "실내 러닝 시작" : "GPS 달리기 시작"}
       </Button>
       <p className="mt-1.5 text-center text-[11px] text-text-3">
-        끝나면 거리·시간·페이스·케이던스·경로가 이 카드에 기록돼요
+        {ex.indoor
+          ? "시간·걸음·케이던스를 재고, 끝낼 때 트레드밀 거리를 입력하면 이 카드에 기록돼요"
+          : "끝나면 거리·시간·페이스·케이던스·경로가 이 카드에 기록돼요"}
       </p>
     </div>
   );

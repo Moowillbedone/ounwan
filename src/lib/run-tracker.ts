@@ -49,6 +49,34 @@ export interface RunState {
   stepLast?: number | null; // 마지막 센서 누적값(일시정지·재개 직후엔 null → 다음 값이 기준)
   stepRecent?: { s: number; n: number }[]; // 현재 케이던스용 최근 (기록초, 걸음)
   stepsOk?: boolean; // 센서 값을 한 번이라도 받았는지
+  /** 실내(트레드밀) 모드: GPS 거리 대신 걸음 × 보폭으로 거리 추정(끝낼 때 실제 값 입력) */
+  indoor?: boolean;
+  strideM?: number; // 실내 모드 보폭(m/걸음)
+}
+
+const STRIDE_KEY = "ounwan-stride";
+
+/** 실내 러닝 보폭(m/걸음): 지난번 입력으로 배운 값 → 키 × 0.6 → 1.0m */
+export function strideFor(heightCm?: number | null): number {
+  try {
+    const v = Number(localStorage.getItem(STRIDE_KEY));
+    if (v >= 0.4 && v <= 2.2) return v;
+  } catch {
+    /* noop */
+  }
+  return heightCm && heightCm > 100 ? (heightCm / 100) * 0.6 : 1.0;
+}
+
+/** 실내 러닝을 끝내며 입력한 실제 거리로 보폭을 배운다(다음 추정이 정확해짐) */
+export function learnStride(meters: number, steps: number | null | undefined) {
+  if (!steps || steps < 200 || meters <= 0) return;
+  const v = meters / steps;
+  if (v < 0.4 || v > 2.2) return;
+  try {
+    localStorage.setItem(STRIDE_KEY, String(Math.round(v * 1000) / 1000));
+  } catch {
+    /* noop */
+  }
 }
 
 function read(): RunState | null {
@@ -107,7 +135,13 @@ function withSteps(s: RunState, total: number): RunState {
   const stepRecent = [...(s.stepRecent ?? []), { s: sec, n: steps }].filter(
     (p) => sec - p.s <= CADENCE_WINDOW_SEC
   );
-  return { ...s, steps, stepLast: total, stepRecent, stepsOk: true };
+  const next = { ...s, steps, stepLast: total, stepRecent, stepsOk: true };
+  if (s.indoor) {
+    // 실내: 거리 = 걸음 × 보폭(추정), 현재 페이스도 이 값으로
+    next.distanceM = steps * (s.strideM ?? 1);
+    next.recent = [...s.recent, { s: sec, d: next.distanceM }].filter((p) => sec - p.s <= PACE_WINDOW_SEC);
+  }
+  return next;
 }
 
 function onStepSensor(total: number) {
@@ -153,6 +187,7 @@ function onFix(fix: GpsFix) {
     gpsError: null,
     maxGapSec: Math.max(s.maxGapSec ?? 0, Math.round(gap)),
   };
+  if (s.indoor) return; // 실내: 위치는 쓰지 않음(위치 서비스는 화면이 꺼져도 앱이 살아 있게 하려고 켜 둠)
   if (s.status !== "running" || fix.accuracy > MAX_ACCURACY_M) {
     set(base);
     return;
@@ -248,7 +283,7 @@ function releaseWatcher() {
   stopSteps = null;
 }
 
-export function startRun(link: RunLink | null = null) {
+export function startRun(link: RunLink | null = null, indoor?: { strideM: number }) {
   set({
     status: "running",
     interrupted: false,
@@ -269,9 +304,11 @@ export function startRun(link: RunLink | null = null) {
     stepLast: null,
     stepRecent: [],
     stepsOk: false,
+    indoor: !!indoor,
+    strideM: indoor?.strideM,
   });
   void ensureWatcher();
-  void speak("러닝을 시작합니다");
+  void speak(indoor ? "실내 러닝을 시작합니다" : "러닝을 시작합니다");
 }
 
 export function pauseRun() {
@@ -342,6 +379,7 @@ export async function finishRun(): Promise<RunResult | null> {
       startedAt: s.startedAt,
       endedAt,
       steps: s.stepsOk ? Math.round(s.steps ?? 0) : null,
+      ...(s.indoor ? { indoor: true } : {}),
     },
   };
   set(null);
