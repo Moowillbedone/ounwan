@@ -96,11 +96,6 @@ export function daySteps(samples: Sample[], dayStart: Date, dayEnd: Date): numbe
   return mergeSteps(samsung.length ? samsung : samples, dayStart, dayEnd);
 }
 
-async function stepsBetween(start: Date, end: Date): Promise<number> {
-  const samples = await read("steps", start, end);
-  return daySteps(samples, start, end);
-}
-
 /** 진단용: Health Connect 공식 합계(aggregate) — 구버전 앱이면 null */
 export async function stepsAggregate(start: Date, end: Date): Promise<number | null> {
   try {
@@ -296,16 +291,27 @@ export async function importWeights(): Promise<number> {
   return added;
 }
 
-/** 최근 7일 날짜별 걸음 수(오늘 포함) */
+/** 최근 n일 날짜별 걸음 수(오늘 포함). 한 번에 읽어 날짜별로 나눈다(하루 계산은 daySteps와 같음). */
 export async function stepsByDay(days = 7): Promise<{ date: string; steps: number }[]> {
+  const first = new Date();
+  first.setHours(0, 0, 0, 0);
+  first.setDate(first.getDate() - (days - 1));
+  const last = new Date();
+  last.setHours(0, 0, 0, 0);
+  last.setDate(last.getDate() + 1);
+  const samples = await read("steps", first, last);
   const out: { date: string; steps: number }[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() - i);
+  for (let i = 0; i < days; i++) {
+    const start = new Date(first);
+    start.setDate(first.getDate() + i);
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
-    out.push({ date: toDateKey(start), steps: await stepsBetween(start, end) });
+    const s0 = start.getTime(),
+      e0 = end.getTime();
+    const inDay = samples.filter(
+      (x) => Date.parse(x.startDate) < e0 && Date.parse(x.endDate || x.startDate) > s0
+    );
+    out.push({ date: toDateKey(start), steps: daySteps(inDay, start, end) });
   }
   return out;
 }

@@ -25,6 +25,11 @@
   --grass-2: #3fc98a;
   --grass-3: #12915d;
   --grass-4: #084027;
+  /* 잔디 칸 안 강도 숫자(1~4) 글자색 — 칸 색 위에서 잘 보이게 */
+  --grass-ink-1: #0b4d2e;
+  --grass-ink-2: #05331e;
+  --grass-ink-3: #ffffff;
+  --grass-ink-4: #ffffff;
 
   /* 표면/텍스트 (라이트) */
   --bg: #f6f7f9;
@@ -62,6 +67,10 @@
   --grass-2: #26a668;
   --grass-3: #3fd189;
   --grass-4: #83f0c6;
+  --grass-ink-1: #d9fbe9;
+  --grass-ink-2: #ffffff;
+  --grass-ink-3: #06281a;
+  --grass-ink-4: #06281a;
 
   --bg: #0a0e13;
   --surface: #121821;
@@ -86,6 +95,10 @@ html[data-accent="pink"] {
   --grass-2: #f48fb1;
   --grass-3: #e0578a;
   --grass-4: #9e2459;
+  --grass-ink-1: #7a1f45;
+  --grass-ink-2: #4d0d2b;
+  --grass-ink-3: #ffffff;
+  --grass-ink-4: #ffffff;
 
   --bg: #fff5f8;
   --surface: #ffffff;
@@ -106,6 +119,10 @@ html.dark[data-accent="pink"] {
   --grass-2: #b23a6a;
   --grass-3: #f06a9b;
   --grass-4: #ffb3cf;
+  --grass-ink-1: #ffe1ec;
+  --grass-ink-2: #ffffff;
+  --grass-ink-3: #3a0a1f;
+  --grass-ink-4: #3a0a1f;
 
   --bg: #140c10;
   --surface: #1e141a;

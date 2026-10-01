@@ -30,40 +30,57 @@ export function RunHeartRate({ startedAt, endedAt }: { startedAt?: string | null
   );
 }
 
-/** 통계 탭 걸음 수(오늘·7일) — Health Connect 연결 시에만 보인다 */
+/** 통계 탭 걸음 수(최근 14일) — 막대를 누르면 그날 걸음 수. Health Connect 연결 시에만 보인다 */
 export function StepsCard() {
   const [days, setDays] = useState<{ date: string; steps: number }[] | null>(null);
+  const [sel, setSel] = useState<number | null>(null);
   useEffect(() => {
     if (!isNativeApp() || !isHealthLinked()) return;
-    void stepsByDay(7).then(setDays).catch(() => {});
+    void stepsByDay(14).then(setDays).catch(() => {});
   }, []);
   if (!days || days.every((d) => d.steps === 0)) return null;
-  const today = days[days.length - 1].steps;
-  const avg = Math.round(days.reduce((n, d) => n + d.steps, 0) / days.length);
+  const idx = sel ?? days.length - 1;
+  const cur = days[idx];
+  const recent7 = days.slice(-7);
+  const avg = Math.round(recent7.reduce((n, d) => n + d.steps, 0) / recent7.length);
   const max = Math.max(1, ...days.map((d) => d.steps));
+  const dt = dateKeyToDate(cur.date);
+  const wd = ["일", "월", "화", "수", "목", "금", "토"];
+  const label = idx === days.length - 1 ? "오늘" : `${dt.getMonth() + 1}월 ${dt.getDate()}일 (${wd[dt.getDay()]})`;
   return (
     <section className="rounded-app border border-border bg-surface p-4 shadow-[var(--shadow-card)]">
       <div className="mb-3 flex items-center gap-1.5 font-bold">
         <Footprints size={16} className="text-text-3" /> 걸음 수
         <span className="text-[11px] font-medium text-text-3">· Health Connect</span>
       </div>
-      <div className="mb-3 flex items-baseline gap-3">
-        <span className="text-2xl font-black">{fmtNum(today)}</span>
-        <span className="text-xs text-text-3">오늘 · 7일 평균 {fmtNum(avg)}보</span>
+      <div className="mb-3 flex items-baseline gap-2">
+        <span className="text-2xl font-black tabular-nums">{fmtNum(cur.steps)}</span>
+        <span className="text-xs font-semibold text-brand-strong">{label}</span>
+        <span className="ml-auto text-xs text-text-3">7일 평균 {fmtNum(avg)}보</span>
       </div>
-      <div className="flex h-16 items-end gap-1.5">
-        {days.map((d, i) => (
-          <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
-            <div
-              className={cn("w-full rounded-t-md", i === days.length - 1 ? "bg-brand" : "bg-brand/40")}
-              style={{ height: `${Math.max(3, (d.steps / max) * 52)}px` }}
-            />
-            <span className="text-[9px] text-text-3">
-              {["일", "월", "화", "수", "목", "금", "토"][dateKeyToDate(d.date).getDay()]}
-            </span>
-          </div>
-        ))}
+      <div className="flex h-20 items-end gap-1">
+        {days.map((d, i) => {
+          const on = i === idx;
+          const day = dateKeyToDate(d.date);
+          return (
+            <button
+              key={d.date}
+              onClick={() => setSel(i)}
+              aria-label={`${d.date} ${d.steps}보`}
+              className="flex h-full flex-1 flex-col items-center justify-end gap-1"
+            >
+              <div
+                className={cn("w-full rounded-t-md transition", on ? "bg-brand" : "bg-brand/35")}
+                style={{ height: `${Math.max(3, (d.steps / max) * 56)}px` }}
+              />
+              <span className={cn("text-[9px] leading-none", on ? "font-bold text-brand-strong" : "text-text-3")}>
+                {i % 2 === (days.length - 1) % 2 || on ? wd[day.getDay()] : "·"}
+              </span>
+            </button>
+          );
+        })}
       </div>
+      <p className="mt-2 text-center text-[10px] text-text-3">막대를 누르면 그날 걸음 수가 보여요 · 최근 14일</p>
     </section>
   );
 }

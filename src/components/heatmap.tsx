@@ -112,8 +112,9 @@ export function Heatmap({
                       disabled={future}
                       aria-label={ariaFor(key, tKey, lvl)}
                       title={key}
-                      className="rounded-[3px] transition"
+                      className="grid place-items-center rounded-[3px] text-[9px] font-black leading-none tabular-nums transition"
                       style={{
+                        color: lvl > 0 ? `var(--grass-ink-${lvl})` : undefined,
                         width: CELL,
                         height: CELL,
                         background: future
@@ -126,7 +127,10 @@ export function Heatmap({
                         outlineOffset: "1px",
                         cursor: future ? "default" : "pointer",
                       }}
-                    />
+                    >
+                      {/* 강도 숫자(1 가벼움 ~ 4 빡셈) — 색만으로는 단계 구분이 어려워서 */}
+                      {lvl > 0 ? lvl : null}
+                    </button>
                   );
                 })}
               </div>
@@ -142,12 +146,14 @@ export function HeatmapLegend() {
   return (
     <div className="flex items-center gap-1.5 text-[11px] text-text-3">
       <span>가벼움</span>
-      {["--grass-1", "--grass-2", "--grass-3", "--grass-4"].map((c) => (
+      {[1, 2, 3, 4].map((n) => (
         <span
-          key={c}
-          className="h-[11px] w-[11px] rounded-[3px]"
-          style={{ background: `var(${c})` }}
-        />
+          key={n}
+          className="grid h-[14px] w-[14px] place-items-center rounded-[3px] text-[8.5px] font-black leading-none"
+          style={{ background: `var(--grass-${n})`, color: `var(--grass-ink-${n})` }}
+        >
+          {n}
+        </span>
       ))}
       <span>빡셈</span>
     </div>
