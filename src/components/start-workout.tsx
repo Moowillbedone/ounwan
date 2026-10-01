@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Dumbbell, Play, ListPlus, Settings2, Footprints } from "lucide-react";
+import { Dumbbell, Play, ListPlus, Settings2, Footprints, Activity } from "lucide-react";
 import { Sheet, Button } from "./ui";
 import { useRoutines, useExerciseMap } from "@/lib/hooks";
 import { RoutineEditor } from "./routine-editor";
@@ -78,6 +78,24 @@ export function StartWorkoutSheet({
               {isToday
                 ? "GPS로 거리·페이스·케이던스·1km 구간 기록"
                 : "그날 운동 화면에서 'GPS 달리기 시작'을 눌러 측정해요"}
+            </span>
+          </span>
+        </button>
+
+        {/* 실내 러닝(트레드밀) */}
+        <button
+          onClick={() => go(isToday ? "/run?indoor=1" : `/log?${q}&indoor=1`)}
+          className="mt-2 flex w-full items-center gap-3 rounded-app border border-border bg-surface p-4 text-left active:scale-[0.99] transition"
+        >
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand">
+            <Activity size={20} />
+          </span>
+          <span className="flex-1">
+            <span className="block font-bold">{isToday ? "실내 러닝 시작" : "실내 러닝 추가"}</span>
+            <span className="block text-xs text-text-3">
+              {isToday
+                ? "트레드밀 · 시간·걸음·케이던스, 끝나고 거리 입력"
+                : "그날 운동 화면에서 '실내 러닝 시작'을 눌러 측정해요"}
             </span>
           </span>
         </button>

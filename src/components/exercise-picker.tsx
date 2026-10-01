@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Plus, Check, Link2, Satellite } from "lucide-react";
+import { Search, Plus, Check, Link2, Satellite, Footprints } from "lucide-react";
 import { Sheet, Button, cn } from "./ui";
 import {
   useExercises,
@@ -15,6 +15,8 @@ import type { BodyPart, Exercise } from "@/lib/types";
 
 /** 선택 목록에서 'GPS 러닝'(실시간 측정 종목)을 나타내는 특별 id */
 export const GPS_PICK_ID = "gps:outdoor-running";
+/** 실내 러닝(트레드밀) 측정 종목 */
+export const INDOOR_PICK_ID = "indoor:treadmill-running";
 
 export function ExercisePicker({
   open,
@@ -54,7 +56,7 @@ export function ExercisePicker({
   const showGps =
     allowGps &&
     (part === "전체" || part === "유산소") &&
-    (!q || /gps|러닝|달리|런|run/i.test(q));
+    (!q || /gps|러닝|달리|런|run|트레드|실내/i.test(q));
 
   const toggle = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -160,6 +162,39 @@ export function ExercisePicker({
                 )}
               >
                 {selected.includes(GPS_PICK_ID) && <Check size={14} strokeWidth={3} />}
+              </span>
+            </button>
+          )}
+          {showGps && (
+            <button
+              onClick={() => toggle(INDOOR_PICK_ID)}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-app border p-2.5 text-left transition",
+                selected.includes(INDOOR_PICK_ID)
+                  ? "border-brand bg-brand-soft"
+                  : "border-brand/30 bg-brand-soft/30"
+              )}
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand text-white">
+                <Footprints size={17} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">
+                  실내 러닝 <span className="ml-1 text-[10px] font-bold text-brand">트레드밀</span>
+                </span>
+                <span className="block truncate text-xs text-text-3">
+                  유산소 · 시간·걸음·케이던스 측정, 끝나고 거리 입력
+                </span>
+              </span>
+              <span
+                className={cn(
+                  "grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 transition",
+                  selected.includes(INDOOR_PICK_ID)
+                    ? "border-brand bg-brand text-white"
+                    : "border-border"
+                )}
+              >
+                {selected.includes(INDOOR_PICK_ID) && <Check size={14} strokeWidth={3} />}
               </span>
             </button>
           )}

@@ -14,7 +14,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { isVoiceOn, setVoiceOn, speak } from "@/lib/voice";
-import { Button, Card, IconButton, cn, useToast } from "./ui";
+import { Button, Card, IconButton, Sheet, cn, useToast } from "./ui";
 import {
   useRun,
   startRun,
@@ -32,15 +32,18 @@ import {
   type RunState,
   type RunResult,
   type RunLink,
+  strideFor,
+  learnStride,
 } from "@/lib/run-tracker";
 import { gpsKeepsRunningInBackground, openLocationSettings } from "@/lib/gps";
-import { useSaveSession } from "@/lib/hooks";
+import { useProfile, useSaveSession } from "@/lib/hooks";
 import { getSession, getSessionsByDate, newEmptySession } from "@/lib/repo";
 import { toDateKey, uid } from "@/lib/utils";
 import type { SessionExercise, WorkoutSet, WorkoutSession } from "@/lib/types";
 import { RunMap } from "./run-map";
 
 export const RUN_EXERCISE_ID = "outdoor-running";
+export const INDOOR_EXERCISE_ID = "treadmill-running";
 
 function runSet(r: RunResult): WorkoutSet {
   return {
@@ -56,13 +59,14 @@ function runSet(r: RunResult): WorkoutSet {
 }
 
 /** GPS 러닝 종목(운동 기록 화면의 카드). 측정 결과는 세트(거리·시간)와 run(경로·걸음)에 담긴다. */
-export function gpsExercise(orderIndex: number, r?: RunResult): SessionExercise {
+export function gpsExercise(orderIndex: number, r?: RunResult, indoor = false): SessionExercise {
   return {
     id: uid(),
-    exerciseId: RUN_EXERCISE_ID,
+    exerciseId: indoor ? INDOOR_EXERCISE_ID : RUN_EXERCISE_ID,
     orderIndex,
     trackingMode: "distance",
     gps: true,
+    ...(indoor ? { indoor: true } : {}),
     run: r ? r.record : null,
     sets: r ? [runSet(r)] : [],
   };
@@ -89,7 +93,7 @@ async function saveRunResult(
           run: r.record,
           sets: [runSet(r)],
         };
-      else exs.push(gpsExercise(exs.length, r));
+      else exs.push(gpsExercise(exs.length, r, !!r.record.indoor));
       const onlyRun = exs.length === 1;
       const next: WorkoutSession = {
         ...s,
@@ -106,10 +110,11 @@ async function saveRunResult(
   const sameDay = await getSessionsByDate(date);
   const idx = sameDay.reduce((m, s) => Math.max(m, s.sessionIndexOfDay), 0) + 1;
   const session = newEmptySession(date, idx);
-  session.title = "GPS 러닝"; // 거리는 세트에 있으므로 제목엔 넣지 않음(수정 시 어긋남 방지)
+  const indoor = !!r.record.indoor;
+  session.title = indoor ? "실내 러닝" : "GPS 러닝"; // 거리는 세트에 있으므로 제목엔 넣지 않음
   session.startedAt = r.startedAt;
   session.endedAt = r.endedAt;
-  session.exercises = [gpsExercise(0, r)];
+  session.exercises = [gpsExercise(0, r, indoor)];
   await save(session);
   return { path: "/", session };
 }
@@ -124,6 +129,13 @@ export function RunScreen() {
   const [saving, setSaving] = useState(false);
   const [native, setNative] = useState(false);
   const [voice, setVoice] = useState(true);
+  const { data: profile } = useProfile();
+  // 실내(트레드밀) 모드: GPS 대신 시간·걸음, 거리는 끝낼 때 트레드밀 화면 값 입력
+  const indoorParam = params.get("indoor") === "1";
+  const [mode, setMode] = useState<"gps" | "indoor">(indoorParam ? "indoor" : "gps");
+  const isIndoor = run ? !!run.indoor : mode === "indoor";
+  const [indoorOpen, setIndoorOpen] = useState(false);
+  const [kmText, setKmText] = useState("");
 
   useEffect(() => {
     setNative(gpsKeepsRunningInBackground());
@@ -155,19 +167,15 @@ export function RunScreen() {
     return () => clearInterval(id);
   }, [run?.status]);
 
-  const onFinish = async () => {
-    if (!run) return;
-    const short = run.distanceM < 50;
-    const ok = window.confirm(
-      short
-        ? "거리가 50m도 안 돼요. 그래도 기록을 저장할까요?"
-        : "달리기를 끝내고 기록을 저장할까요?"
-    );
-    if (!ok) return;
+  const finishWith = async (meters?: number) => {
     setSaving(true);
     try {
       const result = await finishRun();
       if (!result) return;
+      if (meters != null) {
+        result.record.distanceM = meters;
+        learnStride(meters, result.record.steps);
+      }
       const km = (result.record.distanceM / 1000).toFixed(2);
       const { path } = await saveRunResult(result, (x) => save.mutateAsync(x));
       toast(
@@ -180,6 +188,34 @@ export function RunScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const onFinish = async () => {
+    if (!run) return;
+    if (run.indoor) {
+      // 실내: 트레드밀 화면의 거리를 받는다(걸음 기반 추정값으로 미리 채움)
+      setKmText(run.distanceM > 0 ? (Math.round(run.distanceM / 10) / 100).toFixed(2) : "");
+      setIndoorOpen(true);
+      return;
+    }
+    const short = run.distanceM < 50;
+    const ok = window.confirm(
+      short
+        ? "거리가 50m도 안 돼요. 그래도 기록을 저장할까요?"
+        : "달리기를 끝내고 기록을 저장할까요?"
+    );
+    if (!ok) return;
+    await finishWith();
+  };
+
+  const saveIndoor = async () => {
+    const km = parseFloat(kmText.replace(",", "."));
+    if (!(km > 0) || km > 100) {
+      toast("트레드밀에 표시된 거리를 km로 입력해 주세요", "error");
+      return;
+    }
+    setIndoorOpen(false);
+    await finishWith(Math.round(km * 1000));
   };
 
   const onDiscard = () => {
@@ -195,7 +231,7 @@ export function RunScreen() {
         >
           <ChevronLeft size={22} />
         </IconButton>
-        <h1 className="text-lg font-bold">러닝</h1>
+        <h1 className="text-lg font-bold">{isIndoor ? "실내 러닝" : "러닝"}</h1>
         <button
           onClick={() => {
             const next = !voice;
@@ -216,15 +252,47 @@ export function RunScreen() {
 
       {linkName && (
         <div className="mx-5 mt-1 rounded-app bg-brand-soft/60 px-3 py-2 text-center text-[13px] text-text-2">
-          <b className="text-brand-strong">{linkName}</b>의 GPS 러닝으로 기록돼요
+          <b className="text-brand-strong">{linkName}</b>의 {isIndoor ? "실내" : "GPS"} 러닝으로 기록돼요
         </div>
       )}
-      {!run ? <IdleView native={native} /> : <ActiveView run={run} />}
+      {!run && !link && (
+        <div className="mx-5 mt-2 grid grid-cols-2 gap-1 rounded-full bg-surface-2 p-1">
+          {(
+            [
+              ["gps", "야외 GPS"],
+              ["indoor", "실내 · 트레드밀"],
+            ] as const
+          ).map(([v, label]) => (
+            <button
+              key={v}
+              onClick={() => setMode(v)}
+              className={cn(
+                "h-9 rounded-full text-sm font-bold transition",
+                mode === v ? "bg-surface text-brand shadow-[var(--shadow-card)]" : "text-text-3"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      {!run ? (
+        isIndoor ? <IndoorIdleView native={native} /> : <IdleView native={native} />
+      ) : run.indoor ? (
+        <IndoorActiveView run={run} />
+      ) : (
+        <ActiveView run={run} />
+      )}
 
       <div className="px-5 pt-6">
         {!run && (
-          <Button size="lg" onClick={() => startRun(link)}>
-            <Play size={20} /> 달리기 시작
+          <Button
+            size="lg"
+            onClick={() =>
+              startRun(link, isIndoor ? { strideM: strideFor(profile?.heightCm) } : undefined)
+            }
+          >
+            <Play size={20} /> {isIndoor ? "실내 러닝 시작" : "달리기 시작"}
           </Button>
         )}
         {run?.status === "running" && (
@@ -251,6 +319,99 @@ export function RunScreen() {
           </div>
         )}
       </div>
+
+      <Sheet
+        open={indoorOpen}
+        onClose={() => setIndoorOpen(false)}
+        title="트레드밀 거리 입력"
+        footer={
+          <Button size="lg" onClick={saveIndoor} disabled={saving}>
+            <Square size={18} /> 저장하고 끝내기
+          </Button>
+        }
+      >
+        <p className="mb-3 text-sm leading-relaxed text-text-3">
+          트레드밀 화면에 나온 <b className="text-text-2">거리</b>를 입력하세요.
+          {run?.stepsOk && run.distanceM > 0 && (
+            <> 걸음 수로 추정한 값을 미리 넣어 뒀어요. 입력한 값으로 보폭을 배워서 다음 추정이 더 정확해져요.</>
+          )}
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            inputMode="decimal"
+            value={kmText}
+            onChange={(e) => setKmText(e.target.value.replace(/[^0-9.,]/g, ""))}
+            placeholder="예: 5.00"
+            autoFocus
+            className="h-14 min-w-0 flex-1 rounded-app border border-border bg-surface-2 px-4 text-center text-2xl font-black tabular-nums outline-none focus:border-brand"
+          />
+          <span className="text-lg font-bold text-text-2">km</span>
+        </div>
+        {run && (
+          <p className="mt-3 text-center text-xs text-text-3">
+            시간 {fmtClock(movingSecOf(run))}
+            {run.stepsOk ? ` · 걸음 ${Math.round(run.steps ?? 0).toLocaleString("ko-KR")}` : ""}
+          </p>
+        )}
+      </Sheet>
+    </div>
+  );
+}
+
+function IndoorIdleView({ native }: { native: boolean }) {
+  return (
+    <div className="px-5 pt-6 text-center">
+      <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-brand-soft text-brand">
+        <Footprints size={38} />
+      </div>
+      <p className="mt-4 text-xl font-black">실내 러닝 · 트레드밀</p>
+      <p className="mt-2 text-sm leading-relaxed text-text-3">
+        GPS 없이 <b>시간·걸음·케이던스</b>를 재고, 끝낼 때 트레드밀 화면의 <b>거리</b>를 입력하면
+        <b> 트레드밀러닝</b>으로 저장돼 거리·러닝 통계에 들어가요.
+      </p>
+      <div className="mt-5 rounded-app bg-brand-soft/60 p-3 text-left text-[13px] leading-relaxed text-text-2">
+        {native ? (
+          <>👟 휴대폰을 주머니나 팔에 두면 걸음 센서로 거리를 추정해요(추정값은 끝낼 때 고칠 수 있어요).</>
+        ) : (
+          <>🌐 브라우저에서는 걸음 센서를 못 써요. 시간만 재고, 거리는 끝낼 때 입력해요.</>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function IndoorActiveView({ run }: { run: RunState }) {
+  const sec = movingSecOf(run);
+  const cadence = run.status === "running" ? currentCadenceOf(run) : null;
+  const est = run.stepsOk && run.distanceM > 0;
+  return (
+    <div className="px-5">
+      {run.interrupted && (
+        <div className="mt-2 flex items-start gap-2 rounded-app bg-warn/10 p-3 text-[13px] text-text-2">
+          <TriangleAlert size={16} className="mt-0.5 shrink-0 text-warn" />
+          앱이 종료돼서 기록이 멈췄어요. 이어서 달리거나 지금까지의 기록을 저장할 수 있어요.
+        </div>
+      )}
+      <div className="pt-6 text-center">
+        <div className="text-[64px] font-black leading-none tracking-tight tabular-nums">{fmtClock(sec)}</div>
+        <div className="mt-1 text-sm font-semibold text-text-3">운동 시간</div>
+        {run.status === "paused" && (
+          <div className="mt-2 inline-block rounded-full bg-surface-2 px-3 py-1 text-xs font-bold text-text-2">
+            일시정지됨
+          </div>
+        )}
+      </div>
+      <div className="mt-6 grid grid-cols-3 gap-2 text-center">
+        <Stat label={est ? "추정 거리(km)" : "거리 · 끝에 입력"} value={est ? fmtKm(run.distanceM) : "—"} />
+        <Stat label="케이던스" value={cadence != null ? String(Math.round(cadence)) : "--"} />
+        <Stat label="걸음" value={run.stepsOk ? Math.round(run.steps ?? 0).toLocaleString("ko-KR") : "--"} />
+      </div>
+      {est && (
+        <p className="mt-3 text-center text-[11px] text-text-3">
+          추정 거리는 걸음 × 보폭이에요 · 끝낼 때 트레드밀 값으로 바꿀 수 있어요
+        </p>
+      )}
     </div>
   );
 }
