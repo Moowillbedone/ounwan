@@ -859,7 +859,10 @@ function buildExercise(
   targetSets?: number,
   defaultMode: TrackingMode = "weight_reps"
 ): SessionExercise {
-  const mode = prevEx?.trackingMode ?? defaultMode;
+  // 거리 종목(러닝·트레드밀 등)은 예전에 '시간만'으로 기록했어도 '거리 + 시간'으로 올린다
+  // (시간만 기록하면 통계의 거리·러닝 합계에 안 잡힘). 시간 값은 그대로 이어받음.
+  const prevMode = prevEx?.trackingMode;
+  const mode = defaultMode === "distance" && prevMode === "time" ? "distance" : prevMode ?? defaultMode;
   let sets: WorkoutSet[];
   if (prevEx && prevEx.sets.length > 0) {
     sets = prevEx.sets.map((s) => ({
