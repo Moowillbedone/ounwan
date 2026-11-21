@@ -143,6 +143,11 @@ export interface RunRecord {
   endedAt?: string | null;
   steps?: number | null; // 휴대폰 걸음 센서로 센 걸음(일시정지 구간 제외). 없으면 null
   indoor?: boolean; // 실내(트레드밀) 러닝: 경로 없음, 거리는 사용자가 입력(걸음 기반 추정값으로 시작)
+  /**
+   * 기록 흐름 [기록 시간(초), 누적 거리(m), 누적 걸음] — 약 5초 간격(최대 1,200개).
+   * 1km 구간별 케이던스(그 구간에 늘어난 걸음 ÷ 구간 시간)와 실내 러닝 구간 추정에 쓴다.
+   */
+  series?: [number, number, number][] | null;
 }
 
 export interface BodyMetric extends SyncMeta {

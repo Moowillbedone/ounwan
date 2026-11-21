@@ -41,6 +41,7 @@ import { getSession, getSessionsByDate, newEmptySession } from "@/lib/repo";
 import { toDateKey, uid } from "@/lib/utils";
 import type { SessionExercise, WorkoutSet, WorkoutSession } from "@/lib/types";
 import { RunMap } from "./run-map";
+import { splitCadences } from "@/lib/running";
 
 export const RUN_EXERCISE_ID = "outdoor-running";
 export const INDOOR_EXERCISE_ID = "treadmill-running";
@@ -450,6 +451,7 @@ function IdleView({ native }: { native: boolean }) {
 
 function ActiveView({ run }: { run: RunState }) {
   const sec = movingSecOf(run);
+  const splitCads = splitCadences(run.splits, run.series);
   const avgPace = run.distanceM >= 50 ? sec / (run.distanceM / 1000) : null;
   const curPace = run.status === "running" ? currentPaceOf(run) : null;
   const cadence = run.status === "running" ? currentCadenceOf(run) : null;
@@ -503,10 +505,22 @@ function ActiveView({ run }: { run: RunState }) {
 
       {run.splits.length > 0 && (
         <Card className="mt-4 divide-y divide-border">
-          {run.splits.map((s, i) => (
+          <div className="flex items-center justify-between px-4 py-2 text-[11px] font-semibold text-text-3">
+            <span>구간</span>
+            <span className="flex gap-6">
+              <span>페이스</span>
+              <span className="w-14 text-right">케이던스</span>
+            </span>
+          </div>
+          {run.splits.map((sp, i) => (
             <div key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
               <span className="font-semibold text-text-2">{i + 1}km</span>
-              <span className="font-bold tabular-nums">{fmtPace(s)}</span>
+              <span className="flex gap-6 tabular-nums">
+                <span className="font-bold">{fmtPace(sp)}</span>
+                <span className="w-14 text-right font-semibold text-text-2">
+                  {splitCads[i] != null ? `${splitCads[i]}` : "--"}
+                </span>
+              </span>
             </div>
           ))}
         </Card>

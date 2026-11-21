@@ -9,6 +9,7 @@ import { startGps, haversineM, type GpsFix, type GpsError } from "./gps";
 import type { RunRecord } from "./types";
 import { speak, spokenDuration } from "./voice";
 import { startStepSensor, readStepSensor } from "./steps";
+import { cadenceBetween } from "./running";
 
 const KEY = "ounwan-run";
 
@@ -19,6 +20,8 @@ const MAX_SPEED_MS = 12; // 43km/h 초과 = 튐(순간이동)으로 보고 버�
 const ROUTE_STEP_M = 10; // 경로 저장 간격(용량 절약)
 const PACE_WINDOW_SEC = 60; // 현재 페이스 계산 구간
 const CADENCE_WINDOW_SEC = 60; // 현재 케이던스 계산 구간
+const SAMPLE_SEC = 5; // 기록 흐름(시간·거리·걸음) 저장 간격 — 1km 구간 케이던스용
+const MAX_SERIES = 1200; // 저장할 때 기록 흐름 최대 개수(약 1시간 40분 분량, 넘으면 솎아냄)
 
 /** 운동 기록 화면에서 시작한 러닝이면, 끝났을 때 결과를 넣을 세션·운동 */
 export interface RunLink {
@@ -49,6 +52,8 @@ export interface RunState {
   stepLast?: number | null; // 마지막 센서 누적값(일시정지·재개 직후엔 null → 다음 값이 기준)
   stepRecent?: { s: number; n: number }[]; // 현재 케이던스용 최근 (기록초, 걸음)
   stepsOk?: boolean; // 센서 값을 한 번이라도 받았는지
+  /** 기록 흐름 [기록 시간(초), 누적 거리(m), 누적 걸음] — 5초마다, km 통과 때는 바로 */
+  series?: [number, number, number][];
   /** 실내(트레드밀) 모드: GPS 거리 대신 걸음 × 보폭으로 거리 추정(끝낼 때 실제 값 입력) */
   indoor?: boolean;
   strideM?: number; // 실내 모드 보폭(m/걸음)
@@ -126,6 +131,26 @@ export function movingSecOf(s: RunState, now = Date.now()): number {
   return Math.max(0, ms / 1000);
 }
 
+/** 기록 흐름에 지금 값(기록 시간·거리·걸음)을 남긴다. force가 아니면 5초에 한 번만 */
+function withSample(s: RunState, force = false): RunState {
+  const sec = Math.round(movingSecOf(s) * 10) / 10;
+  const series = s.series ?? [];
+  const last = series[series.length - 1];
+  if (last && (sec < last[0] || (!force && sec - last[0] < SAMPLE_SEC))) return s;
+  if (last && sec === last[0]) {
+    // 같은 시각이면 최신 값으로 덮어쓴다
+    return { ...s, series: [...series.slice(0, -1), [sec, Math.round(s.distanceM), Math.round(s.steps ?? 0)]] };
+  }
+  return { ...s, series: [...series, [sec, Math.round(s.distanceM), Math.round(s.steps ?? 0)]] };
+}
+
+/** 저장용으로 기록 흐름을 최대 개수 이하로 솎는다(처음·끝은 유지) */
+function thinSeries(series: [number, number, number][]): [number, number, number][] {
+  if (series.length <= MAX_SERIES) return series;
+  const stride = Math.ceil(series.length / MAX_SERIES);
+  return series.filter((_, i) => i % stride === 0 || i === series.length - 1);
+}
+
 /** 센서 누적값을 받아 달린 걸음을 더한다(재부팅으로 값이 줄면 기준만 다시 잡음) */
 function withSteps(s: RunState, total: number): RunState {
   const last = s.stepLast ?? null;
@@ -141,7 +166,7 @@ function withSteps(s: RunState, total: number): RunState {
     next.distanceM = steps * (s.strideM ?? 1);
     next.recent = [...s.recent, { s: sec, d: next.distanceM }].filter((p) => sec - p.s <= PACE_WINDOW_SEC);
   }
-  return next;
+  return s.status === "running" ? withSample(next) : next;
 }
 
 function onStepSensor(total: number) {
@@ -222,15 +247,6 @@ function onFix(fix: GpsFix) {
     lastSplitSec = crossSec;
   }
 
-  // 새로 완주한 km마다 음성 안내(구간 페이스·총 시간)
-  for (let k = s.splits.length; k < splits.length; k++) {
-    void speak(
-      `${k + 1}킬로미터. 구간 페이스 ${spokenDuration(splits[k])}. 총 시간 ${spokenDuration(
-        splits.slice(0, k + 1).reduce((n, x) => n + x, 0)
-      )}.`
-    );
-  }
-
   const route = [...s.route];
   const lastPt = route[route.length - 1];
   if (!lastPt || haversineM(lastPt[0], lastPt[1], fix.lat, fix.lng) >= ROUTE_STEP_M) {
@@ -241,15 +257,31 @@ function onFix(fix: GpsFix) {
     (p) => sec - p.s <= PACE_WINDOW_SEC
   );
 
-  set({
-    ...base,
-    distanceM,
-    splits,
-    lastSplitSec,
-    route,
-    recent,
-    anchor: { lat: fix.lat, lng: fix.lng, sec, time: fix.time },
-  });
+  const crossed = splits.length > s.splits.length;
+  const next = withSample(
+    {
+      ...base,
+      distanceM,
+      splits,
+      lastSplitSec,
+      route,
+      recent,
+      anchor: { lat: fix.lat, lng: fix.lng, sec, time: fix.time },
+    },
+    crossed // km를 지났으면 바로 남겨 그 구간 케이던스를 정확히
+  );
+  set(next);
+
+  // 새로 완주한 km마다 음성 안내(구간 페이스·케이던스·총 시간)
+  for (let k = s.splits.length; k < splits.length; k++) {
+    const from = splits.slice(0, k).reduce((n, x) => n + x, 0);
+    const cad = cadenceBetween(next.series, from, from + splits[k]);
+    void speak(
+      `${k + 1}킬로미터. 구간 페이스 ${spokenDuration(splits[k])}.${
+        cad != null ? ` 케이던스 ${cad}.` : ""
+      } 총 시간 ${spokenDuration(from + splits[k])}.`
+    );
+  }
 }
 
 function onGpsError(e: GpsError) {
@@ -304,6 +336,7 @@ export function startRun(link: RunLink | null = null, indoor?: { strideM: number
     stepLast: null,
     stepRecent: [],
     stepsOk: false,
+    series: [[0, 0, 0]],
     indoor: !!indoor,
     strideM: indoor?.strideM,
   });
@@ -327,7 +360,8 @@ export function pauseRun() {
   void readStepSensor().then((v) => {
     const cur = state;
     if (!cur || cur.status !== "paused") return;
-    set({ ...(v != null ? withSteps(cur, v) : cur), stepLast: null, stepRecent: [] });
+    // 멈춘 시점 값을 기록 흐름에 남김(재개 뒤 걸음이 멈추기 전 구간에 섞이지 않게)
+    set({ ...withSample(v != null ? withSteps(cur, v) : cur, true), stepLast: null, stepRecent: [] });
   });
   void speak("일시정지");
 }
@@ -365,8 +399,10 @@ export async function finishRun(): Promise<RunResult | null> {
   }
   if (!s) return null;
   releaseWatcher();
+  s = withSample(s, true); // 마지막 값까지 기록 흐름에
   const movingSec = Math.round(movingSecOf(s));
   const endedAt = new Date().toISOString();
+  const series = thinSeries(s.series ?? []);
   const out: RunResult = {
     startedAt: s.startedAt,
     endedAt,
@@ -379,6 +415,7 @@ export async function finishRun(): Promise<RunResult | null> {
       startedAt: s.startedAt,
       endedAt,
       steps: s.stepsOk ? Math.round(s.steps ?? 0) : null,
+      ...(series.length >= 2 ? { series } : {}),
       ...(s.indoor ? { indoor: true } : {}),
     },
   };
