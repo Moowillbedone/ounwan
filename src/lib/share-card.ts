@@ -2,6 +2,7 @@
 
 import { Filesystem, Directory } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
+import { registerPlugin } from "@capacitor/core";
 import { isNativeApp } from "./native";
 import { dateKeyToDate } from "./utils";
 import { fmtClock, fmtKm, fmtPace } from "./run-tracker";
@@ -219,6 +220,69 @@ function blobToBase64(b: Blob): Promise<string> {
     r.onerror = () => rej(r.error);
     r.readAsDataURL(b);
   });
+}
+
+/** 공유·저장 파일 이름: ounwan-run-2026-11-21-0712.jpg (같은 날 여러 번 달려도 겹치지 않게 시작 시각 포함) */
+export function shareFileName(date: string, startedAt: string | null): string {
+  let hhmm = "";
+  if (startedAt) {
+    const t = new Date(startedAt);
+    hhmm = `-${String(t.getHours()).padStart(2, "0")}${String(t.getMinutes()).padStart(2, "0")}`;
+  }
+  return `ounwan-run-${date}${hhmm}.jpg`;
+}
+
+// 사진첩 저장 자체 플러그인(GallerySaverPlugin.java) — 구버전 앱엔 없어서 실패하면 문서 폴더로 대신 저장
+const GallerySaver = registerPlugin<{
+  saveImage(o: { data: string; fileName: string; album: string }): Promise<{ uri: string }>;
+}>("GallerySaver");
+
+export type SaveResult = "gallery" | "documents" | "ios-share" | "downloaded";
+
+/** 아이폰·아이패드 웹(홈 화면 앱 포함) — 저장이 공유 메뉴의 '이미지 저장'으로 이뤄지는 환경 */
+export function saveGoesThroughShareSheet(): boolean {
+  if (typeof navigator === "undefined" || isNativeApp()) return false;
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  return ios && typeof navigator.canShare === "function";
+}
+
+/**
+ * 이미지 저장.
+ * - 안드로이드 앱: 사진첩 'Pictures/오운완' 앨범(갤러리 앱에 바로 보임). 구버전 앱이면 문서/오운완 폴더.
+ * - 아이폰(홈 화면 앱·Safari): 웹은 사진 앱에 직접 쓸 수 없어 공유 메뉴를 열고 '이미지 저장'을 누르게 한다.
+ * - 그 밖의 브라우저: 파일 다운로드.
+ */
+export async function saveImage(blob: Blob, fileName: string): Promise<SaveResult> {
+  if (isNativeApp()) {
+    const data = await blobToBase64(blob);
+    try {
+      await GallerySaver.saveImage({ data, fileName, album: "오운완" });
+      return "gallery";
+    } catch (e) {
+      const msg = String((e as Error)?.message ?? e);
+      if (!/not implemented|UNIMPLEMENTED/i.test(msg)) throw e;
+      await Filesystem.writeFile({
+        path: `오운완/${fileName}`,
+        data,
+        directory: Directory.Documents,
+        recursive: true,
+      });
+      return "documents";
+    }
+  }
+  const file = new File([blob], fileName, { type: blob.type });
+  if (saveGoesThroughShareSheet() && navigator.canShare({ files: [file] })) {
+    await navigator.share({ files: [file] });
+    return "ios-share";
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return "downloaded";
 }
 
 /** 이미지 공유: 앱은 안드로이드 공유창, 웹은 공유 API 또는 다운로드 */

@@ -301,3 +301,121 @@ export function runMetrics(
     weightAssumed: !(weightKg && weightKg > 0),
   };
 }
+
+/* ---------------- 1km 구간 기록(페이스·케이던스) ---------------- */
+
+type Series = [number, number, number][];
+
+/** 기록 흐름에서 기록 시간 t(초)의 누적 걸음(앞뒤 기록 사이를 선형 보간) */
+function stepsAt(series: Series, t: number): number {
+  if (t <= series[0][0]) return series[0][2];
+  for (let i = 1; i < series.length; i++) {
+    const [t1, , n1] = series[i];
+    if (t <= t1) {
+      const [t0, , n0] = series[i - 1];
+      return t1 > t0 ? n0 + ((n1 - n0) * (t - t0)) / (t1 - t0) : n1;
+    }
+  }
+  return series[series.length - 1][2];
+}
+
+/** 기록 흐름에서 누적 걸음이 target에 닿은 기록 시간(초) */
+function timeAtSteps(series: Series, target: number): number {
+  if (target <= series[0][2]) return series[0][0];
+  for (let i = 1; i < series.length; i++) {
+    const [t1, , n1] = series[i];
+    if (n1 >= target) {
+      const [t0, , n0] = series[i - 1];
+      return n1 > n0 ? t0 + ((t1 - t0) * (target - n0)) / (n1 - n0) : t1;
+    }
+  }
+  return series[series.length - 1][0];
+}
+
+/** 기록 시간 a~b초 사이의 케이던스(걸음/분). 걸음 기록이 없거나 구간이 너무 짧으면 null */
+export function cadenceBetween(series: Series | null | undefined, a: number, b: number): number | null {
+  if (!series || series.length < 2 || b - a < 20) return null;
+  const c = ((stepsAt(series, b) - stepsAt(series, a)) / (b - a)) * 60;
+  return c >= 40 && c <= 260 ? Math.round(c) : null;
+}
+
+/** 1km 구간들의 케이던스(구간 시간 목록 순서대로) */
+export function splitCadences(splits: number[], series: Series | null | undefined): (number | null)[] {
+  let t0 = 0;
+  return splits.map((sec) => {
+    const c = cadenceBetween(series, t0, t0 + sec);
+    t0 += sec;
+    return c;
+  });
+}
+
+export interface KmSplit {
+  km: number; // 몇 번째 km(1부터). 마지막 남은 구간은 그 거리(km)
+  distanceM: number;
+  sec: number; // 이 구간에 걸린 기록 시간
+  paceSec: number; // 초/km
+  cadence: number | null;
+  partial: boolean; // 1km가 안 되는 마지막 구간
+}
+
+export interface SplitTable {
+  rows: KmSplit[];
+  fastest: number; // 가장 빠른 1km 구간의 행 번호(없으면 -1)
+  hasCadence: boolean;
+  estimated: boolean; // 실내 러닝: 걸음 수에 비례해 나눈 추정 구간
+}
+
+/**
+ * 1km 구간 기록.
+ * - GPS 러닝: 달리며 잰 km 통과 시간(splits) + 그 사이 걸음으로 케이던스.
+ * - 실내 러닝: 위치가 없어 끝에 입력한 거리를 걸음 수에 비례해 나눈 추정(보폭이 일정하다고 봄).
+ * 마지막에 50m 이상 남은 거리는 짧은 구간으로 덧붙인다.
+ */
+export function kmSplits(run: RunRecord): SplitTable {
+  const series = run.series && run.series.length >= 2 ? run.series : null;
+  const rows: KmSplit[] = [];
+  let estimated = false;
+  let t0 = 0;
+  let fullCount = 0;
+
+  if (run.indoor) {
+    const total = series ? series[series.length - 1][2] : 0;
+    if (!series || total <= 0 || run.distanceM <= 0)
+      return { rows: [], fastest: -1, hasCadence: false, estimated: true };
+    estimated = true;
+    const perStep = run.distanceM / total;
+    fullCount = Math.floor(run.distanceM / 1000);
+    for (let k = 1; k <= fullCount; k++) {
+      const t1 = timeAtSteps(series, (k * 1000) / perStep);
+      if (t1 <= t0) continue;
+      rows.push({ km: k, distanceM: 1000, sec: t1 - t0, paceSec: t1 - t0, cadence: cadenceBetween(series, t0, t1), partial: false });
+      t0 = t1;
+    }
+  } else {
+    fullCount = run.splits.length;
+    const cads = splitCadences(run.splits, series);
+    run.splits.forEach((sec, i) => {
+      rows.push({ km: i + 1, distanceM: 1000, sec, paceSec: sec, cadence: cads[i], partial: false });
+      t0 += sec;
+    });
+  }
+
+  const restM = run.distanceM - fullCount * 1000;
+  const restSec = run.movingSec - t0;
+  if (restM >= 50 && restSec > 0) {
+    rows.push({
+      km: Math.round(restM / 10) / 100,
+      distanceM: restM,
+      sec: restSec,
+      paceSec: restSec / (restM / 1000),
+      cadence: cadenceBetween(series, t0, run.movingSec),
+      partial: true,
+    });
+  }
+
+  let fastest = -1;
+  rows.forEach((r, i) => {
+    if (!r.partial && r.paceSec > 0 && (fastest < 0 || r.paceSec < rows[fastest].paceSec)) fastest = i;
+  });
+  return { rows, fastest, hasCadence: rows.some((r) => r.cadence != null), estimated };
+}

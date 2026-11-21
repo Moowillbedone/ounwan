@@ -1,16 +1,34 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Map as MapIcon, Share2, ImagePlus, Route as RouteIcon, HeartPulse, Info } from "lucide-react";
+import {
+  Map as MapIcon,
+  Share2,
+  ImagePlus,
+  Route as RouteIcon,
+  HeartPulse,
+  Info,
+  Download,
+  ListOrdered,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { Sheet, Button, cn, useToast } from "./ui";
 import { RunRoute } from "./run-route";
 import { RunMap } from "./run-map";
 import { useBodyMetrics } from "@/lib/hooks";
 import { isNativeApp } from "@/lib/native";
 import { isHealthLinked, heartRateBetween, stepsInWindow } from "@/lib/health";
-import { runMetrics, weightOn, KCAL_SOURCE, type RunMetrics } from "@/lib/running";
+import { runMetrics, weightOn, kmSplits, KCAL_SOURCE, type RunMetrics } from "@/lib/running";
 import { fmtClock, fmtKm, fmtPace } from "@/lib/run-tracker";
-import { renderShareCard, shareImage, type ShareCardData } from "@/lib/share-card";
+import {
+  renderShareCard,
+  shareImage,
+  saveImage,
+  saveGoesThroughShareSheet,
+  shareFileName,
+  type ShareCardData,
+} from "@/lib/share-card";
 import type { RunRecord } from "@/lib/types";
 
 /** 러닝 기록의 상세 지표(거리·시간·페이스·속도·케이던스·걸음·칼로리·심박) + 경로 + 지도 + 공유 카드 */
@@ -21,6 +39,7 @@ export function RunDetail({
   endedAt,
   title,
   className,
+  splitsOpen = false,
 }: {
   run: RunRecord;
   date: string;
@@ -28,6 +47,8 @@ export function RunDetail({
   endedAt: string | null;
   title: string;
   className?: string;
+  /** 1km 구간 기록을 처음부터 펼쳐 둘지(운동 기록 화면은 펼침, 날짜 상세는 접음) */
+  splitsOpen?: boolean;
 }) {
   const { data: metricsList } = useBodyMetrics();
   const [hr, setHr] = useState<{ avg: number; max: number } | null>(null);
@@ -96,6 +117,8 @@ export function RunDetail({
 
       {run.route.length > 1 && <RunRoute route={run.route} className="mt-2 h-24 w-full" />}
 
+      <RunSplits run={run} defaultOpen={splitsOpen} />
+
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
         {run.route.length > 1 && (
           <button
@@ -132,6 +155,87 @@ export function RunDetail({
   );
 }
 
+/** 1km 구간별 페이스·속도·케이던스 표(가장 빠른 구간 강조, 막대 길이 = 빠르기) */
+function RunSplits({ run, defaultOpen }: { run: RunRecord; defaultOpen: boolean }) {
+  const t = useMemo(() => kmSplits(run), [run]);
+  const [open, setOpen] = useState(defaultOpen);
+  if (t.rows.length < 2) return null;
+  const full = t.rows.filter((r) => !r.partial).length;
+  // 막대 길이: 가장 느린 1km 구간 35% ~ 가장 빠른 구간 100%(차이가 눈에 띄게)
+  const fullPaces = t.rows.filter((r) => !r.partial).map((r) => r.paceSec);
+  const best = fullPaces.length ? Math.min(...fullPaces) : Math.min(...t.rows.map((r) => r.paceSec));
+  const worst = fullPaces.length ? Math.max(...fullPaces) : Math.max(...t.rows.map((r) => r.paceSec));
+  const barW = (pace: number) =>
+    worst > best ? Math.round(35 + (65 * (worst - Math.min(worst, Math.max(best, pace)))) / (worst - best)) : 100;
+  const cads = t.rows.map((r) => r.cadence).filter((c): c is number => c != null);
+  const cols = "grid grid-cols-[34px_1fr_44px_48px] items-center gap-x-2";
+  return (
+    <div className="mt-2 rounded-lg border border-border">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between px-3 py-2 text-xs font-bold text-text-2"
+      >
+        <span className="flex items-center gap-1">
+          <ListOrdered size={13} className="text-brand" /> 1km 구간 기록
+          <span className="font-semibold text-text-3">
+            · {full}구간{t.rows.length > full ? " + 남은 거리" : ""}
+            {t.estimated ? " · 추정" : ""}
+          </span>
+        </span>
+        {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+      </button>
+      {open && (
+        <div className="px-3 pb-2.5">
+          <div className={cn(cols, "border-b border-border pb-1 text-[10px] font-semibold text-text-3")}>
+            <span>km</span>
+            <span>페이스</span>
+            <span className="text-right">km/h</span>
+            <span className="text-right">케이던스</span>
+          </div>
+          {t.rows.map((r, i) => {
+            const isBest = i === t.fastest;
+            const w = barW(r.paceSec);
+            return (
+              <div key={i} className={cn(cols, "py-[3px] text-[12px] tabular-nums")}>
+                <span className={cn("font-bold", r.partial ? "text-[10px] text-text-3" : "text-text-2")}>
+                  {r.partial ? `+${r.km.toFixed(2)}` : r.km}
+                </span>
+                <span className="relative h-5 min-w-0">
+                  <span
+                    className={cn("absolute inset-y-0 left-0 rounded", isBest ? "bg-brand/40" : "bg-brand/15")}
+                    style={{ width: `${w}%` }}
+                  />
+                  <span
+                    className={cn(
+                      "relative flex h-5 items-center gap-1 pl-1.5 font-bold",
+                      isBest ? "text-brand-strong" : "text-text"
+                    )}
+                  >
+                    {fmtPace(r.paceSec)}
+                    {isBest && (
+                      <span className="rounded-full bg-brand px-1 text-[9px] font-black leading-[14px] text-white">
+                        최고
+                      </span>
+                    )}
+                  </span>
+                </span>
+                <span className="text-right text-text-2">{(3600 / r.paceSec).toFixed(1)}</span>
+                <span className="text-right font-semibold text-text-2">{r.cadence ?? "--"}</span>
+              </div>
+            );
+          })}
+          <p className="mt-1.5 text-[10px] leading-relaxed text-text-3">
+            페이스 = 1km에 걸린 시간 · 케이던스 = 분당 걸음(spm)
+            {cads.length >= 2 && ` · 케이던스 ${Math.min(...cads)}~${Math.max(...cads)}`}
+            {t.estimated && " · 실내 러닝은 입력한 거리를 걸음 수에 비례해 나눈 추정 구간이에요(속도를 바꾸면 오차가 커져요)"}
+            {!t.hasCadence && " · 케이던스는 걸음 센서로 기록한 러닝부터 보여요"}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MetricsInfo({ m, fromHealth }: { m: RunMetrics; fromHealth: boolean }) {
   return (
     <div className="space-y-3 text-sm leading-relaxed text-text-2">
@@ -144,6 +248,11 @@ function MetricsInfo({ m, fromHealth }: { m: RunMetrics; fromHealth: boolean }) 
           ? "이 기록은 걸음 센서 값이 없어서 Health Connect의 그 시간대 걸음(휴대폰·워치)으로 계산했어요. 일시정지 시간도 포함돼요."
           : "러닝 중 휴대폰 걸음 센서가 센 걸음이에요(일시정지 구간 제외). 케이던스는 1분당 걸음 수(spm)예요."}{" "}
         값이 &lsquo;--&rsquo;이면 걸음 센서 권한(신체 활동)이 없거나, 이 기능 전 기록이에요.
+      </p>
+      <p>
+        <b className="text-text">1km 구간 기록</b> — GPS로 1km 지점을 지난 시각을 재서 구간 페이스를 구하고, 그
+        구간 동안 늘어난 걸음 ÷ 구간 시간으로 구간 케이던스를 계산해요. 실내 러닝은 위치가 없어서 끝에 입력한
+        거리를 걸음 수에 비례해 나눈 <b>추정</b> 구간이에요.
       </p>
       <p>
         <b className="text-text">칼로리</b> — {KCAL_SOURCE}{" "}
@@ -201,15 +310,37 @@ export function RunShareSheet({
     img.src = u;
   };
 
+  const fileName = shareFileName(data.date, data.startedAt);
+
   const doShare = async () => {
     if (!blob) return;
     setBusy(true);
     try {
-      const r = await shareImage(blob, `ounwan-run-${data.date}.jpg`);
+      const r = await shareImage(blob, fileName);
       if (r === "downloaded") toast("이미지를 저장했어요");
     } catch (e) {
       const msg = String((e as Error)?.message ?? e);
       if (!/cancel|abort/i.test(msg)) toast("공유하지 못했어요", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // 지금 설정한 모습(배경·사진) 그대로 저장
+  const doSave = async () => {
+    if (!blob) return;
+    setBusy(true);
+    const viaShare = saveGoesThroughShareSheet();
+    if (viaShare) toast("공유 메뉴에서 ‘이미지 저장’을 누르면 사진 앱에 저장돼요");
+    try {
+      const r = await saveImage(blob, fileName);
+      if (r === "gallery") toast("사진첩 ‘오운완’ 앨범에 저장했어요", "pr");
+      else if (r === "documents")
+        toast("문서 › 오운완 폴더에 저장했어요 · 앱을 업데이트하면 사진첩에 저장돼요");
+      else if (r === "downloaded") toast("이미지를 저장했어요");
+    } catch (e) {
+      const msg = String((e as Error)?.message ?? e);
+      if (!/cancel|abort/i.test(msg)) toast(msg.includes("권한") ? msg : "이미지를 저장하지 못했어요", "error");
     } finally {
       setBusy(false);
     }
@@ -221,9 +352,14 @@ export function RunShareSheet({
       onClose={onClose}
       title="러닝 공유 카드"
       footer={
-        <Button size="lg" onClick={doShare} disabled={!blob || busy}>
-          <Share2 size={18} /> 공유하기
-        </Button>
+        <div className="flex gap-2">
+          <Button size="lg" variant="secondary" className="flex-1" onClick={doSave} disabled={!blob || busy}>
+            <Download size={18} /> 저장
+          </Button>
+          <Button size="lg" className="flex-[1.4]" onClick={doShare} disabled={!blob || busy}>
+            <Share2 size={18} /> 공유하기
+          </Button>
+        </div>
       }
     >
       <div className="mb-3 grid grid-cols-2 gap-1 rounded-full bg-surface-2 p-1">
@@ -266,6 +402,8 @@ export function RunShareSheet({
       </div>
       <p className="mt-2 text-center text-[11px] text-text-3">
         사진은 휴대폰 안에서만 합성돼요(어디에도 올라가지 않아요).
+        <br />
+        [저장]은 지금 보이는 그대로 사진첩에 저장해요.
       </p>
     </Sheet>
   );

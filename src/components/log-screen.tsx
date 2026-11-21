@@ -1494,6 +1494,7 @@ function GpsPanel({
           startedAt={ex.run.startedAt ?? null}
           endedAt={ex.run.endedAt ?? null}
           title={ex.indoor ? "실내 러닝" : "GPS 러닝"}
+          splitsOpen
         />
         <button
           onClick={() => {
